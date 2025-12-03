@@ -3,4 +3,5 @@ reportlab
 pytest
 pytest-mock
 flake8
+black
 pre-commit
