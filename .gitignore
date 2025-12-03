@@ -1,0 +1,33 @@
+# --- User Data (SENSITIVE) ---
+# Ignore all CSVs from broker
+data/*
+!data/.gitkeep
+
+# Ignore manual history override (contains personal trades)
+manual_history.csv
+
+# --- Output Reports ---
+# Ignore generated PDFs and JSONs
+output/*
+!output/.gitkeep
+
+# --- Caches ---
+# Ignore NBP rate cache (can be re-fetched)
+cache/
+
+# --- Python internals ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Virtual Environments ---
+venv/
+.venv/
+env/
+
+# --- IDE & OS files ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
