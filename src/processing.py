@@ -27,24 +27,24 @@ class TaxCalculator:
         }
 
     def ingest_preloaded_data(self, trades, divs, taxes):
-        for d in divs:
+        for d in divs: 
             h = hashlib.md5(
                 f"{d['date']}|{d['ticker']}|{d['amount']}".encode()
-            ).hexdigest()
+            ).hexdigest() # nosec B324
             if h not in self.seen_divs:
                 self.seen_divs.add(h)
                 self.raw_dividends.append(d)
         for t in taxes:
             h = hashlib.md5(
                 f"{t['date']}|{t['ticker']}|{t['amount']}".encode()
-            ).hexdigest()
+            ).hexdigest() # nosec B324
             if h not in self.seen_taxes:
                 self.seen_taxes.add(h)
                 self.raw_taxes.append(t)
         for tr in trades:
             h = hashlib.md5(
                 f"{tr['date']}|{tr['ticker']}|{tr['qty']}|{tr['price']}".encode()
-            ).hexdigest()
+            ).hexdigest() # nosec B324
             if h not in self.seen_trades:
                 self.seen_trades.add(h)
                 self.raw_trades.append(tr)

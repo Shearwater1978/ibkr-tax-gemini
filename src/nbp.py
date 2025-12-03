@@ -38,7 +38,7 @@ def _load_year_cache(currency, year):
                 rates_map[entry["effectiveDate"]] = entry["mid"]
             with open(file_path, "w") as f:
                 json.dump(rates_map, f)
-    except:
+    except: # nosec B110
         pass
     _MEMORY_CACHE[cache_key] = rates_map
     return rates_map

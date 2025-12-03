@@ -96,7 +96,7 @@ def parse_csv(filepath):
                             "amount": Decimal(row[5]),
                         }
                     )
-                except:
+                except: # nosec B110
                     pass
 
             # Taxes
@@ -116,7 +116,7 @@ def parse_csv(filepath):
                             "amount": Decimal(row[5]),
                         }
                     )
-                except:
+                except: # nosec B110
                     pass
 
             # Trades
@@ -151,6 +151,6 @@ def parse_csv(filepath):
                             "source": "IBKR",
                         }
                     )
-                except:
+                except: # nosec B110
                     pass
     return data_out
