@@ -35,4 +35,4 @@ jobs:
         path: bandit-results.json
     - name: Check for high severity issues
       run: |
-        bandit -r ./ -ll high || echo "⚠️ High severity issues found, but continuing workflow"
+        bandit -r ./src/ || echo "⚠️ High severity issues found, but continuing workflow"
