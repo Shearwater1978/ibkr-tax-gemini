@@ -55,7 +55,7 @@ jobs:
     - name: Run Bandit
       run: bandit -r ./ -f json -o bandit-results.json
     - name: Upload results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: bandit-results
         path: bandit-results.json
