@@ -49,9 +49,4 @@ jobs:
         pytest -v
 
     - name: Run Bandit
-      run: bandit -r ./src/ -f json -o bandit-results.json
-    - name: Upload results
-      uses: actions/upload-artifact@v4
-      with:
-        name: bandit-results
-        path: bandit-results.json
+      run: bandit -r ./src/ -s tests/
