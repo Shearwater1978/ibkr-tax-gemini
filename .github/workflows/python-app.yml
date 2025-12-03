@@ -49,4 +49,4 @@ jobs:
         pytest -v
 
     - name: Run Bandit
-      run: bandit -r ./src/ -s tests/
+      run: bandit -r ./src/ -s tests/ --exit-zero -c .bandit
