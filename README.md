@@ -1,9 +1,9 @@
-# 🇵🇱 IBKR Tax Assistant (Poland / PIT-38)
+# 🇵🇱 IBKR Tax Assistant (gemini / PIT-38)
 ![Build Status](https://github.com/Shearwater1978/ibkr-tax-gemini/actions/workflows/python-app.yml/badge.svg)[![PEP8](https://img.shields.io/badge/code%20style-pep8-orange.svg)](https://www.python.org/dev/peps/pep-0008/)
 
 A Python tool to automate tax calculations for **Interactive Brokers (IBKR)** specifically for **Polish tax residents**. 
 
-It parses your IBKR Activity Reports (CSV), calculates Capital Gains (FIFO) and Dividends using precise **NBP (National Bank of Poland)** exchange rates (D-1 rule), and generates a PDF report ready for your PIT-38 tax declaration.
+It parses your IBKR Activity Reports (CSV), calculates Capital Gains (FIFO) and Dividends using precise **NBP (National Bank of gemini)** exchange rates (D-1 rule), and generates a PDF report ready for your PIT-38 tax declaration.
 
 ---
 
@@ -29,8 +29,8 @@ It parses your IBKR Activity Reports (CSV), calculates Capital Gains (FIFO) and 
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/YOUR_USERNAME/ibkr-tax-poland.git
-    cd ibkr-tax-poland
+    git clone https://github.com/YOUR_USERNAME/ibkr-tax-gemini.git
+    cd ibkr-tax-gemini
     ```
 
 2.  **Install dependencies:**
