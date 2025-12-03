@@ -1,5 +1,5 @@
 # 🇵🇱 IBKR Tax Assistant (Poland / PIT-38)
-![Build Status](https://github.com/Shearwater1978/ibkr-tax-gemini/actions/workflows/python-app.yml/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/Shearwater1978/ibkr-tax-gemini/badge.svg?branch=main)](https://coveralls.io/github/Shearwater1978/ibkr-tax-gemini?branch=main)
+![Build Status](https://github.com/Shearwater1978/ibkr-tax-gemini/actions/workflows/python-app.yml/badge.svg)[![PEP8](https://img.shields.io/badge/code%20style-pep8-orange.svg)](https://www.python.org/dev/peps/pep-0008/)
 
 A Python tool to automate tax calculations for **Interactive Brokers (IBKR)** specifically for **Polish tax residents**. 
 
