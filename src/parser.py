@@ -8,18 +8,27 @@ def extract_ticker(description: str) -> str:
     if not description: return "UNKNOWN"
     match = re.search(r'^([A-Za-z0-9\.]+)\(', description)
     if match: return match.group(1)
+    
     parts = description.split()
     if parts:
-        if parts[0].isupper() and len(parts[0]) < 6: return parts[0].split('(')[0]
+        possible = parts[0]
+        if possible.isupper() and len(possible) < 6:
+             return possible.split('(')[0]
     return "UNKNOWN"
+
+def extract_target_ticker(description: str) -> str:
+    """
+    Special extractor for Spinoffs/Mergers/Tenders.
+    Looks for pattern: (CHILD, CHILD NAME, ISIN) inside the text.
+    """
+    match = re.search(r'\(([A-Za-z0-9\.]+),\s+[A-Za-z0-9]', description)
+    if match:
+        return match.group(1)
+    return None
 
 def classify_trade_type(description: str, quantity: Decimal) -> str:
     desc_upper = description.upper()
-    # Expanded list of non-taxable transfer keywords
-    transfer_keywords = [
-        "ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM", 
-        "RECEIVE DELIVER", "INTER-COMPANY"  # <--- Added this based on your log
-    ]
+    transfer_keywords = ["ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM", "RECEIVE DELIVER", "INTER-COMPANY"]
     
     if any(k in desc_upper for k in transfer_keywords):
         return "TRANSFER"
@@ -99,8 +108,35 @@ def parse_csv(filepath):
                         "qty": Decimal(row[7]),
                         "price": Decimal(row[8]),
                         "commission": Decimal(row[11]),
-                        "type": classify_trade_type(row[5], Decimal(row[7])), # Will check for INTER-COMPANY
+                        "type": classify_trade_type(row[5], Decimal(row[7])),
                         "source": "IBKR"
+                    })
+                except: pass
+
+            # --- TRANSFERS ---
+            if row[0] == "Transfers" and row[1] == "Data" and row[2] == "Stocks":
+                try:
+                    ticker = row[4]
+                    if not ticker or ticker in IGNORED_TICKERS: continue
+                    date_raw = row[5]
+                    direction = row[7]
+                    qty = Decimal(row[10])
+                    if direction == 'In': qty = abs(qty)
+                    elif direction == 'Out': qty = -abs(qty)
+                    
+                    price_raw = row[12]
+                    price = Decimal("0")
+                    if price_raw and price_raw != "--": price = Decimal(price_raw)
+
+                    data_out["trades"].append({
+                        "ticker": ticker,
+                        "currency": row[3],
+                        "date": date_raw,
+                        "qty": qty,
+                        "price": price,
+                        "commission": Decimal("0.0"),
+                        "type": "TRANSFER",
+                        "source": "IBKR_TRANSFER"
                     })
                 except: pass
 
@@ -109,24 +145,14 @@ def parse_csv(filepath):
                 try:
                     desc = row[6]
                     if "Total" in desc: continue
-                    ticker = extract_ticker(desc)
-                    if ticker in IGNORED_TICKERS: continue
+                    
                     date_raw = row[4].split(",")[0]
                     curr = row[3]
-
-                    if "Stock Dividend" in desc or "Spin-off" in desc:
-                        data_out["trades"].append({
-                            "ticker": ticker,
-                            "currency": curr,
-                            "date": date_raw,
-                            "qty": Decimal(row[7]),
-                            "price": Decimal("0.0"),
-                            "commission": Decimal("0.0"),
-                            "type": "BUY",
-                            "source": "IBKR_CORP_ACTION"
-                        })
-
+                    
+                    # 1. SPLITS (Only pure splits)
                     if "Split" in desc:
+                        ticker = extract_ticker(desc)
+                        if ticker in IGNORED_TICKERS: continue
                         match = re.search(r'Split (\d+) for (\d+)', desc, re.IGNORECASE)
                         if match:
                             numerator = Decimal(match.group(1))
@@ -144,6 +170,42 @@ def parse_csv(filepath):
                                     "ratio": ratio,
                                     "source": "IBKR_SPLIT"
                                 })
+                        continue 
+
+                    # 2. COMPLEX ACTIONS (Merger, Spin-off, Tender, Stock Div)
+                    is_spinoff = "Spin-off" in desc
+                    is_merger = "Merged" in desc or "Acquisition" in desc
+                    is_stock_div = "Stock Dividend" in desc
+                    is_tender = "Tendered" in desc # <--- NEW KEYWORD
+                    
+                    if is_stock_div or is_spinoff or is_merger or is_tender:
+                        # Extract Correct Ticker
+                        target_ticker = None
+                        if is_spinoff or is_merger or is_tender:
+                            target_ticker = extract_target_ticker(desc)
+                        if not target_ticker:
+                            target_ticker = extract_ticker(desc)
+                            
+                        if target_ticker and target_ticker not in IGNORED_TICKERS:
+                            
+                            qty = Decimal(row[7])
+                            
+                            # LOGIC UPDATE:
+                            # Instead of forcing BUY, we use TRANSFER logic.
+                            # Qty > 0: Transfer In (New Asset)
+                            # Qty < 0: Transfer Out (Old Asset, removing it)
+                            
+                            data_out["trades"].append({
+                                "ticker": target_ticker,
+                                "currency": curr,
+                                "date": date_raw,
+                                "qty": qty,
+                                "price": Decimal("0.0"), # Cost basis usually lost or 0 in these auto-entries
+                                "commission": Decimal("0.0"),
+                                "type": "TRANSFER", # Treated as Non-Taxable Flow
+                                "source": "IBKR_CORP_ACTION"
+                            })
+
                 except: pass
                     
     return data_out

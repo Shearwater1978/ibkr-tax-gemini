@@ -1,78 +1,38 @@
-# 🇵🇱 IBKR Tax Assistant (Poland / PIT-38)
+# 🇵🇱 IBKR Tax Assistant (v1.0.1)
 
-A Python tool to automate tax calculations for **Interactive Brokers (IBKR)** specifically for **Polish tax residents**. 
-
-It parses your IBKR Activity Reports (CSV), calculates Capital Gains (FIFO) and Dividends using precise **NBP (National Bank of Poland)** exchange rates (D-1 rule), and generates a PDF report ready for your PIT-38 tax declaration.
+A production-ready Python tool for **Interactive Brokers (IBKR)** tax calculations in Poland (**PIT-38**).
 
 ---
 
-## 🚀 Features
+## 🌟 Key Features
 
-* **Multi-year Support:** Automatically detects taxable years from your data.
-* **FIFO Logic:** Strict First-In-First-Out algorithm for calculating cost basis (Koszty) and revenue (Przychód).
-* **Advanced Corporate Actions:**
-    * **Stock Splits:** Correctly handles Forward and Reverse splits to preserve Cost Basis.
-    * **Stock Dividends / Spin-offs:** Treats stock distributions as acquisition with 0 cost (Polish tax rule).
-* **NBP Integration:**
-    * Fetches official exchange rates from NBP API (D-1 rule).
-    * Handles holidays and weekends automatically.
-    * **Bulk Caching:** Downloads yearly rates to minimize API calls.
-* **Smart Parsing:**
-    * Filters out non-taxable events (ACATS, Inter-Company Transfers).
-    * Supports `manual_history.csv` for importing trade history from previous brokers.
-* **Reports:**
-    * **PDF:** Professional report including:
-        * Portfolio Snapshot.
-        * Trades History & Corporate Actions log.
-        * **Detailed Dividends Breakdown** (per payment).
-        * **PIT-38 Helper** (Final Section C and Dividends numbers).
-    * **JSON:** Full detailed data export.
-* **Quality & Security:**
-    * **Unit Tests:** `pytest` suite covering math, FIFO, and parsing.
-    * **Security:** Checked with `Bandit` (SHA256 hashing).
-    * **CI/CD:** GitHub Actions pipeline for tests and linting (`flake8`).
+* **Complex Events:**
+    * **Sanctions/Escrow:** Correctly handles `Tendered` assets (e.g., SBER ADR -> SBER) and flagged restricted assets (RUB).
+    * **Mergers/Spin-offs:** "Smart" parser detects hidden tickers in descriptions (e.g., WBD spinoff from AT&T).
+* **Precise Math:**
+    * **FIFO Logic:** Strict chronological matching.
+    * **NBP Integration:** D-1 rule, holiday recursion, caching.
+* **Professional Reports:**
+    * **Visual Alerts:** Restricted assets marked with `*` and **Light Red** background.
+    * **Details:** Monthly Dividend breakdown, Corporate Actions log.
+    * **PIT-38:** Ready-to-copy numbers for Section C and Dividends.
+* **Security:**
+    * Local processing only.
+    * CI/CD with `bandit` security scans.
 
-## 🛠️ Installation
+## 🚀 Quick Start
 
-1.  **Clone the repository:**
+1.  **Clone & Install:**
     ```bash
-    git clone https://github.com/YOUR_USERNAME/ibkr-tax-poland.git
+    git clone [https://github.com/YOUR_USERNAME/ibkr-tax-poland.git](https://github.com/YOUR_USERNAME/ibkr-tax-poland.git)
     cd ibkr-tax-poland
-    ```
-
-2.  **Install dependencies:**
-    ```bash
     pip install -r requirements.txt
     ```
-    *(Optional) Install pre-commit hooks:*
-    ```bash
-    pre-commit install
-    ```
 
-## 📂 Usage
-
-1.  **Export Data from IBKR:**
-    * Create a Custom Query in Flex Queries including **Trades**, **Dividends**, **Withholding Tax**, and **Corporate Actions**.
-    * Download CSV files.
-
-2.  **Prepare Data:**
-    * Place your `.csv` files into the `data/` folder.
-
-3.  **Run the Tool:**
-    ```bash
-    python main.py
-    ```
-
-4.  **Get Results:**
-    * Check the `output/` folder for `tax_report_YYYY.pdf`.
-
-## 🧪 Running Tests
-
-```bash
-# Run all tests
-pytest -v
-```
+2.  **Run:**
+    * Place your CSVs in `data/`.
+    * `python main.py`
+    * Check `output/tax_report_2024.pdf`.
 
 ## ⚠️ Disclaimer
-
-**I am not a tax advisor.** This software is for informational purposes only. Always verify the numbers with your official broker statements and consult a qualified tax professional before filing.
+**I am not a tax advisor.** Verify all numbers with your official broker statements.
