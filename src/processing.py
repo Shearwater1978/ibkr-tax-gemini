@@ -17,7 +17,7 @@ class TaxCalculator:
             "capital_gains": [],
             "holdings": [],
             "trades_history": [],
-            "corp_actions": [],  # <--- NEW SECTION
+            "corp_actions": [],
             "diagnostics": {
                 "tickers_count": 0,
                 "div_rows_count": 0,
@@ -43,7 +43,6 @@ class TaxCalculator:
                 self.seen_taxes.add(h)
                 self.raw_taxes.append(t)
         for tr in trades:
-            # Enhanced signature to include type (important for splits vs trades on same day)
             sig = f"{tr['date']}|{tr['ticker']}|{tr.get('qty', 0)}|{tr.get('price', 0)}|{tr.get('type')}"
             h = self._get_hash(sig)
             if h not in self.seen_trades:
@@ -52,52 +51,63 @@ class TaxCalculator:
 
     def _calculate_holdings(self):
         sorted_trades = sorted(self.raw_trades, key=lambda x: x['date'])
-        holdings = {}
+        
+        # Structure: ticker -> {'qty': Decimal, 'currency': str}
+        holdings_map = {}
         limit_date = f"{self.target_year}-12-31"
         
         for trade in sorted_trades:
             if trade['date'] > limit_date: break
             ticker = trade['ticker']
             
-            # Handle Splits logic for holdings count
+            # Init if not exists
+            if ticker not in holdings_map:
+                holdings_map[ticker] = {"qty": Decimal("0"), "currency": trade['currency']}
+            
+            # Update currency (in case it changes, keeps latest)
+            holdings_map[ticker]['currency'] = trade['currency']
+
+            # Handle Splits logic
             if trade['type'] == 'SPLIT':
-                if ticker in holdings:
-                    ratio = trade.get('ratio', Decimal(1))
-                    holdings[ticker] = holdings[ticker] * ratio
+                ratio = trade.get('ratio', Decimal(1))
+                holdings_map[ticker]['qty'] = holdings_map[ticker]['qty'] * ratio
                 continue
 
-            # Standard Buy/Sell
+            # Standard Buy/Sell/Transfer
             qty = trade.get('qty', Decimal(0))
-            if ticker not in holdings: holdings[ticker] = Decimal("0")
-            holdings[ticker] += qty
+            holdings_map[ticker]['qty'] += qty
             
         result = []
-        for ticker, qty in holdings.items():
+        for ticker, data in holdings_map.items():
+            qty = data['qty']
             if abs(qty) > 0.0001:
-                result.append({"ticker": ticker, "qty": float(qty)})
+                # Determine if restricted (RUB assets)
+                is_restricted = (data['currency'] == 'RUB')
+                
+                result.append({
+                    "ticker": ticker, 
+                    "qty": float(qty),
+                    "currency": data['currency'],
+                    "is_restricted": is_restricted
+                })
         
         self.report_data["holdings"] = sorted(result, key=lambda x: x['ticker'])
 
     def _collect_history_lists(self):
-        # Separates standard trades from corporate actions for the report
         history = []
         actions = []
         
         for trade in self.raw_trades:
             if not trade['date'].startswith(self.target_year): continue
             
-            # 1. Corporate Actions (Splits OR Stock Dividends)
             is_split = trade['type'] == 'SPLIT'
             is_stock_div = trade.get('source') == 'IBKR_CORP_ACTION'
             
             if is_split or is_stock_div:
                 actions.append(trade)
-                # Note: Stock Dividends are ALSO technical buys, so we might want them in history too?
-                # Usually better to separate them or keep in both. Let's keep Stock Divs in History too for audit of Qty.
                 if is_stock_div:
                     history.append(trade)
             else:
-                # 2. Standard Trades
                 history.append(trade)
         
         history.sort(key=lambda x: x['date'])
@@ -110,7 +120,6 @@ class TaxCalculator:
         self._calculate_holdings()
         self._collect_history_lists()
 
-        # ... (Dividends Logic remains same) ...
         monthly_map = {} 
         currency_map = {}
         unique_tickers = set()
@@ -156,7 +165,6 @@ class TaxCalculator:
         self.report_data["monthly_dividends"] = monthly_map
         self.report_data["per_currency"] = {k: float(v) for k, v in currency_map.items()}
 
-        # Capital Gains
         matcher = TradeMatcher()
         matcher.process_trades(self.raw_trades)
         for pnl in matcher.realized_pnl:
@@ -164,7 +172,6 @@ class TaxCalculator:
                 self.report_data["capital_gains"].append(pnl)
                 unique_tickers.add(pnl['ticker'])
         
-        # Diagnostics
         tax_rows_in_year = 0
         for t in self.raw_taxes:
             if t['date'].startswith(self.target_year): tax_rows_in_year += 1
