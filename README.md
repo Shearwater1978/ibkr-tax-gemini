@@ -25,7 +25,7 @@ A production-ready Python tool for **Interactive Brokers (IBKR)** tax calculatio
 1.  **Clone & Install:**
     ```bash
     git clone [https://github.com/Shearwater1978/ibkr-tax-gemini.git](https://github.com/Shearwater1978/ibkr-tax-gemini.git)
-    cd ibkr-tax-poland
+    cd ibkr-tax-gemini
     pip install -r requirements.txt
     ```
 
