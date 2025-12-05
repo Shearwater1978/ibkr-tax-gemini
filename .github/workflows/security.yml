@@ -1,0 +1,41 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  bandit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.12"
+        
+    - name: Install Bandit
+      run: pip install bandit
+      
+    - name: Run Bandit Scan
+      # -r src/: recursive scan of source code only
+      # -ll: log level (report only severity Medium and High)
+      # -ii: confidence level (High confidence only)
+      run: |
+        bandit -r src/ -f json -o bandit-report.json --exit-zero
+        
+        # Display report in console for quick check
+        bandit -r src/ -ll
+
+    - name: Upload Security Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: bandit-report
+        path: bandit-report.json
