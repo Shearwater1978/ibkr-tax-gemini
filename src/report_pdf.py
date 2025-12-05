@@ -7,7 +7,7 @@ from reportlab.lib.units import mm
 import itertools
 
 APP_NAME = "IBKR Tax Assistant"
-APP_VERSION = "v1.0.2" # Bumped for Layout Update
+APP_VERSION = "v1.0.4" # Layout Fix Final
 
 def get_zebra_style(row_count, header_color=colors.HexColor('#D0D0D0')):
     cmds = [
@@ -71,26 +71,20 @@ def generate_pdf(json_data, filename="report.pdf"):
                 display_ticker += " *"
                 has_restricted = True
                 restricted_indices.append(row_idx)
-                
             holdings_data.append([display_ticker, f"{h['qty']:.3f}"])
             row_idx += 1
             
         t_holdings = Table(holdings_data, colWidths=[200, 150], repeatRows=1)
-        
         ts = get_zebra_style(len(holdings_data))
         ts.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
-        
-        # Red Highlight for Restricted
         for r_idx in restricted_indices:
             ts.add('BACKGROUND', (0, r_idx), (-1, r_idx), colors.HexColor('#FFCCCC'))
-            
         t_holdings.setStyle(ts)
         elements.append(t_holdings)
         
         if has_restricted:
             elements.append(Spacer(1, 10))
             elements.append(Paragraph("* Assets held in special escrow accounts / sanctioned (RUB)", italic_small))
-            
     else:
         elements.append(Paragraph("No open positions found at end of year.", normal_style))
     elements.append(PageBreak())
@@ -175,22 +169,26 @@ def generate_pdf(json_data, filename="report.pdf"):
         t_months.setStyle(ts)
         elements.append(t_months)
         
-        # --- DETAILED DIVIDENDS (1 Month = 1 Page) ---
-        elements.append(PageBreak())
+        # --- DETAILED DIVIDENDS ---
+        elements.append(PageBreak()) # START NEW SECTION ON NEW PAGE
         elements.append(Paragraph(f"Dividend Details (Chronological)", h2_style))
         elements.append(Paragraph("Detailed breakdown of every dividend payment received.", normal_style))
+        elements.append(Spacer(1, 10))
         
         sorted_divs = sorted(data['dividends'], key=lambda x: x['date'])
         
-        # We want the FIRST month to start on this page (or next). 
-        # Let's start the first month on a NEW page to be clean.
-        elements.append(PageBreak())
+        is_first_month = True
         
         for month_key, group in itertools.groupby(sorted_divs, key=lambda x: x['date'][:7]):
+            # LOGIC: If NOT first month, add PageBreak BEFORE content
+            if not is_first_month:
+                elements.append(PageBreak())
+            
+            is_first_month = False
+            
             y, m = month_key.split('-')
             m_name = month_names.get(m, m)
             
-            # Month Header
             elements.append(Paragraph(f"{m_name} {y}", h2_style))
             
             det_header = [["Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]]
@@ -211,15 +209,14 @@ def generate_pdf(json_data, filename="report.pdf"):
             ts_det.add('FONTSIZE', (0,0), (-1,-1), 8)
             t_det.setStyle(ts_det)
             elements.append(t_det)
-            
-            # FORCE NEW PAGE after each month
-            elements.append(PageBreak())
         
     else:
         elements.append(Paragraph("No dividends received this year.", normal_style))
-        elements.append(PageBreak())
+    
+    # Force PageBreak before Summary to keep it clean
+    elements.append(PageBreak())
 
-    # PAGE 5: SUMMARY & PIT-38
+    # PAGE: YEARLY SUMMARY
     elements.append(Paragraph(f"Yearly Summary", h2_style))
     div_gross = sum(x['amount_pln'] for x in data['dividends'])
     div_tax = sum(x['tax_paid_pln'] for x in data['dividends'])
@@ -253,6 +250,7 @@ def generate_pdf(json_data, filename="report.pdf"):
     ts_diag.add('ALIGN', (1,1), (-1,-1), 'CENTER')
     t_diag.setStyle(ts_diag)
     elements.append(t_diag)
+    
     elements.append(Spacer(1, 20))
     elements.append(Paragraph("Per-currency totals (PLN)", h2_style))
     curr_data = [["Currency", "PLN total"]]
@@ -265,7 +263,7 @@ def generate_pdf(json_data, filename="report.pdf"):
     elements.append(t_curr)
     elements.append(PageBreak())
 
-    # PIT-38
+    # PAGE: PIT-38
     elements.append(Paragraph(f"PIT-38 Helper Data ({year})", h2_style))
     elements.append(Spacer(1, 10))
     elements.append(Paragraph("Section C (Stocks/Derivatives)", h3_style))
