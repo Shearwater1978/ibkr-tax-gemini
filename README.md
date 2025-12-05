@@ -1,4 +1,4 @@
-# 🇵🇱 IBKR Tax Assistant (v1.0.1)
+# 🇵🇱 IBKR Tax Assistant
 
 A production-ready Python tool for **Interactive Brokers (IBKR)** tax calculations in Poland (**PIT-38**).
 
