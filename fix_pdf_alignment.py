@@ -1,4 +1,10 @@
-from reportlab.lib import colors
+import os
+
+# Обновляем src/report_pdf.py
+# Добавляем выравнивание по центру для колонки FIFO Check (индекс 2).
+
+PROJECT_UPDATE = {
+    "src/report_pdf.py": """from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -307,3 +313,16 @@ def generate_pdf(json_data, filename="report.pdf"):
     elements.append(t_pit_div)
 
     doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
+"""
+}
+
+def fix_alignment():
+    print("🎨 Centering 'FIFO Check' column in PDF...")
+    for file_path, content in PROJECT_UPDATE.items():
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"   Updated: {file_path}")
+    print("\n✅ PDF Style Updated! Run 'python main.py' to generate the centered report.")
+
+if __name__ == "__main__":
+    fix_alignment()
