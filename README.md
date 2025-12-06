@@ -1,38 +1,22 @@
-# 🇵🇱 IBKR Tax Assistant
+# IBKR Tax Assistant (Poland / PIT-38)
 
-A production-ready Python tool for **Interactive Brokers (IBKR)** tax calculations in Poland (**PIT-38**).
+**Automated tax reporting tool for Interactive Brokers users resident in Poland.**
 
----
+This tool parses IBKR Activity Statements (CSV), applies Polish tax rules (FIFO, NBP rates D-1), and generates a clean, audit-ready PDF report including specific data for the PIT-38 declaration.
 
-## 🌟 Key Features
+## Key Features 🚀
 
-* **Complex Events:**
-    * **Sanctions/Escrow:** Correctly handles `Tendered` assets (e.g., SBER ADR -> SBER) and flagged restricted assets (RUB).
-    * **Mergers/Spin-offs:** "Smart" parser detects hidden tickers in descriptions (e.g., WBD spinoff from AT&T).
-* **Precise Math:**
-    * **FIFO Logic:** Strict chronological matching.
-    * **NBP Integration:** D-1 rule, holiday recursion, caching.
-* **Professional Reports:**
-    * **Visual Alerts:** Restricted assets marked with `*` and **Light Red** background.
-    * **Details:** Monthly Dividend breakdown, Corporate Actions log.
-    * **PIT-38:** Ready-to-copy numbers for Section C and Dividends.
-* **Security:**
-    * Local processing only.
-    * CI/CD with `bandit` security scans.
+* **Robust Parsing:** Handles Spin-offs (WBD, OGN), Mergers (KVUE), Splits (GE), and complex Corporate Actions that standard reports often miss.
+* **Audit-Ready PDF:**
+    * **Spacious Layout:** Dividend details split by month for easy manual verification.
+    * **Sanctions Handling:** Visually highlights restricted assets (RUB).
+    * **FIFO Reconciliation:** Automatically checks if the calculated FIFO inventory matches the broker's reported ending positions.
 
-## 🚀 Quick Start
+## Usage
 
-1.  **Clone & Install:**
-    ```bash
-    git clone [https://github.com/Shearwater1978/ibkr-tax-gemini.git](https://github.com/Shearwater1978/ibkr-tax-gemini.git)
-    cd ibkr-tax-gemini
-    pip install -r requirements.txt
-    ```
+1.  Place CSV files in `data/`.
+2.  Run `python main.py`.
+3.  Get report in `output/report.pdf`.
 
-2.  **Run:**
-    * Place your CSVs in `data/`.
-    * `python main.py`
-    * Check `output/tax_report_2024.pdf`.
-
-## ⚠️ Disclaimer
-**I am not a tax advisor.** Verify all numbers with your official broker statements.
+## Disclaimer
+For educational purposes only. Verify with a tax advisor.

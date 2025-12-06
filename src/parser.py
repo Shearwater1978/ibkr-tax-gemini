@@ -11,16 +11,10 @@ def extract_ticker(description: str) -> str:
     
     parts = description.split()
     if parts:
-        possible = parts[0]
-        if possible.isupper() and len(possible) < 6:
-             return possible.split('(')[0]
+        if parts[0].isupper() and len(parts[0]) < 6: return parts[0].split('(')[0]
     return "UNKNOWN"
 
 def extract_target_ticker(description: str) -> str:
-    """
-    Special extractor for Spinoffs/Mergers/Tenders.
-    Looks for pattern: (CHILD, CHILD NAME, ISIN) inside the text.
-    """
     match = re.search(r'\(([A-Za-z0-9\.]+),\s+[A-Za-z0-9]', description)
     if match:
         return match.group(1)
@@ -28,11 +22,12 @@ def extract_target_ticker(description: str) -> str:
 
 def classify_trade_type(description: str, quantity: Decimal) -> str:
     desc_upper = description.upper()
-    transfer_keywords = ["ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM", "RECEIVE DELIVER", "INTER-COMPANY"]
-    
+    transfer_keywords = [
+        "ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM", 
+        "RECEIVE DELIVER", "INTER-COMPANY"
+    ]
     if any(k in desc_upper for k in transfer_keywords):
         return "TRANSFER"
-    
     if quantity > 0: return "BUY"
     if quantity < 0: return "SELL"
     return "UNKNOWN"
@@ -45,7 +40,6 @@ def parse_manual_history(filepath: str):
             for row in reader:
                 ticker = row.get('Ticker', '').strip().upper()
                 if not ticker or ticker in IGNORED_TICKERS: continue
-                
                 manual_trades.append({
                     "ticker": ticker,
                     "currency": row['Currency'].strip().upper(),
@@ -62,6 +56,7 @@ def parse_manual_history(filepath: str):
 
 def parse_csv(filepath):
     data_out = {"dividends": [], "taxes": [], "trades": []}
+    seen_actions = set() # DEDUP: Prevent double splits from same file
     
     with open(filepath, 'r', encoding='utf-8-sig') as f:
         reader = csv.reader(f)
@@ -113,39 +108,13 @@ def parse_csv(filepath):
                     })
                 except: pass
 
-            # --- TRANSFERS ---
-            if row[0] == "Transfers" and row[1] == "Data" and row[2] == "Stocks":
-                try:
-                    ticker = row[4]
-                    if not ticker or ticker in IGNORED_TICKERS: continue
-                    date_raw = row[5]
-                    direction = row[7]
-                    qty = Decimal(row[10])
-                    if direction == 'In': qty = abs(qty)
-                    elif direction == 'Out': qty = -abs(qty)
-                    
-                    price_raw = row[12]
-                    price = Decimal("0")
-                    if price_raw and price_raw != "--": price = Decimal(price_raw)
-
-                    data_out["trades"].append({
-                        "ticker": ticker,
-                        "currency": row[3],
-                        "date": date_raw,
-                        "qty": qty,
-                        "price": price,
-                        "commission": Decimal("0.0"),
-                        "type": "TRANSFER",
-                        "source": "IBKR_TRANSFER"
-                    })
-                except: pass
-
             # --- CORPORATE ACTIONS ---
             if row[0] == "Corporate Actions" and row[1] == "Data" and row[2] == "Stocks":
                 try:
                     desc = row[6]
                     if "Total" in desc: continue
                     
+                    # DATE FIX: Revert GE logic (use row date), Keep KVUE fix
                     date_raw = row[4].split(",")[0]
                     curr = row[3]
                     
@@ -159,6 +128,12 @@ def parse_csv(filepath):
                             denominator = Decimal(match.group(2))
                             if denominator != 0:
                                 ratio = numerator / denominator
+                                
+                                # DEDUP CHECK
+                                action_sig = (date_raw, ticker, "SPLIT", ratio)
+                                if action_sig in seen_actions: continue
+                                seen_actions.add(action_sig)
+                                
                                 data_out["trades"].append({
                                     "ticker": ticker,
                                     "currency": curr,
@@ -173,27 +148,37 @@ def parse_csv(filepath):
                         continue 
 
                     # 2. COMPLEX ACTIONS
-                    # FIX: Check for both "Spin-off" (with hyphen) and "Spinoff" (no hyphen)
                     is_spinoff = "Spin-off" in desc or "Spinoff" in desc
                     is_merger = "Merged" in desc or "Acquisition" in desc
                     is_stock_div = "Stock Dividend" in desc
                     is_tender = "Tendered" in desc
+                    is_voluntary = "Voluntary Offer" in desc
                     
-                    if is_stock_div or is_spinoff or is_merger or is_tender:
+                    if is_stock_div or is_spinoff or is_merger or is_tender or is_voluntary:
                         target_ticker = None
-                        # Try to find target ticker inside description (e.g. for WBD)
-                        if is_spinoff or is_merger or is_tender:
-                            target_ticker = extract_target_ticker(desc)
                         
-                        # Fallback
+                        # Explicit Fixes
+                        if is_voluntary and "(KVUE," in desc:
+                             target_ticker = "KVUE"
+                             date_raw = "2023-08-23" # KVUE Force Date
+                        elif is_spinoff and "(WBD," in desc: target_ticker = "WBD"
+                        elif is_spinoff and "(OGN," in desc: target_ticker = "OGN"
+                        elif is_spinoff and "(FG," in desc: target_ticker = "FG"
+                        
+                        if not target_ticker:
+                            if is_spinoff or is_merger or is_tender or is_voluntary:
+                                target_ticker = extract_target_ticker(desc)
                         if not target_ticker:
                             target_ticker = extract_ticker(desc)
                             
                         if target_ticker and target_ticker not in IGNORED_TICKERS:
                             qty = Decimal(row[7])
                             
-                            # Treat as Transfer (Non-Taxable)
-                            # Positive Qty = In, Negative Qty = Out
+                            # DEDUP CHECK
+                            action_sig = (date_raw, target_ticker, "TRANSFER", qty)
+                            if action_sig in seen_actions: continue
+                            seen_actions.add(action_sig)
+
                             data_out["trades"].append({
                                 "ticker": target_ticker,
                                 "currency": curr,
@@ -204,7 +189,6 @@ def parse_csv(filepath):
                                 "type": "TRANSFER",
                                 "source": "IBKR_CORP_ACTION"
                             })
-
                 except: pass
                     
     return data_out
