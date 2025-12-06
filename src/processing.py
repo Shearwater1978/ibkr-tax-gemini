@@ -46,8 +46,14 @@ class TaxCalculator:
                 self.raw_trades.append(tr)
 
     def _calculate_holdings_simple(self):
-        # Calculates holdings based on simple summation (Broker view)
-        sorted_trades = sorted(self.raw_trades, key=lambda x: x['date'])
+        # PRIORITY SORTING (Same as FIFO): SPLIT (0) -> TRANSFER/BUY (1) -> SELL (2)
+        type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
+        
+        sorted_trades = sorted(
+            self.raw_trades, 
+            key=lambda x: (x['date'], type_priority.get(x['type'], 3))
+        )
+        
         holdings_map = {}
         limit_date = f"{self.target_year}-12-31"
         
@@ -78,7 +84,7 @@ class TaxCalculator:
                     "qty": float(qty),
                     "currency": data['currency'],
                     "is_restricted": is_restricted,
-                    "fifo_match": False # Will be updated later
+                    "fifo_match": False
                 })
         
         self.report_data["holdings"] = sorted(result, key=lambda x: x['ticker'])
@@ -102,15 +108,12 @@ class TaxCalculator:
         self.report_data["corp_actions"] = actions
 
     def run_calculations(self):
-        # 1. Calculate Simple Sum Holdings
         self._calculate_holdings_simple()
         self._collect_history_lists()
 
-        # 2. Run FIFO Engine
         matcher = TradeMatcher()
         matcher.process_trades(self.raw_trades)
         
-        # 3. FIFO Reconciliation (The "Check")
         fifo_inventory = matcher.get_current_inventory()
         
         for holding in self.report_data["holdings"]:
@@ -118,14 +121,12 @@ class TaxCalculator:
             simple_qty = Decimal(str(holding["qty"]))
             fifo_qty = fifo_inventory.get(ticker, Decimal("0"))
             
-            # Check difference (tolerance for float errors)
             if abs(simple_qty - fifo_qty) < 0.0001:
                 holding["fifo_match"] = True
             else:
                 holding["fifo_match"] = False
                 print(f"⚠️ MISMATCH for {ticker}: Broker says {simple_qty}, FIFO engine says {fifo_qty}")
 
-        # 4. Dividends & Rest
         monthly_map = {} 
         currency_map = {}
         unique_tickers = set()

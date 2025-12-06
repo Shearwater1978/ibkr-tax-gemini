@@ -9,7 +9,22 @@ class TradeMatcher:
         self.realized_pnl = []
 
     def process_trades(self, trades_list):
-        sorted_trades = sorted(trades_list, key=lambda x: x['date'])
+        # PRIORITY SORTING:
+        # On the same date, we want to process INCOMING items before OUTGOING.
+        # Priority (lower is first): SPLIT (0) -> TRANSFER/BUY (1) -> SELL (2)
+        
+        type_priority = {
+            'SPLIT': 0,
+            'TRANSFER': 1,
+            'BUY': 1,
+            'SELL': 2
+        }
+        
+        # Sort by Date first, then by Priority
+        sorted_trades = sorted(
+            trades_list, 
+            key=lambda x: (x['date'], type_priority.get(x['type'], 3))
+        )
 
         for trade in sorted_trades:
             ticker = trade['ticker']
@@ -23,7 +38,6 @@ class TradeMatcher:
             elif trade['type'] == 'SPLIT':
                 self._process_split(trade)
             elif trade['type'] == 'TRANSFER':
-                # Transfers adjust inventory quantity without tax event
                 if trade['qty'] > 0:
                     self._process_buy(trade)
                 else:
@@ -59,13 +73,13 @@ class TradeMatcher:
         comm = trade.get('commission', Decimal(0))
         
         sell_revenue_pln = money(price * qty_to_sell * sell_rate)
-        sell_comm_pln = money(abs(comm) * sell_rate)
         
         cost_basis_pln = Decimal("0.00")
         matched_buys = []
 
         while qty_to_sell > 0:
             if not self.inventory[ticker]: 
+                # Safety break if selling more than we have
                 break 
 
             buy_batch = self.inventory[ticker][0]
@@ -91,6 +105,7 @@ class TradeMatcher:
                 qty_to_sell = 0
 
         if is_taxable:
+            sell_comm_pln = money(abs(comm) * sell_rate)
             total_cost = cost_basis_pln + sell_comm_pln
             profit_pln = sell_revenue_pln - total_cost
             
@@ -119,7 +134,6 @@ class TradeMatcher:
         self.inventory[ticker] = new_deque
 
     def get_current_inventory(self):
-        # Returns {ticker: total_qty} based on FIFO queue
         snapshot = {}
         for ticker, batches in self.inventory.items():
             total = sum(b['qty'] for b in batches)
