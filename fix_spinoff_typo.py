@@ -1,4 +1,10 @@
-import csv
+import os
+
+# Исправляем парсер: добавляем вариативность написания Spinoff / Spin-off.
+# IBKR в разных годах пишет это по-разному.
+
+PROJECT_UPDATE = {
+    "src/parser.py": """import csv
 import re
 from decimal import Decimal
 
@@ -17,10 +23,10 @@ def extract_ticker(description: str) -> str:
     return "UNKNOWN"
 
 def extract_target_ticker(description: str) -> str:
-    """
+    \"\"\"
     Special extractor for Spinoffs/Mergers/Tenders.
     Looks for pattern: (CHILD, CHILD NAME, ISIN) inside the text.
-    """
+    \"\"\"
     match = re.search(r'\(([A-Za-z0-9\.]+),\s+[A-Za-z0-9]', description)
     if match:
         return match.group(1)
@@ -208,3 +214,16 @@ def parse_csv(filepath):
                 except: pass
                     
     return data_out
+"""
+}
+
+def fix_spinoff_typo():
+    print("🚑 Fixing 'Spinoff' typo detection in Parser...")
+    for file_path, content in PROJECT_UPDATE.items():
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"   Updated: {file_path}")
+    print("\n✅ Parser updated! Run 'python main.py' to recalculate WBD, FG, OGN.")
+
+if __name__ == "__main__":
+    fix_spinoff_typo()

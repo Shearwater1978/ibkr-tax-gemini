@@ -1,4 +1,9 @@
-import hashlib
+import os
+
+# Полное содержание файла src/processing.py
+# Исправленная версия без синтаксических ошибок
+
+NEW_CONTENT = r"""import hashlib
 from typing import Dict, List
 from decimal import Decimal
 from .fifo import TradeMatcher
@@ -188,3 +193,13 @@ class TaxCalculator:
 
     def get_results(self):
         return {"year": self.target_year, "data": self.report_data}
+"""
+
+def apply_fix():
+    print("🚑 Fixing src/processing.py syntax...")
+    with open("src/processing.py", "w", encoding="utf-8") as f:
+        f.write(NEW_CONTENT)
+    print("✅ File restored. Now run: python main.py")
+
+if __name__ == "__main__":
+    apply_fix()
