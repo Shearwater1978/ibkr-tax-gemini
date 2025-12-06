@@ -1,4 +1,332 @@
-from reportlab.lib import colors
+import os
+
+PROJECT_UPDATE = {
+    # 1. FIFO: Учим отдавать текущий остаток
+    "src/fifo.py": """from decimal import Decimal
+from collections import deque
+from .nbp import get_rate_for_tax_date
+from .utils import money
+
+class TradeMatcher:
+    def __init__(self):
+        self.inventory = {} 
+        self.realized_pnl = []
+
+    def process_trades(self, trades_list):
+        sorted_trades = sorted(trades_list, key=lambda x: x['date'])
+
+        for trade in sorted_trades:
+            ticker = trade['ticker']
+            if ticker not in self.inventory:
+                self.inventory[ticker] = deque()
+
+            if trade['type'] == 'BUY':
+                self._process_buy(trade)
+            elif trade['type'] == 'SELL':
+                self._process_sell(trade)
+            elif trade['type'] == 'SPLIT':
+                self._process_split(trade)
+            elif trade['type'] == 'TRANSFER':
+                # Transfers adjust inventory quantity without tax event
+                if trade['qty'] > 0:
+                    self._process_buy(trade)
+                else:
+                    self._process_transfer_out(trade)
+
+    def _process_buy(self, trade):
+        rate = get_rate_for_tax_date(trade['currency'], trade['date'])
+        price = trade.get('price', Decimal(0))
+        comm = trade.get('commission', Decimal(0))
+        cost_pln = money((price * trade['qty'] * rate) + (abs(comm) * rate))
+        
+        self.inventory[trade['ticker']].append({
+            "date": trade['date'],
+            "qty": trade['qty'],
+            "price": price,
+            "rate": rate,
+            "cost_pln": cost_pln,
+            "source": trade.get('source', 'UNKNOWN')
+        })
+
+    def _process_sell(self, trade):
+        self._consume_inventory(trade, is_taxable=True)
+
+    def _process_transfer_out(self, trade):
+        self._consume_inventory(trade, is_taxable=False)
+
+    def _consume_inventory(self, trade, is_taxable):
+        ticker = trade['ticker']
+        qty_to_sell = abs(trade['qty'])
+        
+        sell_rate = get_rate_for_tax_date(trade['currency'], trade['date'])
+        price = trade.get('price', Decimal(0))
+        comm = trade.get('commission', Decimal(0))
+        
+        sell_revenue_pln = money(price * qty_to_sell * sell_rate)
+        sell_comm_pln = money(abs(comm) * sell_rate)
+        
+        cost_basis_pln = Decimal("0.00")
+        matched_buys = []
+
+        while qty_to_sell > 0:
+            if not self.inventory[ticker]: 
+                break 
+
+            buy_batch = self.inventory[ticker][0]
+            
+            if buy_batch['qty'] <= qty_to_sell:
+                cost_basis_pln += buy_batch['cost_pln']
+                qty_to_sell -= buy_batch['qty']
+                matched_buys.append(buy_batch.copy())
+                self.inventory[ticker].popleft()
+            else:
+                ratio = qty_to_sell / buy_batch['qty']
+                part_cost = money(buy_batch['cost_pln'] * ratio)
+                
+                partial_record = buy_batch.copy()
+                partial_record['qty'] = qty_to_sell
+                partial_record['cost_pln'] = part_cost
+                matched_buys.append(partial_record)
+
+                cost_basis_pln += part_cost
+                
+                buy_batch['qty'] -= qty_to_sell
+                buy_batch['cost_pln'] -= part_cost
+                qty_to_sell = 0
+
+        if is_taxable:
+            total_cost = cost_basis_pln + sell_comm_pln
+            profit_pln = sell_revenue_pln - total_cost
+            
+            self.realized_pnl.append({
+                "ticker": ticker,
+                "date_sell": trade['date'],
+                "revenue_pln": float(sell_revenue_pln),
+                "cost_pln": float(total_cost),
+                "profit_pln": float(profit_pln),
+                "matched_buys": matched_buys
+            })
+
+    def _process_split(self, trade):
+        ticker = trade['ticker']
+        ratio = trade.get('ratio', Decimal("1"))
+        if ticker not in self.inventory: return
+
+        new_deque = deque()
+        while self.inventory[ticker]:
+            batch = self.inventory[ticker].popleft()
+            new_qty = batch['qty'] * ratio
+            new_price = batch['price'] / ratio
+            batch['qty'] = new_qty
+            batch['price'] = new_price
+            new_deque.append(batch)
+        self.inventory[ticker] = new_deque
+
+    def get_current_inventory(self):
+        # Returns {ticker: total_qty} based on FIFO queue
+        snapshot = {}
+        for ticker, batches in self.inventory.items():
+            total = sum(b['qty'] for b in batches)
+            if total > 0:
+                snapshot[ticker] = total
+        return snapshot
+""",
+
+    # 2. PROCESSING: Сравниваем суммы
+    "src/processing.py": """import hashlib
+from typing import Dict, List
+from decimal import Decimal
+from .fifo import TradeMatcher
+from .nbp import get_rate_for_tax_date
+from .utils import money
+
+class TaxCalculator:
+    def __init__(self, target_year: str):
+        self.target_year = target_year
+        self.raw_dividends, self.raw_trades, self.raw_taxes = [], [], []
+        self.seen_divs, self.seen_trades, self.seen_taxes = set(), set(), set()
+        
+        self.report_data = {
+            "dividends": [],
+            "monthly_dividends": {},
+            "capital_gains": [],
+            "holdings": [],
+            "trades_history": [],
+            "corp_actions": [],
+            "diagnostics": {},
+            "per_currency": {}
+        }
+
+    def _get_hash(self, data_str: str) -> str:
+        return hashlib.sha256(data_str.encode('utf-8')).hexdigest()
+
+    def ingest_preloaded_data(self, trades, divs, taxes):
+        for d in divs:
+            sig = f"{d['date']}|{d['ticker']}|{d['amount']}"
+            h = self._get_hash(sig)
+            if h not in self.seen_divs:
+                self.seen_divs.add(h)
+                self.raw_dividends.append(d)
+        for t in taxes:
+            sig = f"{t['date']}|{t['ticker']}|{t['amount']}"
+            h = self._get_hash(sig)
+            if h not in self.seen_taxes:
+                self.seen_taxes.add(h)
+                self.raw_taxes.append(t)
+        for tr in trades:
+            sig = f"{tr['date']}|{tr['ticker']}|{tr.get('qty', 0)}|{tr.get('price', 0)}|{tr.get('type')}"
+            h = self._get_hash(sig)
+            if h not in self.seen_trades:
+                self.seen_trades.add(h)
+                self.raw_trades.append(tr)
+
+    def _calculate_holdings_simple(self):
+        # Calculates holdings based on simple summation (Broker view)
+        sorted_trades = sorted(self.raw_trades, key=lambda x: x['date'])
+        holdings_map = {}
+        limit_date = f"{self.target_year}-12-31"
+        
+        for trade in sorted_trades:
+            if trade['date'] > limit_date: break
+            ticker = trade['ticker']
+            
+            if ticker not in holdings_map:
+                holdings_map[ticker] = {"qty": Decimal("0"), "currency": trade['currency"]}
+            
+            holdings_map[ticker]['currency'] = trade['currency']
+
+            if trade['type'] == 'SPLIT':
+                ratio = trade.get('ratio', Decimal(1))
+                holdings_map[ticker]['qty'] = holdings_map[ticker]['qty'] * ratio
+                continue
+
+            qty = trade.get('qty', Decimal(0))
+            holdings_map[ticker]['qty'] += qty
+            
+        result = []
+        for ticker, data in holdings_map.items():
+            qty = data['qty']
+            if abs(qty) > 0.0001:
+                is_restricted = (data['currency'] == 'RUB')
+                result.append({
+                    "ticker": ticker, 
+                    "qty": float(qty),
+                    "currency": data['currency'],
+                    "is_restricted": is_restricted,
+                    "fifo_match": False # Will be updated later
+                })
+        
+        self.report_data["holdings"] = sorted(result, key=lambda x: x['ticker'])
+
+    def _collect_history_lists(self):
+        history = []
+        actions = []
+        for trade in self.raw_trades:
+            if not trade['date'].startswith(self.target_year): continue
+            is_split = trade['type'] == 'SPLIT'
+            is_stock_div = trade.get('source') == 'IBKR_CORP_ACTION'
+            if is_split or is_stock_div:
+                actions.append(trade)
+                if is_stock_div: history.append(trade)
+            else:
+                history.append(trade)
+        
+        history.sort(key=lambda x: x['date'])
+        actions.sort(key=lambda x: x['date'])
+        self.report_data["trades_history"] = history
+        self.report_data["corp_actions"] = actions
+
+    def run_calculations(self):
+        # 1. Calculate Simple Sum Holdings
+        self._calculate_holdings_simple()
+        self._collect_history_lists()
+
+        # 2. Run FIFO Engine
+        matcher = TradeMatcher()
+        matcher.process_trades(self.raw_trades)
+        
+        # 3. FIFO Reconciliation (The "Check")
+        fifo_inventory = matcher.get_current_inventory()
+        
+        for holding in self.report_data["holdings"]:
+            ticker = holding["ticker"]
+            simple_qty = Decimal(str(holding["qty"]))
+            fifo_qty = fifo_inventory.get(ticker, Decimal("0"))
+            
+            # Check difference (tolerance for float errors)
+            if abs(simple_qty - fifo_qty) < 0.0001:
+                holding["fifo_match"] = True
+            else:
+                holding["fifo_match"] = False
+                print(f"⚠️ MISMATCH for {ticker}: Broker says {simple_qty}, FIFO engine says {fifo_qty}")
+
+        # 4. Dividends & Rest
+        monthly_map = {} 
+        currency_map = {}
+        unique_tickers = set()
+        div_rows_in_year = 0
+        
+        for div in self.raw_dividends:
+            if not div['date'].startswith(self.target_year): continue
+            div_rows_in_year += 1
+            unique_tickers.add(div['ticker'])
+            
+            rate = get_rate_for_tax_date(div['currency'], div['date'])
+            amount_pln = money(div['amount'] * rate)
+            
+            curr = div['currency']
+            if curr not in currency_map: currency_map[curr] = Decimal("0.00")
+            currency_map[curr] += amount_pln
+            
+            tax_paid, tax_paid_pln = 0, 0
+            for t in self.raw_taxes:
+                if t['ticker'] == div['ticker'] and t['date'] == div['date']:
+                    tax_paid += abs(t['amount'])
+                    tax_paid_pln += abs(money(t['amount'] * rate))
+            
+            self.report_data["dividends"].append({
+                "ticker": div['ticker'],
+                "date": div['date'],
+                "amount": float(div['amount']),
+                "currency": div['currency'],
+                "rate": float(rate),
+                "amount_pln": float(amount_pln),
+                "tax_paid": float(tax_paid),
+                "tax_paid_pln": float(tax_paid_pln)
+            })
+            
+            month = div['date'].split('-')[1]
+            if month not in monthly_map:
+                monthly_map[month] = {"gross_pln": 0, "tax_pln": 0, "net_pln": 0}
+            
+            monthly_map[month]["gross_pln"] += float(amount_pln)
+            monthly_map[month]["tax_pln"] += float(tax_paid_pln)
+            monthly_map[month]["net_pln"] += float(amount_pln - tax_paid_pln)
+
+        self.report_data["monthly_dividends"] = monthly_map
+        self.report_data["per_currency"] = {k: float(v) for k, v in currency_map.items()}
+
+        for pnl in matcher.realized_pnl:
+            if pnl['date_sell'].startswith(self.target_year):
+                self.report_data["capital_gains"].append(pnl)
+                unique_tickers.add(pnl['ticker'])
+        
+        tax_rows_in_year = 0
+        for t in self.raw_taxes:
+            if t['date'].startswith(self.target_year): tax_rows_in_year += 1
+            
+        self.report_data["diagnostics"] = {
+            "tickers_count": len(unique_tickers),
+            "div_rows_count": div_rows_in_year,
+            "tax_rows_count": tax_rows_in_year
+        }
+
+    def get_results(self):
+        return {"year": self.target_year, "data": self.report_data}
+""",
+
+    # 3. PDF: Рисуем новый столбец
+    "src/report_pdf.py": """from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -308,3 +636,18 @@ def generate_pdf(json_data, filename="report.pdf"):
     elements.append(t_pit_div)
 
     doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
+"""
+}
+
+def install_fifo_check():
+    print("⚖️ Installing FIFO Reconciliation Logic...")
+    for file_path, content in PROJECT_UPDATE.items():
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"   Updated: {file_path}")
+    print("\n✅ Installed! Run 'python main.py'.")
+    print("   Look for the 'FIFO Check' column in the Portfolio table.")
+    print("   If you see 'MISMATCH!', check the console output for details.")
+
+if __name__ == "__main__":
+    install_fifo_check()
