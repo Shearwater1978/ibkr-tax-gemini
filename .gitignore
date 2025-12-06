@@ -25,6 +25,7 @@ __pycache__/
 venv/
 .venv/
 env/
+.python-version
 
 # --- IDE & OS files ---
 .idea/
