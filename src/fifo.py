@@ -10,21 +10,17 @@ class TradeMatcher:
         self.realized_pnl = []
 
     def save_state(self, filepath: str, cutoff_date: str):
-        """
-        Saves current OPEN inventory to a JSON file.
-        Converts Decimals to strings for serialization.
-        """
         serializable_inv = {}
         for ticker, queue in self.inventory.items():
             batches = []
             for batch in queue:
-                # Convert Decimal -> str
                 b_copy = batch.copy()
                 b_copy['qty'] = str(b_copy['qty'])
                 b_copy['price'] = str(b_copy['price'])
                 b_copy['cost_pln'] = str(b_copy['cost_pln'])
                 if 'rate' in b_copy:
-                    b_copy['rate'] = float(b_copy['rate']) # float is fine for rate display
+                    b_copy['rate'] = float(b_copy['rate'])
+                # Currency is explicitly saved inside the batch dict now
                 batches.append(b_copy)
             if batches:
                 serializable_inv[ticker] = batches
@@ -39,9 +35,6 @@ class TradeMatcher:
         print(f"💾 Snapshot saved to {filepath} (Cutoff: {cutoff_date})")
 
     def load_state(self, filepath: str) -> str:
-        """
-        Loads inventory from JSON. Returns the cutoff_date found in file.
-        """
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
@@ -54,10 +47,10 @@ class TradeMatcher:
         for ticker, batches in loaded_inv.items():
             self.inventory[ticker] = deque()
             for b in batches:
-                # Convert str -> Decimal
                 b['qty'] = Decimal(b['qty'])
                 b['price'] = Decimal(b['price'])
                 b['cost_pln'] = Decimal(b['cost_pln'])
+                # currency loads automatically as part of dict
                 self.inventory[ticker].append(b)
             count_positions += 1
             
@@ -65,7 +58,6 @@ class TradeMatcher:
         return cutoff
 
     def process_trades(self, trades_list):
-        # PRIORITY SORTING: SPLIT (0) -> TRANSFER/BUY (1) -> SELL (2)
         type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
         
         sorted_trades = sorted(
@@ -102,6 +94,7 @@ class TradeMatcher:
             "price": price,
             "rate": rate,
             "cost_pln": cost_pln,
+            "currency": trade['currency'],  # <--- FIX: SAVE CURRENCY
             "source": trade.get('source', 'UNKNOWN')
         })
 
@@ -176,6 +169,7 @@ class TradeMatcher:
             new_price = batch['price'] / ratio
             batch['qty'] = new_qty
             batch['price'] = new_price
+            # Currency is preserved in batch copy
             new_deque.append(batch)
         self.inventory[ticker] = new_deque
 

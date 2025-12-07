@@ -68,16 +68,6 @@ class TaxCalculator:
         holdings_map = {}
         limit_date = f"{self.target_year}-12-31"
         
-        # NOTE: Simple Holdings calculation usually needs FULL history to be accurate.
-        # If we use a snapshot, Simple Holdings might show only delta if we filter raw_trades.
-        # For Reconciliation to work with Snapshot, we need either:
-        # A) Load snapshot into simple holdings too (complex)
-        # B) Only verify FIFO inventory against broker report (Broker report is the Truth).
-        
-        # Let's proceed with standard logic but be aware that if raw_trades are filtered, 
-        # this internal 'Broker Check' might differ from FIFO.
-        # However, typically 'holdings' table is for display.
-        
         for trade in sorted_trades:
             if trade['date'] > limit_date: break
             ticker = trade['ticker']
@@ -129,40 +119,38 @@ class TaxCalculator:
         self.report_data["corp_actions"] = actions
 
     def run_calculations(self):
-        # 1. Filter trades if Snapshot is loaded
+        # 1. Filter trades
         trades_to_process = []
         if self.snapshot_cutoff_date:
-            # We only want trades NEWER than snapshot date
-            # Snapshots captures END of that day.
             for t in self.raw_trades:
                 if t['date'] > self.snapshot_cutoff_date:
                     trades_to_process.append(t)
         else:
             trades_to_process = self.raw_trades
 
-        # 2. Run FIFO Engine (self.matcher might already have data from snapshot)
+        # 2. Run FIFO
         self.matcher.process_trades(trades_to_process)
-        
-        # 3. Holdings & History for Report
-        # For the 'Simple Sum' table (Portfolio), we ideally want the Broker's view.
-        # But our script calculates it from raw_trades. 
-        # If we filtered raw_trades, _calculate_holdings_simple will be wrong (incomplete).
-        # FIX: We rely on FIFO Inventory as the "Truth" for quantity if Snapshot is used.
         
         fifo_inventory = self.matcher.get_current_inventory()
         
-        # Generate 'Holdings' list directly from FIFO inventory if using snapshot
-        # because we don't have full history to reconstruct it via simple sum.
+        # 3. Holdings Generation
         if self.snapshot_cutoff_date:
             self.report_data["holdings"] = []
             for ticker, qty in fifo_inventory.items():
                  if qty > 0:
+                     # FIX: LOOKUP CURRENCY FROM INVENTORY BATCHES
+                     currency = "USD"
+                     if ticker in self.matcher.inventory and self.matcher.inventory[ticker]:
+                         currency = self.matcher.inventory[ticker][0].get('currency', 'USD')
+                     
+                     is_restricted = (currency == 'RUB')
+                     
                      self.report_data["holdings"].append({
                          "ticker": ticker,
                          "qty": float(qty),
-                         "currency": "USD", # Approximation, usually safe
-                         "is_restricted": False,
-                         "fifo_match": True # It matches by definition
+                         "currency": currency,
+                         "is_restricted": is_restricted,
+                         "fifo_match": True
                      })
         else:
             self._calculate_holdings_simple()
