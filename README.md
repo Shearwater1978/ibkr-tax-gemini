@@ -31,3 +31,10 @@ python main.py
 ## Usage (Advanced: Snapshots) 📸
 
 See [Wiki](WIKI_CONTENT.md) for details on how to archive old data.
+
+## Developer Guide / AI Restoration 🤖
+
+See [Wiki - AI Restoration](WIKI_CONTENT.md#4-developer-guide--ai-restoration) for instructions on how to restore this project using `RESTART_PROMPT.md`.
+
+## Disclaimer
+For educational purposes only. Always verify with a certified tax advisor.
