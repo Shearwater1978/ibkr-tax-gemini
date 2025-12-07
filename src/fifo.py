@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from collections import deque
 from .nbp import get_rate_for_tax_date
@@ -8,19 +9,57 @@ class TradeMatcher:
         self.inventory = {} 
         self.realized_pnl = []
 
-    def process_trades(self, trades_list):
-        # PRIORITY SORTING:
-        # On the same date, we want to process INCOMING items before OUTGOING.
-        # Priority (lower is first): SPLIT (0) -> TRANSFER/BUY (1) -> SELL (2)
+    def save_state(self, filepath: str, cutoff_date: str):
+        serializable_inv = {}
+        for ticker, queue in self.inventory.items():
+            batches = []
+            for batch in queue:
+                b_copy = batch.copy()
+                b_copy['qty'] = str(b_copy['qty'])
+                b_copy['price'] = str(b_copy['price'])
+                b_copy['cost_pln'] = str(b_copy['cost_pln'])
+                if 'rate' in b_copy:
+                    b_copy['rate'] = float(b_copy['rate'])
+                # Currency is explicitly saved inside the batch dict now
+                batches.append(b_copy)
+            if batches:
+                serializable_inv[ticker] = batches
         
-        type_priority = {
-            'SPLIT': 0,
-            'TRANSFER': 1,
-            'BUY': 1,
-            'SELL': 2
+        data = {
+            "cutoff_date": cutoff_date,
+            "inventory": serializable_inv
         }
         
-        # Sort by Date first, then by Priority
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+        print(f"💾 Snapshot saved to {filepath} (Cutoff: {cutoff_date})")
+
+    def load_state(self, filepath: str) -> str:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        cutoff = data.get("cutoff_date", "1900-01-01")
+        loaded_inv = data.get("inventory", {})
+        
+        self.inventory = {}
+        count_positions = 0
+        
+        for ticker, batches in loaded_inv.items():
+            self.inventory[ticker] = deque()
+            for b in batches:
+                b['qty'] = Decimal(b['qty'])
+                b['price'] = Decimal(b['price'])
+                b['cost_pln'] = Decimal(b['cost_pln'])
+                # currency loads automatically as part of dict
+                self.inventory[ticker].append(b)
+            count_positions += 1
+            
+        print(f"📂 Snapshot loaded: {count_positions} positions restored (Cutoff: {cutoff}).")
+        return cutoff
+
+    def process_trades(self, trades_list):
+        type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
+        
         sorted_trades = sorted(
             trades_list, 
             key=lambda x: (x['date'], type_priority.get(x['type'], 3))
@@ -55,6 +94,7 @@ class TradeMatcher:
             "price": price,
             "rate": rate,
             "cost_pln": cost_pln,
+            "currency": trade['currency'],  # <--- FIX: SAVE CURRENCY
             "source": trade.get('source', 'UNKNOWN')
         })
 
@@ -79,7 +119,6 @@ class TradeMatcher:
 
         while qty_to_sell > 0:
             if not self.inventory[ticker]: 
-                # Safety break if selling more than we have
                 break 
 
             buy_batch = self.inventory[ticker][0]
@@ -130,6 +169,7 @@ class TradeMatcher:
             new_price = batch['price'] / ratio
             batch['qty'] = new_qty
             batch['price'] = new_price
+            # Currency is preserved in batch copy
             new_deque.append(batch)
         self.inventory[ticker] = new_deque
 
