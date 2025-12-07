@@ -29,3 +29,16 @@ Assets denominated in **RUB** or known to be sanctioned/blocked are highlighted 
 * **KVUE (Kenvue) Spin-off/Exchange (2023):** handled automatically via specific date-fix logic.
 * **GE (General Electric) Split (2021):** handled with deduplication logic.
 * **WBD/OGN:** Standard spin-offs are detected from transaction descriptions.
+
+## 4. Developer Guide / AI Restoration
+This project includes a special file: **`RESTART_PROMPT.md`**.
+
+**What is it?**
+It contains the full source code (cleaned and translated to English), file structure, and technical specification of the project in a single prompt.
+
+**How to use it?**
+If you want to continue development in a new chat session with an LLM (ChatGPT, Claude, Gemini):
+1.  Open `RESTART_PROMPT.md`.
+2.  Copy the entire content.
+3.  Paste it into the AI chat.
+4.  The AI will instantly "restore" the context and be ready to code.
