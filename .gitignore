@@ -2,6 +2,7 @@
 # Ignore all CSVs from broker
 data/*
 !data/.gitkeep
+snapshot_*.json
 
 # Ignore manual history override (contains personal trades)
 manual_history.csv

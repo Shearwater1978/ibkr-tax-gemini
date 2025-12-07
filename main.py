@@ -33,10 +33,12 @@ def main():
     all_raw_divs = []
     all_raw_taxes = []
     
+    # 1. Load Manual History
     if os.path.exists(MANUAL_FILE):
         logging.info(f"Loading manual history...")
         all_raw_trades.extend(parse_manual_history(MANUAL_FILE))
     
+    # 2. Load all CSVs
     if os.path.exists(DATA_DIR):
         for filename in os.listdir(DATA_DIR):
             if filename.lower().endswith(".csv"):
@@ -60,12 +62,26 @@ def main():
     for year in target_years:
         logging.info(f"Processing Year: {year}")
         calculator = TaxCalculator(target_year=year)
+        
+        # --- SNAPSHOT LOGIC ---
+        # Try to find a snapshot from the PREVIOUS year.
+        # Example: If calculating 2025, look for 'snapshot_2024.json'
+        prev_year = str(int(year) - 1)
+        snapshot_file = f"snapshot_{prev_year}.json"
+        
+        if os.path.exists(snapshot_file):
+            logging.info(f"   Found Snapshot: {snapshot_file}. Loading inventory...")
+            calculator.load_snapshot(snapshot_file)
+        else:
+            logging.info(f"   No snapshot for {prev_year}. Calculating from full history.")
+        # ----------------------
+
         calculator.ingest_preloaded_data(all_raw_trades, all_raw_divs, all_raw_taxes)
         calculator.run_calculations()
         
         final_report = calculator.get_results()
         
-        # Check if there is ANY data worth printing (Holdings, Trades, Divs, Gains)
+        # Check if there is ANY data worth printing
         data = final_report['data']
         has_data = (data['dividends'] or 
                     data['capital_gains'] or 
