@@ -2,21 +2,32 @@
 
 **Automated tax reporting tool for Interactive Brokers users resident in Poland.**
 
-This tool parses IBKR Activity Statements (CSV), applies Polish tax rules (FIFO, NBP rates D-1), and generates a clean, audit-ready PDF report including specific data for the PIT-38 declaration.
+Parses IBKR Activity Statements (CSV), calculates FIFO with Polish tax rules (NBP D-1), handles complex corporate actions (Spinoffs, Mergers), and generates audit-ready PDF reports.
 
 ## Key Features 🚀
 
-* **Robust Parsing:** Handles Spin-offs (WBD, OGN), Mergers (KVUE), Splits (GE), and complex Corporate Actions that standard reports often miss.
+* **Smart Parsing:** Handles KVUE (Merger), GE (Splits), WBD/OGN (Spinoffs) automatically.
+* **Snapshot System:** Keep your data folder clean. Generate a JSON snapshot of your inventory and archive old CSV files.
 * **Audit-Ready PDF:**
-    * **Spacious Layout:** Dividend details split by month for easy manual verification.
-    * **Sanctions Handling:** Visually highlights restricted assets (RUB).
-    * **FIFO Reconciliation:** Automatically checks if the calculated FIFO inventory matches the broker's reported ending positions.
+    * **FIFO Check:** Verifies calculated inventory against broker's report.
+    * **Sanctions:** Highlights restricted assets (RUB).
+    * **PIT-38 Helper:** Calculates fields 20, 21, 45 for the tax declaration.
 
-## Usage
+## Installation
 
-1.  Place CSV files in `data/`.
-2.  Run `python main.py`.
-3.  Get report in `output/report.pdf`.
+```bash
+pip install -r requirements.txt
+```
 
-## Disclaimer
-For educational purposes only. Verify with a tax advisor.
+## Usage (Standard)
+
+1.  Place your Annual Activity Statements (CSV) in `data/`.
+2.  Run:
+```bash
+python main.py
+```
+3.  Check `output/` for PDF reports.
+
+## Usage (Advanced: Snapshots) 📸
+
+See [Wiki](WIKI_CONTENT.md) for details on how to archive old data.

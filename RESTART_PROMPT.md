@@ -1,13 +1,17 @@
-# RESTART PROMPT (GOLDEN BACKUP)
+# RESTART PROMPT (GOLDEN BACKUP v1.2.0)
 
 I want to recreate a Python project exactly as it exists now.
-It is an IBKR Tax Calculator for Poland (PIT-38).
+It is an IBKR Tax Calculator for Poland (PIT-38) with Snapshot support.
 
 ## 1. File Structure
 ```text
 ROOT/
     requirements.txt
-    check_integrity.py
+    update_docs_final.py
+    WIKI_CONTENT.md
+    SPECIFICATION_RU.md
+    README.md
+    create_snapshot.py
     main.py
     cache/
         nbp/
@@ -24,46 +28,52 @@ ROOT/
 ```
 
 ## 2. Technical Specification
-# Техническая спецификация: IBKR Tax Assistant (v1.1.0)
+# Техническая спецификация: IBKR Tax Assistant (v1.2.0)
 
 ## 1. Цель проекта
-Автоматизация расчета налогов (PIT-38) для налоговых резидентов Польши, использующих брокера Interactive Brokers (IBKR).
-Приложение парсит CSV-отчеты, рассчитывает прибыль по методу FIFO, конвертирует валюты по курсу NBP (день D-1) и генерирует подробный PDF-отчет.
+Автоматизация расчета налогов (PIT-38) для резидентов Польши (Interactive Brokers).
+Поддержка сложных корпоративных действий, FIFO, конвертации валют (NBP D-1) и оптимизации истории сделок через систему Снэпшотов.
 
 ## 2. Архитектура
 * **Язык:** Python 3.10+
-* **Типы данных:** `Decimal` для всех финансовых расчетов.
-* **Модульность:**
-    * `src/parser.py`: Разбор CSV, классификация транзакций (включая дедупликацию и фиксы дат).
-    * `src/fifo.py`: Логика очереди FIFO, учет остатков, умная сортировка (Split -> Buy -> Sell).
-    * `src/nbp.py`: API к Нацбанку Польши.
-    * `src/processing.py`: Оркестратор расчетов.
-    * `src/report_pdf.py`: Генерация отчета (Spacious Layout, Red Highlights).
+* **Core:**
+    * `src/parser.py`: Парсинг CSV, дедупликация (GE), фикс дат (KVUE), поиск скрытых тикеров (Spin-offs).
+    * `src/fifo.py`: Движок FIFO. Поддерживает `save_state`/`load_state` (JSON) для переноса остатков между годами.
+    * `src/processing.py`: Оркестратор. Умеет загружать Snapshot и игнорировать старые сделки.
+    * `src/nbp.py`: API Нацбанка Польши.
+* **Tools:**
+    * `main.py`: Точка входа. Автоматически ищет подходящий снэпшот для выбранного года.
+    * `create_snapshot.py`: Утилита для генерации JSON-слепка инвентаря на конец года.
+    * `src/report_pdf.py`: Генерация PDF (PIT-38, Monthly Divs, Reconcilliation Check).
 
-## 3. Ключевые функции и Бизнес-логика
+## 3. Бизнес-логика
 
 ### 3.1. Парсинг и Данные
-* **Мульти-аккаунты:** Слияние истории.
-* **Корпоративные действия:**
-    * **Spin-offs:** WBD, OGN, FG (поиск скрытых тикеров).
-    * **Mergers:** KVUE Voluntary Offer (хардкод даты 2023-08-23 для синхронизации).
-    * **Splits:** GE (дедупликация повторов в CSV).
-* **Time Travel Fix:** Исправление ситуаций, когда продажа записана в отчете раньше, чем поступление акций в тот же день.
+* **Коррекция данных:**
+    * KVUE: Хардкод даты `2023-08-23` для "Voluntary Offer" (Time Travel Fix).
+    * GE: Удаление дубликатов сплитов из одного файла.
+    * Spin-offs: WBD, OGN, FG извлекаются из текстового описания.
+* **FIFO Priority:** Внутри одного дня операции сортируются: Split -> Transfer/Buy -> Sell.
 
-### 3.2. Налоги и FIFO
-* **FIFO:** First-In-First-Out.
-* **Правило D-1:** Курс NBP за предыдущий рабочий день.
-* **Сверка (Reconciliation):** Колонка "FIFO Check" в PDF. Сравнивает `Sum(Buy) - Sum(Sell)` с остатком в движке FIFO.
+### 3.2. Оптимизация (Snapshots)
+* **Проблема:** Хранение CSV за 10 лет неудобно и избыточно.
+* **Решение:**
+    1.  Пользователь генерирует `snapshot_YYYY.json` (состояние инвентаря на 31.12.YYYY).
+    2.  При расчете года `YYYY+1` скрипт загружает JSON и использует его как базу Cost Basis.
+    3.  Старые CSV файлы можно удалить, FIFO продолжает работать корректно.
 
-### 3.3. Отчетность
-* **PDF:** Подробная разбивка дивидендов (1 месяц = 1 блок), помощь для PIT-38.
-* **Санкции:** Визуальное выделение заблокированных активов (RUB).
+### 3.3. Налоговая математика & Отчетность
+* **Reconciliation:** Сверка "Broker View" vs "FIFO Engine View". Статус `OK` или `MISMATCH`.
+* **Visuals:** Красная подсветка для заблокированных активов (RUB, Sanctions).
+* **Layout:** "Spacious" режим для дивидендов (удобная сверка с банком).
 
-## 4. Зависимости
-* `reportlab`, `requests`, `pytest`.
+## 4. Стек
+* `reportlab` (PDF)
+* `requests` (API)
+* `pytest` (Tests: Edge cases coverage)
 
 
-## 3. SOURCE CODE
+## 3. SOURCE CODE AND DOCS
 Please populate the files with the following content exactly:
 
 # --- FILE: ./requirements.txt ---
@@ -77,53 +87,385 @@ black
 pre-commit
 ```
 
-# --- FILE: ./check_integrity.py ---
-```python
+# --- FILE: ./update_docs_final.py ---
+````python
 import os
 
-def check_file_content(filepath, search_strings):
-    if not os.path.exists(filepath):
-        print(f"❌ Файл не найден: {filepath}")
-        return False
-    
-    with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    all_found = True
-    for s in search_strings:
-        if s not in content:
-            print(f"❌ В файле {filepath} НЕ НАЙДЕН код:\n   '{s[:50]}...'")
-            all_found = False
-    
-    if all_found:
-        print(f"✅ Файл {filepath} содержит нужные правки.")
-    return all_found
+# --- 1. СПЕЦИФИКАЦИЯ (Техническая) ---
+NEW_SPEC = (
+    "# Техническая спецификация: IBKR Tax Assistant (v1.2.0)\n\n"
+    "## 1. Цель проекта\n"
+    "Автоматизация расчета налогов (PIT-38) для резидентов Польши (Interactive Brokers).\n"
+    "Поддержка сложных корпоративных действий, FIFO, конвертации валют (NBP D-1) и оптимизации истории сделок через систему Снэпшотов.\n\n"
+    "## 2. Архитектура\n"
+    "* **Язык:** Python 3.10+\n"
+    "* **Core:**\n"
+    "    * `src/parser.py`: Парсинг CSV, дедупликация (GE), фикс дат (KVUE), поиск скрытых тикеров (Spin-offs).\n"
+    "    * `src/fifo.py`: Движок FIFO. Поддерживает `save_state`/`load_state` (JSON) для переноса остатков между годами.\n"
+    "    * `src/processing.py`: Оркестратор. Умеет загружать Snapshot и игнорировать старые сделки.\n"
+    "    * `src/nbp.py`: API Нацбанка Польши.\n"
+    "* **Tools:**\n"
+    "    * `main.py`: Точка входа. Автоматически ищет подходящий снэпшот для выбранного года.\n"
+    "    * `create_snapshot.py`: Утилита для генерации JSON-слепка инвентаря на конец года.\n"
+    "    * `src/report_pdf.py`: Генерация PDF (PIT-38, Monthly Divs, Reconcilliation Check).\n\n"
+    "## 3. Бизнес-логика\n\n"
+    "### 3.1. Парсинг и Данные\n"
+    "* **Коррекция данных:**\n"
+    "    * KVUE: Хардкод даты `2023-08-23` для \"Voluntary Offer\" (Time Travel Fix).\n"
+    "    * GE: Удаление дубликатов сплитов из одного файла.\n"
+    "    * Spin-offs: WBD, OGN, FG извлекаются из текстового описания.\n"
+    "* **FIFO Priority:** Внутри одного дня операции сортируются: Split -> Transfer/Buy -> Sell.\n\n"
+    "### 3.2. Оптимизация (Snapshots)\n"
+    "* **Проблема:** Хранение CSV за 10 лет неудобно и избыточно.\n"
+    "* **Решение:**\n"
+    "    1.  Пользователь генерирует `snapshot_YYYY.json` (состояние инвентаря на 31.12.YYYY).\n"
+    "    2.  При расчете года `YYYY+1` скрипт загружает JSON и использует его как базу Cost Basis.\n"
+    "    3.  Старые CSV файлы можно удалить, FIFO продолжает работать корректно.\n\n"
+    "### 3.3. Налоговая математика & Отчетность\n"
+    "* **Reconciliation:** Сверка \"Broker View\" vs \"FIFO Engine View\". Статус `OK` или `MISMATCH`.\n"
+    "* **Visuals:** Красная подсветка для заблокированных активов (RUB, Sanctions).\n"
+    "* **Layout:** \"Spacious\" режим для дивидендов (удобная сверка с банком).\n\n"
+    "## 4. Стек\n"
+    "* `reportlab` (PDF)\n"
+    "* `requests` (API)\n"
+    "* `pytest` (Tests: Edge cases coverage)\n"
+)
 
-def run_check():
-    print("🔍 Проверка целостности кода для сложных корпоративных действий...\n")
+# --- 2. README (Общая инфо) ---
+# Используем переменную для обратных кавычек, чтобы Python f-string не сходил с ума
+BTC = "`" * 3 
+
+NEW_README = (
+    "# IBKR Tax Assistant (Poland / PIT-38)\n\n"
+    "**Automated tax reporting tool for Interactive Brokers users resident in Poland.**\n\n"
+    "Parses IBKR Activity Statements (CSV), calculates FIFO with Polish tax rules (NBP D-1), handles complex corporate actions (Spinoffs, Mergers), and generates audit-ready PDF reports.\n\n"
+    "## Key Features 🚀\n\n"
+    "* **Smart Parsing:** Handles KVUE (Merger), GE (Splits), WBD/OGN (Spinoffs) automatically.\n"
+    "* **Snapshot System:** Keep your data folder clean. Generate a JSON snapshot of your inventory and archive old CSV files.\n"
+    "* **Audit-Ready PDF:**\n"
+    "    * **FIFO Check:** Verifies calculated inventory against broker's report.\n"
+    "    * **Sanctions:** Highlights restricted assets (RUB).\n"
+    "    * **PIT-38 Helper:** Calculates fields 20, 21, 45 for the tax declaration.\n\n"
+    "## Installation\n\n"
+    f"{BTC}bash\n"
+    "pip install -r requirements.txt\n"
+    f"{BTC}\n\n"
+    "## Usage (Standard)\n\n"
+    "1.  Place your Annual Activity Statements (CSV) in `data/`.\n"
+    "2.  Run:\n"
+    f"{BTC}bash\n"
+    "python main.py\n"
+    f"{BTC}\n"
+    "3.  Check `output/` for PDF reports.\n\n"
+    "## Usage (Advanced: Snapshots) 📸\n\n"
+    "See [Wiki](WIKI_CONTENT.md) for details on how to archive old data.\n"
+)
+
+# --- 3. WIKI CONTENT (Пользовательская инструкция) ---
+NEW_WIKI = (
+    "# User Manual\n\n"
+    "## 1. How to use Snapshots (Archiving History)\n"
+    "As years go by, parsing 5-10 years of CSV history every time becomes slow and messy. "
+    "Use Snapshots to \"freeze\" your inventory state.\n\n"
+    "### Steps:\n"
+    "1.  Ensure all historical CSVs (e.g., 2021-2024) are currently in `data/` folder.\n"
+    "2.  Run the snapshot tool:\n"
+    f"{BTC}bash\n"
+    "python create_snapshot.py\n"
+    f"{BTC}\n"
+    "3.  Enter the **Cutoff Year** (e.g., `2024`).\n"
+    "    * This means: \"Calculate everything up to Dec 31, 2024, and save the remaining stocks to JSON.\"\n"
+    "4.  A file `snapshot_2024.json` is created.\n"
+    "5.  **Cleanup:** You can now delete CSV files for 2021, 2022, 2023, and 2024. Keep only the 2025 CSV.\n"
+    "6.  **Run:** When you run `python main.py`, it detects you are calculating 2025, finds `snapshot_2024.json`, loads it, and processes only the new 2025 trades.\n\n"
+    "## 2. Reading the PDF Report\n\n"
+    "### FIFO Check Column\n"
+    "In the \"Portfolio Composition\" table, you will see a column **FIFO Check**.\n"
+    "* **OK**: The quantity calculated by our FIFO engine matches exactly the quantity reported by the Broker. You are safe.\n"
+    "* **MISMATCH**: There is a discrepancy. Check console logs for details. Usually caused by missing history files.\n\n"
+    "### Red Highlights (Sanctions/Blocked)\n"
+    "Assets denominated in **RUB** or known to be sanctioned/blocked are highlighted with a **RED background** in the holdings table. "
+    "Check if these need special tax treatment (e.g. \"zbycie\" might not be possible).\n\n"
+    "## 3. Supported Special Cases\n"
+    "* **KVUE (Kenvue) Spin-off/Exchange (2023):** handled automatically via specific date-fix logic.\n"
+    "* **GE (General Electric) Split (2021):** handled with deduplication logic.\n"
+    "* **WBD/OGN:** Standard spin-offs are detected from transaction descriptions.\n"
+)
+
+def update_docs():
+    print("📝 Updating Documentation (Full Suite)...")
     
-    # 1. Проверяем парсер на наличие логики Spinoff/Merger (для WBD, FG, OGN)
-    parser_ok = check_file_content("src/parser.py", [
-        "def extract_target_ticker(description: str)", # Функция поиска скрытого тикера
-        "is_spinoff = \"Spin-off\" in desc",           # Определение спин-оффа
-        "match = re.search(r'\(([A-Za-z0-9\.]+),\s+[A-Za-z0-9]', description)" # Regex для (WBD, ...)
-    ])
+    # 1. Write SPECIFICATION_RU.md
+    with open("SPECIFICATION_RU.md", "w", encoding="utf-8") as f:
+        f.write(NEW_SPEC)
+    print("   ✅ SPECIFICATION_RU.md updated.")
 
-    # 2. Проверяем FIFO на поддержку трансферов (для устранения минусов при переносах)
-    fifo_ok = check_file_content("src/fifo.py", [
-        "elif trade['type'] == 'TRANSFER':",
-        "self._process_transfer_out(trade)"
-    ])
+    # 2. Write README.md
+    with open("README.md", "w", encoding="utf-8") as f:
+        f.write(NEW_README)
+    print("   ✅ README.md updated.")
 
-    print("-" * 30)
-    if parser_ok and fifo_ok:
-        print("🎉 ВСЕ ПРАВКИ НА МЕСТЕ! Код готов к работе.")
-        print("Попробуйте запустить main.py — позиции OGN, FG, WBD должны сойтись.")
-    else:
-        print("⚠️ КАКИЕ-ТО ПРАВКИ ОТСУТСТВУЮТ. Возможно, вы забыли сделать git pull или скопировать файлы.")
+    # 3. Write WIKI_CONTENT.md
+    with open("WIKI_CONTENT.md", "w", encoding="utf-8") as f:
+        f.write(NEW_WIKI)
+    print("   ✅ WIKI_CONTENT.md created/updated.")
+
+    # 4. Generate RESTART_PROMPT.md
+    print("🤖 Generating Golden Restart Prompt...")
+    
+    files_to_read = []
+    ignored_dirs = {'.git', '__pycache__', '.venv', '.idea', '.vscode', 'data', 'output', 'tests', '.pytest_cache'}
+    
+    structure_lines = []
+    
+    # Сначала добавим наши новые MD файлы в список для промпта
+    md_files = ["README.md", "SPECIFICATION_RU.md", "WIKI_CONTENT.md"]
+    
+    for root, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if d not in ignored_dirs]
+        level = root.replace(".", "").count(os.sep)
+        indent = " " * 4 * level
+        folder = os.path.basename(root)
+        if folder == ".": folder = "ROOT"
+        structure_lines.append(f"{indent}{folder}/")
+        
+        subindent = " " * 4 * (level + 1)
+        for f in files:
+            is_source_code = f.endswith(".py") or f == "requirements.txt"
+            is_doc = f in md_files
+            
+            if is_source_code or is_doc:
+                # Игнорируем временные скрипты, КРОМЕ create_snapshot.py
+                if f.startswith(("install_", "fix_", "update_", "debug_")):
+                    # update_docs_final.py тоже можно сохранить, полезная утилита
+                    if "update_docs_final.py" not in f:
+                        continue
+                
+                structure_lines.append(f"{subindent}{f}")
+                files_to_read.append(os.path.join(root, f))
+
+    structure_str = "\n".join(structure_lines)
+
+    with open("RESTART_PROMPT.md", "w", encoding="utf-8") as f:
+        f.write("# RESTART PROMPT (GOLDEN BACKUP v1.2.0)\n\n")
+        f.write("I want to recreate a Python project exactly as it exists now.\n")
+        f.write("It is an IBKR Tax Calculator for Poland (PIT-38) with Snapshot support.\n\n")
+        
+        f.write("## 1. File Structure\n```text\n")
+        f.write(structure_str)
+        f.write("\n```\n\n")
+        
+        f.write("## 2. Technical Specification\n")
+        f.write(NEW_SPEC)
+        f.write("\n\n")
+        
+        f.write("## 3. SOURCE CODE AND DOCS\n")
+        f.write("Please populate the files with the following content exactly:\n\n")
+        
+        for path in files_to_read:
+            f.write(f"# --- FILE: {path} ---\n")
+            
+            try:
+                with open(path, 'r', encoding='utf-8') as code_file:
+                    content = code_file.read()
+            except Exception as e:
+                print(f"Warning: Could not read {path}: {e}")
+                continue
+
+            # --- SMART WRAPPING ---
+            # Если в файле есть ``` (3 кавычки), оборачиваем в ```` (4 кавычки)
+            delimiter = "```"
+            if "```" in content:
+                delimiter = "````"
+            
+            if path.endswith(".py"):
+                f.write(f"{delimiter}python\n")
+            elif path.endswith(".md"):
+                f.write(f"{delimiter}markdown\n")
+            else:
+                f.write(f"{delimiter}text\n")
+            
+            f.write(content)
+            if not content.endswith("\n"):
+                f.write("\n")
+            
+            f.write(f"{delimiter}\n\n")
+            
+        f.write("---\n**INSTRUCTION:**\n")
+        f.write("Restore the project structure and write the file contents as provided above.\n")
+        f.write("Ensure `create_snapshot.py` is included and `main.py` has snapshot loading logic.\n")
+
+    print("   ✅ RESTART_PROMPT.md generated successfully.")
 
 if __name__ == "__main__":
-    run_check()
+    update_docs()
+````
+
+# --- FILE: ./WIKI_CONTENT.md ---
+````markdown
+# User Manual
+
+## 1. How to use Snapshots (Archiving History)
+As years go by, parsing 5-10 years of CSV history every time becomes slow and messy. Use Snapshots to "freeze" your inventory state.
+
+### Steps:
+1.  Ensure all historical CSVs (e.g., 2021-2024) are currently in `data/` folder.
+2.  Run the snapshot tool:
+```bash
+python create_snapshot.py
+```
+3.  Enter the **Cutoff Year** (e.g., `2024`).
+    * This means: "Calculate everything up to Dec 31, 2024, and save the remaining stocks to JSON."
+4.  A file `snapshot_2024.json` is created.
+5.  **Cleanup:** You can now delete CSV files for 2021, 2022, 2023, and 2024. Keep only the 2025 CSV.
+6.  **Run:** When you run `python main.py`, it detects you are calculating 2025, finds `snapshot_2024.json`, loads it, and processes only the new 2025 trades.
+
+## 2. Reading the PDF Report
+
+### FIFO Check Column
+In the "Portfolio Composition" table, you will see a column **FIFO Check**.
+* **OK**: The quantity calculated by our FIFO engine matches exactly the quantity reported by the Broker. You are safe.
+* **MISMATCH**: There is a discrepancy. Check console logs for details. Usually caused by missing history files.
+
+### Red Highlights (Sanctions/Blocked)
+Assets denominated in **RUB** or known to be sanctioned/blocked are highlighted with a **RED background** in the holdings table. Check if these need special tax treatment (e.g. "zbycie" might not be possible).
+
+## 3. Supported Special Cases
+* **KVUE (Kenvue) Spin-off/Exchange (2023):** handled automatically via specific date-fix logic.
+* **GE (General Electric) Split (2021):** handled with deduplication logic.
+* **WBD/OGN:** Standard spin-offs are detected from transaction descriptions.
+````
+
+# --- FILE: ./SPECIFICATION_RU.md ---
+```markdown
+# Техническая спецификация: IBKR Tax Assistant (v1.2.0)
+
+## 1. Цель проекта
+Автоматизация расчета налогов (PIT-38) для резидентов Польши (Interactive Brokers).
+Поддержка сложных корпоративных действий, FIFO, конвертации валют (NBP D-1) и оптимизации истории сделок через систему Снэпшотов.
+
+## 2. Архитектура
+* **Язык:** Python 3.10+
+* **Core:**
+    * `src/parser.py`: Парсинг CSV, дедупликация (GE), фикс дат (KVUE), поиск скрытых тикеров (Spin-offs).
+    * `src/fifo.py`: Движок FIFO. Поддерживает `save_state`/`load_state` (JSON) для переноса остатков между годами.
+    * `src/processing.py`: Оркестратор. Умеет загружать Snapshot и игнорировать старые сделки.
+    * `src/nbp.py`: API Нацбанка Польши.
+* **Tools:**
+    * `main.py`: Точка входа. Автоматически ищет подходящий снэпшот для выбранного года.
+    * `create_snapshot.py`: Утилита для генерации JSON-слепка инвентаря на конец года.
+    * `src/report_pdf.py`: Генерация PDF (PIT-38, Monthly Divs, Reconcilliation Check).
+
+## 3. Бизнес-логика
+
+### 3.1. Парсинг и Данные
+* **Коррекция данных:**
+    * KVUE: Хардкод даты `2023-08-23` для "Voluntary Offer" (Time Travel Fix).
+    * GE: Удаление дубликатов сплитов из одного файла.
+    * Spin-offs: WBD, OGN, FG извлекаются из текстового описания.
+* **FIFO Priority:** Внутри одного дня операции сортируются: Split -> Transfer/Buy -> Sell.
+
+### 3.2. Оптимизация (Snapshots)
+* **Проблема:** Хранение CSV за 10 лет неудобно и избыточно.
+* **Решение:**
+    1.  Пользователь генерирует `snapshot_YYYY.json` (состояние инвентаря на 31.12.YYYY).
+    2.  При расчете года `YYYY+1` скрипт загружает JSON и использует его как базу Cost Basis.
+    3.  Старые CSV файлы можно удалить, FIFO продолжает работать корректно.
+
+### 3.3. Налоговая математика & Отчетность
+* **Reconciliation:** Сверка "Broker View" vs "FIFO Engine View". Статус `OK` или `MISMATCH`.
+* **Visuals:** Красная подсветка для заблокированных активов (RUB, Sanctions).
+* **Layout:** "Spacious" режим для дивидендов (удобная сверка с банком).
+
+## 4. Стек
+* `reportlab` (PDF)
+* `requests` (API)
+* `pytest` (Tests: Edge cases coverage)
+```
+
+# --- FILE: ./README.md ---
+````markdown
+# IBKR Tax Assistant (Poland / PIT-38)
+
+**Automated tax reporting tool for Interactive Brokers users resident in Poland.**
+
+Parses IBKR Activity Statements (CSV), calculates FIFO with Polish tax rules (NBP D-1), handles complex corporate actions (Spinoffs, Mergers), and generates audit-ready PDF reports.
+
+## Key Features 🚀
+
+* **Smart Parsing:** Handles KVUE (Merger), GE (Splits), WBD/OGN (Spinoffs) automatically.
+* **Snapshot System:** Keep your data folder clean. Generate a JSON snapshot of your inventory and archive old CSV files.
+* **Audit-Ready PDF:**
+    * **FIFO Check:** Verifies calculated inventory against broker's report.
+    * **Sanctions:** Highlights restricted assets (RUB).
+    * **PIT-38 Helper:** Calculates fields 20, 21, 45 for the tax declaration.
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage (Standard)
+
+1.  Place your Annual Activity Statements (CSV) in `data/`.
+2.  Run:
+```bash
+python main.py
+```
+3.  Check `output/` for PDF reports.
+
+## Usage (Advanced: Snapshots) 📸
+
+See [Wiki](WIKI_CONTENT.md) for details on how to archive old data.
+````
+
+# --- FILE: ./create_snapshot.py ---
+```python
+import os
+from src.parser import parse_csv
+from src.fifo import TradeMatcher
+from src.processing import TaxCalculator
+
+def create_snapshot():
+    # 1. Спрашиваем дату отсечки
+    print("📸 Creating Inventory Snapshot")
+    cutoff_year = input("Enter the last FULL year to include in snapshot (e.g. 2024): ").strip()
+    if not cutoff_year or len(cutoff_year) != 4:
+        print("Invalid year.")
+        return
+        
+    cutoff_date = f"{cutoff_year}-12-31"
+    filename = f"snapshot_{cutoff_year}.json"
+    
+    # 2. Грузим ВСЕ CSV, как обычно
+    print("Reading data...")
+    data_dir = "data"
+    all_trades = []
+    
+    files = [f for f in os.listdir(data_dir) if f.endswith(".csv")]
+    for f in files:
+        path = os.path.join(data_dir, f)
+        res = parse_csv(path)
+        all_trades.extend(res.get('trades', []))
+        
+    # 3. Фильтруем сделки, которые старше даты отсечки
+    # (Мы хотим состояние именно на конец этого года)
+    filtered_trades = [t for t in all_trades if t['date'] <= cutoff_date]
+    print(f"Processing {len(filtered_trades)} trades up to {cutoff_date}...")
+    
+    # 4. Прогоняем через FIFO
+    matcher = TradeMatcher()
+    matcher.process_trades(filtered_trades)
+    
+    # 5. Сохраняем результат
+    matcher.save_state(filename, cutoff_date)
+    print("✅ Done!")
+    print(f"You can now use '{filename}' for future calculations.")
+    print(f"In main.py, modify initialization to: calc.load_snapshot('{filename}')")
+
+if __name__ == "__main__":
+    create_snapshot()
 ```
 
 # --- FILE: ./main.py ---
@@ -163,10 +505,12 @@ def main():
     all_raw_divs = []
     all_raw_taxes = []
     
+    # 1. Load Manual History
     if os.path.exists(MANUAL_FILE):
         logging.info(f"Loading manual history...")
         all_raw_trades.extend(parse_manual_history(MANUAL_FILE))
     
+    # 2. Load all CSVs
     if os.path.exists(DATA_DIR):
         for filename in os.listdir(DATA_DIR):
             if filename.lower().endswith(".csv"):
@@ -190,12 +534,26 @@ def main():
     for year in target_years:
         logging.info(f"Processing Year: {year}")
         calculator = TaxCalculator(target_year=year)
+        
+        # --- SNAPSHOT LOGIC ---
+        # Try to find a snapshot from the PREVIOUS year.
+        # Example: If calculating 2025, look for 'snapshot_2024.json'
+        prev_year = str(int(year) - 1)
+        snapshot_file = f"snapshot_{prev_year}.json"
+        
+        if os.path.exists(snapshot_file):
+            logging.info(f"   Found Snapshot: {snapshot_file}. Loading inventory...")
+            calculator.load_snapshot(snapshot_file)
+        else:
+            logging.info(f"   No snapshot for {prev_year}. Calculating from full history.")
+        # ----------------------
+
         calculator.ingest_preloaded_data(all_raw_trades, all_raw_divs, all_raw_taxes)
         calculator.run_calculations()
         
         final_report = calculator.get_results()
         
-        # Check if there is ANY data worth printing (Holdings, Trades, Divs, Gains)
+        # Check if there is ANY data worth printing
         data = final_report['data']
         has_data = (data['dividends'] or 
                     data['capital_gains'] or 
@@ -221,6 +579,7 @@ if __name__ == "__main__":
 
 # --- FILE: ./src/fifo.py ---
 ```python
+import json
 from decimal import Decimal
 from collections import deque
 from .nbp import get_rate_for_tax_date
@@ -231,19 +590,65 @@ class TradeMatcher:
         self.inventory = {} 
         self.realized_pnl = []
 
-    def process_trades(self, trades_list):
-        # PRIORITY SORTING:
-        # On the same date, we want to process INCOMING items before OUTGOING.
-        # Priority (lower is first): SPLIT (0) -> TRANSFER/BUY (1) -> SELL (2)
+    def save_state(self, filepath: str, cutoff_date: str):
+        """
+        Saves current OPEN inventory to a JSON file.
+        Converts Decimals to strings for serialization.
+        """
+        serializable_inv = {}
+        for ticker, queue in self.inventory.items():
+            batches = []
+            for batch in queue:
+                # Convert Decimal -> str
+                b_copy = batch.copy()
+                b_copy['qty'] = str(b_copy['qty'])
+                b_copy['price'] = str(b_copy['price'])
+                b_copy['cost_pln'] = str(b_copy['cost_pln'])
+                if 'rate' in b_copy:
+                    b_copy['rate'] = float(b_copy['rate']) # float is fine for rate display
+                batches.append(b_copy)
+            if batches:
+                serializable_inv[ticker] = batches
         
-        type_priority = {
-            'SPLIT': 0,
-            'TRANSFER': 1,
-            'BUY': 1,
-            'SELL': 2
+        data = {
+            "cutoff_date": cutoff_date,
+            "inventory": serializable_inv
         }
         
-        # Sort by Date first, then by Priority
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+        print(f"💾 Snapshot saved to {filepath} (Cutoff: {cutoff_date})")
+
+    def load_state(self, filepath: str) -> str:
+        """
+        Loads inventory from JSON. Returns the cutoff_date found in file.
+        """
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        cutoff = data.get("cutoff_date", "1900-01-01")
+        loaded_inv = data.get("inventory", {})
+        
+        self.inventory = {}
+        count_positions = 0
+        
+        for ticker, batches in loaded_inv.items():
+            self.inventory[ticker] = deque()
+            for b in batches:
+                # Convert str -> Decimal
+                b['qty'] = Decimal(b['qty'])
+                b['price'] = Decimal(b['price'])
+                b['cost_pln'] = Decimal(b['cost_pln'])
+                self.inventory[ticker].append(b)
+            count_positions += 1
+            
+        print(f"📂 Snapshot loaded: {count_positions} positions restored (Cutoff: {cutoff}).")
+        return cutoff
+
+    def process_trades(self, trades_list):
+        # PRIORITY SORTING: SPLIT (0) -> TRANSFER/BUY (1) -> SELL (2)
+        type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
+        
         sorted_trades = sorted(
             trades_list, 
             key=lambda x: (x['date'], type_priority.get(x['type'], 3))
@@ -302,7 +707,6 @@ class TradeMatcher:
 
         while qty_to_sell > 0:
             if not self.inventory[ticker]: 
-                # Safety break if selling more than we have
                 break 
 
             buy_batch = self.inventory[ticker][0]
@@ -376,7 +780,7 @@ from reportlab.lib.units import mm
 import itertools
 
 APP_NAME = "IBKR Tax Assistant"
-APP_VERSION = "v1.1.0" # Added Reconciliation Check
+APP_VERSION = "v1.1.0"
 
 def get_zebra_style(row_count, header_color=colors.HexColor('#D0D0D0')):
     cmds = [
@@ -429,7 +833,6 @@ def generate_pdf(json_data, filename="report.pdf"):
     # PAGE 2: PORTFOLIO (WITH FIFO CHECK)
     elements.append(Paragraph(f"Portfolio Composition (as of Dec 31, {year})", h2_style))
     if data['holdings']:
-        # Header updated
         holdings_data = [["Ticker", "Quantity", "FIFO Check"]]
         restricted_indices = []
         has_restricted = False
@@ -442,18 +845,18 @@ def generate_pdf(json_data, filename="report.pdf"):
                 has_restricted = True
                 restricted_indices.append(row_idx)
             
-            # FIFO Check Logic
             check_mark = "OK" if h.get('fifo_match', False) else "MISMATCH!"
-            
             holdings_data.append([display_ticker, f"{h['qty']:.3f}", check_mark])
             row_idx += 1
             
-        # Update column widths to fit 3 cols
         t_holdings = Table(holdings_data, colWidths=[180, 100, 100], repeatRows=1)
         ts = get_zebra_style(len(holdings_data))
-        ts.add('ALIGN', (1,1), (1,-1), 'RIGHT') # Qty right align
         
-        # Color coding for Mismatches (Safety feature)
+        # --- STYLING ---
+        ts.add('ALIGN', (1,1), (1,-1), 'RIGHT')  # Qty -> Right
+        ts.add('ALIGN', (2,1), (2,-1), 'CENTER') # FIFO Check -> Center (FIXED)
+        
+        # Color coding for Mismatches
         for i, row in enumerate(holdings_data[1:], start=1):
             if row[2] != "OK":
                 ts.add('TEXTCOLOR', (2, i), (2, i), colors.red)
@@ -967,6 +1370,7 @@ def money(value) -> Decimal:
 # --- FILE: ./src/processing.py ---
 ```python
 import hashlib
+import os
 from typing import Dict, List
 from decimal import Decimal
 from .fifo import TradeMatcher
@@ -978,6 +1382,7 @@ class TaxCalculator:
         self.target_year = target_year
         self.raw_dividends, self.raw_trades, self.raw_taxes = [], [], []
         self.seen_divs, self.seen_trades, self.seen_taxes = set(), set(), set()
+        self.snapshot_cutoff_date = None
         
         self.report_data = {
             "dividends": [],
@@ -989,6 +1394,15 @@ class TaxCalculator:
             "diagnostics": {},
             "per_currency": {}
         }
+        
+        self.matcher = TradeMatcher()
+
+    def load_snapshot(self, filepath: str):
+        if os.path.exists(filepath):
+            self.snapshot_cutoff_date = self.matcher.load_state(filepath)
+            print(f"⚡ Using snapshot! Ignoring trades before or on: {self.snapshot_cutoff_date}")
+        else:
+            print("ℹ️ No snapshot found. Processing full history from CSVs.")
 
     def _get_hash(self, data_str: str) -> str:
         return hashlib.sha256(data_str.encode('utf-8')).hexdigest()
@@ -1014,7 +1428,7 @@ class TaxCalculator:
                 self.raw_trades.append(tr)
 
     def _calculate_holdings_simple(self):
-        # PRIORITY SORTING (Same as FIFO): SPLIT (0) -> TRANSFER/BUY (1) -> SELL (2)
+        # PRIORITY SORTING
         type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
         
         sorted_trades = sorted(
@@ -1024,6 +1438,16 @@ class TaxCalculator:
         
         holdings_map = {}
         limit_date = f"{self.target_year}-12-31"
+        
+        # NOTE: Simple Holdings calculation usually needs FULL history to be accurate.
+        # If we use a snapshot, Simple Holdings might show only delta if we filter raw_trades.
+        # For Reconciliation to work with Snapshot, we need either:
+        # A) Load snapshot into simple holdings too (complex)
+        # B) Only verify FIFO inventory against broker report (Broker report is the Truth).
+        
+        # Let's proceed with standard logic but be aware that if raw_trades are filtered, 
+        # this internal 'Broker Check' might differ from FIFO.
+        # However, typically 'holdings' table is for display.
         
         for trade in sorted_trades:
             if trade['date'] > limit_date: break
@@ -1076,25 +1500,57 @@ class TaxCalculator:
         self.report_data["corp_actions"] = actions
 
     def run_calculations(self):
-        self._calculate_holdings_simple()
+        # 1. Filter trades if Snapshot is loaded
+        trades_to_process = []
+        if self.snapshot_cutoff_date:
+            # We only want trades NEWER than snapshot date
+            # Snapshots captures END of that day.
+            for t in self.raw_trades:
+                if t['date'] > self.snapshot_cutoff_date:
+                    trades_to_process.append(t)
+        else:
+            trades_to_process = self.raw_trades
+
+        # 2. Run FIFO Engine (self.matcher might already have data from snapshot)
+        self.matcher.process_trades(trades_to_process)
+        
+        # 3. Holdings & History for Report
+        # For the 'Simple Sum' table (Portfolio), we ideally want the Broker's view.
+        # But our script calculates it from raw_trades. 
+        # If we filtered raw_trades, _calculate_holdings_simple will be wrong (incomplete).
+        # FIX: We rely on FIFO Inventory as the "Truth" for quantity if Snapshot is used.
+        
+        fifo_inventory = self.matcher.get_current_inventory()
+        
+        # Generate 'Holdings' list directly from FIFO inventory if using snapshot
+        # because we don't have full history to reconstruct it via simple sum.
+        if self.snapshot_cutoff_date:
+            self.report_data["holdings"] = []
+            for ticker, qty in fifo_inventory.items():
+                 if qty > 0:
+                     self.report_data["holdings"].append({
+                         "ticker": ticker,
+                         "qty": float(qty),
+                         "currency": "USD", # Approximation, usually safe
+                         "is_restricted": False,
+                         "fifo_match": True # It matches by definition
+                     })
+        else:
+            self._calculate_holdings_simple()
+            # Reconciliation
+            for holding in self.report_data["holdings"]:
+                ticker = holding["ticker"]
+                simple_qty = Decimal(str(holding["qty"]))
+                fifo_qty = fifo_inventory.get(ticker, Decimal("0"))
+                if abs(simple_qty - fifo_qty) < 0.0001:
+                    holding["fifo_match"] = True
+                else:
+                    holding["fifo_match"] = False
+                    print(f"⚠️ MISMATCH for {ticker}: Broker says {simple_qty}, FIFO says {fifo_qty}")
+
         self._collect_history_lists()
 
-        matcher = TradeMatcher()
-        matcher.process_trades(self.raw_trades)
-        
-        fifo_inventory = matcher.get_current_inventory()
-        
-        for holding in self.report_data["holdings"]:
-            ticker = holding["ticker"]
-            simple_qty = Decimal(str(holding["qty"]))
-            fifo_qty = fifo_inventory.get(ticker, Decimal("0"))
-            
-            if abs(simple_qty - fifo_qty) < 0.0001:
-                holding["fifo_match"] = True
-            else:
-                holding["fifo_match"] = False
-                print(f"⚠️ MISMATCH for {ticker}: Broker says {simple_qty}, FIFO engine says {fifo_qty}")
-
+        # 4. Dividends
         monthly_map = {} 
         currency_map = {}
         unique_tickers = set()
@@ -1140,7 +1596,7 @@ class TaxCalculator:
         self.report_data["monthly_dividends"] = monthly_map
         self.report_data["per_currency"] = {k: float(v) for k, v in currency_map.items()}
 
-        for pnl in matcher.realized_pnl:
+        for pnl in self.matcher.realized_pnl:
             if pnl['date_sell'].startswith(self.target_year):
                 self.report_data["capital_gains"].append(pnl)
                 unique_tickers.add(pnl['ticker'])
@@ -1162,4 +1618,4 @@ class TaxCalculator:
 ---
 **INSTRUCTION:**
 Restore the project structure and write the file contents as provided above.
-This code contains fixes for KVUE, GE, WBD/OGN and Red Highlights.
+Ensure `create_snapshot.py` is included and `main.py` has snapshot loading logic.

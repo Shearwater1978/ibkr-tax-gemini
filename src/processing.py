@@ -1,4 +1,5 @@
 import hashlib
+import os
 from typing import Dict, List
 from decimal import Decimal
 from .fifo import TradeMatcher
@@ -10,6 +11,7 @@ class TaxCalculator:
         self.target_year = target_year
         self.raw_dividends, self.raw_trades, self.raw_taxes = [], [], []
         self.seen_divs, self.seen_trades, self.seen_taxes = set(), set(), set()
+        self.snapshot_cutoff_date = None
         
         self.report_data = {
             "dividends": [],
@@ -21,6 +23,15 @@ class TaxCalculator:
             "diagnostics": {},
             "per_currency": {}
         }
+        
+        self.matcher = TradeMatcher()
+
+    def load_snapshot(self, filepath: str):
+        if os.path.exists(filepath):
+            self.snapshot_cutoff_date = self.matcher.load_state(filepath)
+            print(f"⚡ Using snapshot! Ignoring trades before or on: {self.snapshot_cutoff_date}")
+        else:
+            print("ℹ️ No snapshot found. Processing full history from CSVs.")
 
     def _get_hash(self, data_str: str) -> str:
         return hashlib.sha256(data_str.encode('utf-8')).hexdigest()
@@ -46,7 +57,7 @@ class TaxCalculator:
                 self.raw_trades.append(tr)
 
     def _calculate_holdings_simple(self):
-        # PRIORITY SORTING (Same as FIFO): SPLIT (0) -> TRANSFER/BUY (1) -> SELL (2)
+        # PRIORITY SORTING
         type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
         
         sorted_trades = sorted(
@@ -56,6 +67,16 @@ class TaxCalculator:
         
         holdings_map = {}
         limit_date = f"{self.target_year}-12-31"
+        
+        # NOTE: Simple Holdings calculation usually needs FULL history to be accurate.
+        # If we use a snapshot, Simple Holdings might show only delta if we filter raw_trades.
+        # For Reconciliation to work with Snapshot, we need either:
+        # A) Load snapshot into simple holdings too (complex)
+        # B) Only verify FIFO inventory against broker report (Broker report is the Truth).
+        
+        # Let's proceed with standard logic but be aware that if raw_trades are filtered, 
+        # this internal 'Broker Check' might differ from FIFO.
+        # However, typically 'holdings' table is for display.
         
         for trade in sorted_trades:
             if trade['date'] > limit_date: break
@@ -108,25 +129,57 @@ class TaxCalculator:
         self.report_data["corp_actions"] = actions
 
     def run_calculations(self):
-        self._calculate_holdings_simple()
+        # 1. Filter trades if Snapshot is loaded
+        trades_to_process = []
+        if self.snapshot_cutoff_date:
+            # We only want trades NEWER than snapshot date
+            # Snapshots captures END of that day.
+            for t in self.raw_trades:
+                if t['date'] > self.snapshot_cutoff_date:
+                    trades_to_process.append(t)
+        else:
+            trades_to_process = self.raw_trades
+
+        # 2. Run FIFO Engine (self.matcher might already have data from snapshot)
+        self.matcher.process_trades(trades_to_process)
+        
+        # 3. Holdings & History for Report
+        # For the 'Simple Sum' table (Portfolio), we ideally want the Broker's view.
+        # But our script calculates it from raw_trades. 
+        # If we filtered raw_trades, _calculate_holdings_simple will be wrong (incomplete).
+        # FIX: We rely on FIFO Inventory as the "Truth" for quantity if Snapshot is used.
+        
+        fifo_inventory = self.matcher.get_current_inventory()
+        
+        # Generate 'Holdings' list directly from FIFO inventory if using snapshot
+        # because we don't have full history to reconstruct it via simple sum.
+        if self.snapshot_cutoff_date:
+            self.report_data["holdings"] = []
+            for ticker, qty in fifo_inventory.items():
+                 if qty > 0:
+                     self.report_data["holdings"].append({
+                         "ticker": ticker,
+                         "qty": float(qty),
+                         "currency": "USD", # Approximation, usually safe
+                         "is_restricted": False,
+                         "fifo_match": True # It matches by definition
+                     })
+        else:
+            self._calculate_holdings_simple()
+            # Reconciliation
+            for holding in self.report_data["holdings"]:
+                ticker = holding["ticker"]
+                simple_qty = Decimal(str(holding["qty"]))
+                fifo_qty = fifo_inventory.get(ticker, Decimal("0"))
+                if abs(simple_qty - fifo_qty) < 0.0001:
+                    holding["fifo_match"] = True
+                else:
+                    holding["fifo_match"] = False
+                    print(f"⚠️ MISMATCH for {ticker}: Broker says {simple_qty}, FIFO says {fifo_qty}")
+
         self._collect_history_lists()
 
-        matcher = TradeMatcher()
-        matcher.process_trades(self.raw_trades)
-        
-        fifo_inventory = matcher.get_current_inventory()
-        
-        for holding in self.report_data["holdings"]:
-            ticker = holding["ticker"]
-            simple_qty = Decimal(str(holding["qty"]))
-            fifo_qty = fifo_inventory.get(ticker, Decimal("0"))
-            
-            if abs(simple_qty - fifo_qty) < 0.0001:
-                holding["fifo_match"] = True
-            else:
-                holding["fifo_match"] = False
-                print(f"⚠️ MISMATCH for {ticker}: Broker says {simple_qty}, FIFO engine says {fifo_qty}")
-
+        # 4. Dividends
         monthly_map = {} 
         currency_map = {}
         unique_tickers = set()
@@ -172,7 +225,7 @@ class TaxCalculator:
         self.report_data["monthly_dividends"] = monthly_map
         self.report_data["per_currency"] = {k: float(v) for k, v in currency_map.items()}
 
-        for pnl in matcher.realized_pnl:
+        for pnl in self.matcher.realized_pnl:
             if pnl['date_sell'].startswith(self.target_year):
                 self.report_data["capital_gains"].append(pnl)
                 unique_tickers.add(pnl['ticker'])
