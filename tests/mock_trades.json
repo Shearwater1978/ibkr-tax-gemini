@@ -1,0 +1,38 @@
+{
+    "trades": [
+        {
+            "date": "2023-01-01",
+            "ticker": "AAPL",
+            "type": "BUY",
+            "qty": 10,
+            "price": 100.00,
+            "commission": 1.00,
+            "currency": "USD"
+        },
+        {
+            "date": "2023-03-01",
+            "ticker": "AAPL",
+            "type": "SELL",
+            "qty": 5,
+            "price": 121.00,
+            "commission": 0.50,
+            "currency": "USD"
+        }
+    ],
+    "dividends": [
+        {
+            "date": "2023-05-15",
+            "ticker": "AAPL",
+            "amount": 10.00,
+            "currency": "USD"
+        }
+    ],
+    "taxes": [
+        {
+            "date": "2023-05-15",
+            "ticker": "AAPL",
+            "amount": -1.50,
+            "currency": "USD"
+        }
+    ]
+}
