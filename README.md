@@ -68,6 +68,12 @@ Execute the main processing script (assuming your entry point is `main.py` or si
 python main.py
 ```
 *(Note: Replace `main.py` with your project's primary execution file, e.g., `python src/processing.py`)*
+### Handling Missing Transactions (Manual Input)
+The system supports the manual entry of transactions that may be missing from standard broker reports (e.g., historical transfers, certain corporate actions). These manual records are critical for accurate FIFO matching.
+
+**Input Format:** Manual transactions must be provided in a separate CSV file (`manual_history.csv`) located in the `data/` directory. The required columns and format are specified in the project's **SPECIFICATION.md**.
+
+**Processing Priority:** Manual entries are loaded **before** broker data to ensure they are available for the initial state of the FIFO matching engine.
 
 ### Output
 The system generates a report (e.g., PDF, CSV, or JSON) containing:
