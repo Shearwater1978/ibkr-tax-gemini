@@ -3,6 +3,7 @@
 data/*
 !data/.gitkeep
 snapshot_*.json
+db/*
 
 # Ignore manual history override (contains personal trades)
 manual_history.csv

@@ -20,7 +20,6 @@ class TradeMatcher:
                 b_copy['cost_pln'] = str(b_copy['cost_pln'])
                 if 'rate' in b_copy:
                     b_copy['rate'] = float(b_copy['rate'])
-                # Currency is explicitly saved inside the batch dict now
                 batches.append(b_copy)
             if batches:
                 serializable_inv[ticker] = batches
@@ -50,7 +49,6 @@ class TradeMatcher:
                 b['qty'] = Decimal(b['qty'])
                 b['price'] = Decimal(b['price'])
                 b['cost_pln'] = Decimal(b['cost_pln'])
-                # currency loads automatically as part of dict
                 self.inventory[ticker].append(b)
             count_positions += 1
             
@@ -58,6 +56,7 @@ class TradeMatcher:
         return cutoff
 
     def process_trades(self, trades_list):
+        # Order matters for correct FIFO/Tax calculations
         type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
         
         sorted_trades = sorted(
@@ -94,7 +93,7 @@ class TradeMatcher:
             "price": price,
             "rate": rate,
             "cost_pln": cost_pln,
-            "currency": trade['currency'],  # <--- FIX: SAVE CURRENCY
+            "currency": trade['currency'],
             "source": trade.get('source', 'UNKNOWN')
         })
 
@@ -153,6 +152,7 @@ class TradeMatcher:
                 "date_sell": trade['date'],
                 "revenue_pln": float(sell_revenue_pln),
                 "cost_pln": float(total_cost),
+                "pnl": profit_pln,
                 "profit_pln": float(profit_pln),
                 "matched_buys": matched_buys
             })
@@ -169,7 +169,6 @@ class TradeMatcher:
             new_price = batch['price'] / ratio
             batch['qty'] = new_qty
             batch['price'] = new_price
-            # Currency is preserved in batch copy
             new_deque.append(batch)
         self.inventory[ticker] = new_deque
 
