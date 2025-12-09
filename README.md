@@ -38,3 +38,16 @@ See [Wiki - AI Restoration](WIKI_CONTENT.md#4-developer-guide--ai-restoration) f
 
 ## Disclaimer
 For educational purposes only. Always verify with a certified tax advisor.
+
+## Running Tests
+
+All critical integration and unit tests are designed to run in the **CI/CD environment** (GitHub Actions) to ensure environmental consistency. Local testing may lead to ambiguous errors (e.g., `RecursionError`, `AssertionError`) due to dependency conflicts or global mocking.
+
+To execute tests in CI:
+```bash
+pytest
+```
+
+## Database Security (SQLCipher)
+
+The H2 database solution has been replaced by **SQLCipher**. This ensures that all sensitive financial history data is stored with AES-256 encryption at rest. Database management includes the dedicated module `src/lock_unlock.py` for key management.

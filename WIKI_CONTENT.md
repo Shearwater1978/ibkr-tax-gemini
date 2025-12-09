@@ -42,3 +42,14 @@ If you want to continue development in a new chat session with an LLM (ChatGPT, 
 2.  Copy the entire content.
 3.  Paste it into the AI chat.
 4.  The AI will instantly "restore" the context and be ready to code.
+
+### Data Security: SQLCipher Implementation
+
+The H2 database was replaced by SQLCipher to meet strict data security requirements.
+
+**SQLCipher Benefits:**
+* Provides native AES-256 encryption on the entire database file, making it unreadable without the correct key.
+* Seamlessly replaces the standard SQLite engine, requiring minimal changes to SQL queries.
+
+**Key Management (`src/lock_unlock.py`):**
+The encryption key is managed by the `lock_unlock` module. The module uses `cryptography.fernet` to generate and securely wrap the master database key, ensuring the key is stored separately from the database itself.
