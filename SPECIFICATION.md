@@ -41,3 +41,17 @@ Features support for complex corporate actions, FIFO methodology, currency conve
 * `reportlab` (PDF generation)
 * `requests` (API calls)
 * `pytest` (Edge case testing)
+
+## Database
+
+**SQLCipher Implementation:** The system must use SQLCipher for persistence. This ensures mandatory AES-256 encryption for the entire database file.
+
+**Key Management:** A dedicated module (`src/lock_unlock.py`) must handle the secure generation, storage, and retrieval of the SQLCipher key using `cryptography`.
+
+## Exchange Rate Logic
+
+**Source:** Rates are fetched from the National Bank of Poland (NBP) API.
+
+**Holiday/Weekend Handling:** If the NBP API does not return a rate for the requested date (e.g., weekend or holiday), the system must implement a **recursive lookup** to find the rate for the immediately preceding working day. This logic is validated by `test_get_nbp_rate_holiday_recursion`.
+
+**Caching:** An aggressive caching mechanism (both memory cache `_MEMORY_CACHE` and disk cache) must be implemented in `src/nbp.py` to minimize redundant API calls.

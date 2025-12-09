@@ -3,6 +3,12 @@
 ## 1. How to use Snapshots (Archiving History)
 As years go by, parsing 5-10 years of CSV history every time becomes slow and messy. Use Snapshots to "freeze" your inventory state.
 
+### 📝 Project Iteration History (Sprints)
+
+All major feature implementations, security upgrades, and technical decisions are documented by project sprint/iteration. This ensures clear traceability and context for development decisions.
+
+**Full Details:** Refer to the dedicated file **`SPRINT_HISTORY.md`** for the complete timeline, including the migration to SQLCipher, the fix for the NBP test environment, and core calculation logic implementation.
+
 ### Steps:
 1.  Ensure all historical CSVs (e.g., 2021-2024) are currently in `data/` folder.
 2.  Run the snapshot tool:
@@ -42,3 +48,14 @@ If you want to continue development in a new chat session with an LLM (ChatGPT, 
 2.  Copy the entire content.
 3.  Paste it into the AI chat.
 4.  The AI will instantly "restore" the context and be ready to code.
+
+### Data Security: SQLCipher Implementation
+
+The H2 database was replaced by SQLCipher to meet strict data security requirements.
+
+**SQLCipher Benefits:**
+* Provides native AES-256 encryption on the entire database file, making it unreadable without the correct key.
+* Seamlessly replaces the standard SQLite engine, requiring minimal changes to SQL queries.
+
+**Key Management (`src/lock_unlock.py`):**
+The encryption key is managed by the `lock_unlock` module. The module uses `cryptography.fernet` to generate and securely wrap the master database key, ensuring the key is stored separately from the database itself.

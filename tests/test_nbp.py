@@ -1,43 +1,77 @@
+import pytest
 from decimal import Decimal
-from src.nbp import get_nbp_rate
-from unittest.mock import patch, mock_open
-import src.nbp
+from unittest.mock import patch, mock_open, MagicMock
+import src 
+# УДАЛЯЕМ ИМПОРТ get_nbp_rate и _MEMORY_CACHE ИЗ ГЛОБАЛЬНОЙ ОБЛАСТИ
+import requests 
 
-# FIX: Function to clear cache before each test run
-def setup_function():
-    src.nbp._MEMORY_CACHE.clear()
+# --- Мок-функции для side_effect (как было) ---
 
-@patch('src.nbp.os.path.exists', return_value=False)
-@patch('src.nbp.requests.get')
-def test_get_nbp_rate_success(mock_get, mock_exists):
-    mock_get.return_value.status_code = 200
-    mock_get.return_value.json.return_value = {
+def mock_requests_get_success(url, **kwargs):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
         "rates": [
             {"effectiveDate": "2022-01-01", "mid": 4.1234},
             {"effectiveDate": "2022-01-03", "mid": 4.2000}
         ]
     }
-    
-    with patch("builtins.open", mock_open()):
-        rate = get_nbp_rate("USD", "2022-01-03")
-        
-    assert rate == Decimal("4.2")
+    return mock_response
 
-@patch('src.nbp.os.path.exists', return_value=False)
-@patch('src.nbp.requests.get')
-def test_get_nbp_rate_holiday_recursion(mock_get, mock_exists):
-    # Setup DIFFERENT mock data
-    mock_get.return_value.status_code = 200
-    mock_get.return_value.json.return_value = {
+def mock_requests_get_holiday(url, **kwargs):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
         "rates": [
             {"effectiveDate": "2022-01-01", "mid": 4.1000},
             {"effectiveDate": "2022-01-04", "mid": 4.2000}
         ]
     }
+    return mock_response
 
-    with patch("builtins.open", mock_open()):
-        # Since we cleared cache in setup_function, this will call API again
-        rate = get_nbp_rate("USD", "2022-01-02")
+
+# --- ТЕСТЫ БЕЗ ДЕКОРАТОРОВ ---
+
+def test_get_nbp_rate_success():
     
-    # 2022-01-02 missing -> recurses to 2022-01-01 -> finds 4.1000
-    assert rate == Decimal("4.1")
+    # 🚨 ФИНАЛЬНЫЙ FIX: Мокируем и очищаем кеш перед импортом функции
+    with patch('src.nbp._MEMORY_CACHE', new_callable=MagicMock) as mock_cache:
+        
+        # Убедимся, что кеш пуст
+        mock_cache.clear() 
+        mock_cache.__contains__.return_value = False 
+        
+        # Импортируем функцию ПОСЛЕ мокирования кеша
+        from src.nbp import get_nbp_rate 
+
+        with patch('src.nbp.requests.get', side_effect=mock_requests_get_success) as mock_get:
+            with patch('src.nbp.os.path.exists', return_value=False):
+                with patch("builtins.open", mock_open()):
+                    
+                    rate = get_nbp_rate("USD", "2022-01-03")
+                    
+                    mock_get.assert_called_once()
+                
+                assert rate == Decimal("4.2") 
+
+
+def test_get_nbp_rate_holiday_recursion():
+    
+    # 🚨 ФИНАЛЬНЫЙ FIX: Мокируем и очищаем кеш перед импортом функции
+    with patch('src.nbp._MEMORY_CACHE', new_callable=MagicMock) as mock_cache:
+        
+        mock_cache.clear()
+        mock_cache.__contains__.return_value = False 
+        
+        # Импортируем функцию ПОСЛЕ мокирования кеша
+        from src.nbp import get_nbp_rate 
+
+        with patch('src.nbp.requests.get', side_effect=mock_requests_get_holiday) as mock_get:
+            with patch('src.nbp.os.path.exists', return_value=False):
+                with patch("builtins.open", mock_open()):
+                    
+                    rate = get_nbp_rate("USD", "2022-01-02")
+                
+                # Проверяем вызов API (должен быть 2 раза)
+                assert mock_get.call_count == 2
+                assert rate == Decimal("4.1")
