@@ -1,4 +1,16 @@
+import os
+import re
 
+def fix_nbp_tests(filepath="tests/test_nbp.py"):
+    """
+    Applies the final fix to tests/test_nbp.py by implementing aggressive module cache
+    clearing (del sys.modules) and mocking the internal memory cache to bypass global conflicts.
+    Replaces Russian comments with English ones.
+    """
+    print(f"🛠️ Applying final fix to {filepath}...")
+    
+    # --- Define the new, clean content (English comments only) ---
+    new_content = """
 import pytest
 import sys 
 from decimal import Decimal
@@ -86,3 +98,15 @@ def test_get_nbp_rate_holiday_recursion():
                 # Assert API was called twice (recursion check)
                 assert mock_get.call_count == 2
                 assert rate == Decimal("4.1")
+"""
+    
+    # --- Execute file write ---
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        print("✅ tests/test_nbp.py updated with final fix and English comments.")
+    except Exception as e:
+        print(f"❌ Error writing file: {e}")
+
+if __name__ == "__main__":
+    fix_nbp_tests()
