@@ -3,32 +3,46 @@
 import pandas as pd
 from typing import Dict, Any
 
-def export_to_excel(data_frame: pd.DataFrame, file_path: str, summary_data: Dict[str, Any]):
+def export_to_excel(sheets_data: Dict[str, pd.DataFrame], 
+                    file_path: str, 
+                    summary_data: Dict[str, Any], 
+                    ticker_summary: Dict[str, Dict[str, str]]):
     """
-    Exports the combined financial data to a formatted Excel file, 
-    including a summary sheet.
+    Exports data to a formatted Excel file with multiple tabs.
 
     Args:
-        data_frame: The combined DataFrame containing all transaction history.
+        sheets_data: Dictionary where Key = Sheet Name, Value = DataFrame.
         file_path: The full path to save the .xlsx file.
-        summary_data: Dictionary containing project summary metrics (e.g., total P&L).
+        summary_data: Dictionary containing project summary metrics.
+        ticker_summary: Dictionary containing P&L breakdown aggregated by ticker.
     """
     
     try:
-        # Create a Pandas Excel writer using openpyxl as the engine
         writer = pd.ExcelWriter(file_path, engine='openpyxl')
 
-        # 1. Write Summary Sheet
+        # 1. Write General Summary Sheet (First Tab)
         summary_df = pd.DataFrame(list(summary_data.items()), columns=['Metric', 'Value'])
         summary_df.to_excel(writer, sheet_name='Summary', index=False)
 
-        # 2. Write Detailed Transactions Sheet
-        data_frame.to_excel(writer, sheet_name='Transaction Details', index=False)
+        # 2. Write Ticker Summary Sheet
+        if ticker_summary:
+            df_ticker_summary = pd.DataFrame.from_dict(ticker_summary, orient='index').reset_index()
+            df_ticker_summary = df_ticker_summary.rename(columns={'index': 'Ticker'})
+            
+            if not df_ticker_summary.empty:
+                cols = ['Ticker', 'Total_P&L_PLN', 'Total_Proceeds_PLN', 'Total_Cost_PLN']
+                df_ticker_summary = df_ticker_summary.reindex(columns=cols)
+            
+            df_ticker_summary.to_excel(writer, sheet_name='Ticker Summary', index=False)
 
-        # NOTE: Advanced formatting (like column width adjustment, colored rows, 
-        # number formatting, and freezing panes) would be added here in a later task.
-        
-        # Save and close the Excel file
+        # 3. Write Separate Data Sheets (Sales, Dividends, Inventory)
+        for sheet_name, df in sheets_data.items():
+            if not df.empty:
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                print(f"INFO: Added sheet '{sheet_name}' with {len(df)} rows.")
+            else:
+                print(f"INFO: Skipping empty sheet '{sheet_name}'.")
+
         writer.close()
         print(f"SUCCESS: Data exported to Excel at {file_path}")
 

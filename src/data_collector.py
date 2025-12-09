@@ -1,103 +1,156 @@
 # src/data_collector.py
 
 import pandas as pd
-from typing import List, Dict, Any
-from datetime import date
-from .date_utils import calculate_holding_period_days, determine_holding_category 
+from typing import List, Dict, Any, Tuple
+from datetime import datetime
 
-# NOTE: In a real project, we would import the database accessor here (e.g., from src.database import get_all_records)
+# Helper to categorize holding period
+def calculate_holding_period(buy_date_str: str, sell_date_str: str) -> str:
+    try:
+        if not buy_date_str or not sell_date_str:
+            return "N/A"
+        fmt = '%Y-%m-%d'
+        d1 = datetime.strptime(buy_date_str, fmt).date()
+        d2 = datetime.strptime(sell_date_str, fmt).date()
+        days = (d2 - d1).days + 1
+        return "Long-Term" if days > 365 else "Short-Term"
+    except Exception:
+        return "Error"
+
+def calculate_days(buy_date_str: str, sell_date_str: str) -> int:
+    try:
+        fmt = '%Y-%m-%d'
+        d1 = datetime.strptime(buy_date_str, fmt).date()
+        d2 = datetime.strptime(sell_date_str, fmt).date()
+        return (d2 - d1).days + 1
+    except:
+        return 0
+
+def calculate_ticker_summary(flat_gains: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
+    summary = {}
+    for record in flat_gains:
+        ticker = record.get('Ticker')
+        pl_pln = record.get('P&L_PLN', 0.0)
+        proceeds = record.get('Proceeds_PLN', 0.0)
+        cost = record.get('Cost_PLN', 0.0)
+        
+        if ticker not in summary:
+            summary[ticker] = {'Total_P&L_PLN': 0.0, 'Total_Proceeds_PLN': 0.0, 'Total_Cost_PLN': 0.0}
+        
+        summary[ticker]['Total_P&L_PLN'] += pl_pln
+        summary[ticker]['Total_Proceeds_PLN'] += proceeds
+        summary[ticker]['Total_Cost_PLN'] += cost
+
+    formatted = {}
+    for t, m in summary.items():
+        formatted[t] = {k: f"{v:.2f}" for k, v in m.items()}
+    return formatted
 
 def collect_all_trade_data(realized_gains: List[Dict[str, Any]], 
                            dividends: List[Dict[str, Any]], 
-                           inventory: List[Dict[str, Any]]) -> pd.DataFrame:
-    """
-    Collects realized gains, dividends, and current inventory into a single 
-    structured DataFrame for comprehensive reporting, now including holding period.
-
-    Args:
-        realized_gains: List of realized P&L records (FIFO matched sales).
-        dividends: List of dividend records.
-        inventory: List of current open buy lots (unmatched inventory).
-
-    Returns:
-        A pandas DataFrame combining all three datasets with an added 
-        'TransactionType' and 'Holding_Category' column.
-    """
+                           inventory: List[Dict[str, Any]]) -> Tuple[Dict[str, pd.DataFrame], Dict[str, Dict[str, str]]]:
     
-    # 1. Process Realized Gains (Sales P&L)
-    df_realized = pd.DataFrame(realized_gains)
+    # --- 1. Sales P&L ---
+    flat_records = []
+    for sale in realized_gains:
+        matched_buys = sale.get('matched_buys', [])
+        sale_date = sale.get('date_sell') or sale.get('sale_date')
+        ticker = sale.get('ticker')
+        sale_price = float(sale.get('sale_price', 0))
+        sale_rate = float(sale.get('sale_rate', 1.0))
+        
+        if not matched_buys:
+            flat_records.append({
+                'Date': sale_date,
+                'Ticker': ticker,
+                'TransactionType': 'Sale_P&L',
+                'Buy_Date': 'MISSING',
+                'Quantity': float(sale.get('quantity', 0)),
+                'Proceeds_PLN': float(sale.get('sale_amount', 0)),
+                'Cost_PLN': 0.0,
+                'P&L_PLN': float(sale.get('profit_loss', 0)),
+                'Holding_Days': 0,
+                'Holding_Category': 'N/A'
+            })
+            continue
+
+        for buy in matched_buys:
+            buy_date = buy.get('date')
+            qty = float(buy.get('qty', 0))
+            cost_pln = float(buy.get('cost_pln', 0))
+            lot_proceeds = qty * sale_price * sale_rate
+            lot_pnl = lot_proceeds - cost_pln
+            
+            flat_records.append({
+                'Date': sale_date,
+                'Ticker': ticker,
+                'TransactionType': 'Sale_P&L',
+                'Buy_Date': buy_date,
+                'Quantity': qty,
+                'Proceeds_PLN': lot_proceeds,
+                'Cost_PLN': cost_pln,
+                'P&L_PLN': lot_pnl,
+                'Holding_Days': calculate_days(buy_date, sale_date),
+                'Holding_Category': calculate_holding_period(buy_date, sale_date)
+            })
+
+    df_realized = pd.DataFrame(flat_records)
     if not df_realized.empty:
-        df_realized['TransactionType'] = 'Sale_P&L'
-        
-        # Calculate Holding Period for Sales (B1)
-        df_realized['Holding_Days'] = df_realized.apply(
-            lambda row: calculate_holding_period_days(
-                row.get('buy_date'), row.get('sale_date')
-            ), 
-            axis=1
-        )
-        df_realized['Holding_Category'] = df_realized['Holding_Days'].apply(determine_holding_category)
+        df_realized['Date'] = pd.to_datetime(df_realized['Date'], errors='coerce')
+        df_realized = df_realized.sort_values(by=['Date', 'Ticker']).reset_index(drop=True)
+        df_realized['Date'] = df_realized['Date'].dt.strftime('%Y-%m-%d')
+        cols = ['Date', 'Ticker', 'TransactionType', 'Buy_Date', 'Quantity', 'Proceeds_PLN', 'Cost_PLN', 'P&L_PLN', 'Holding_Days', 'Holding_Category']
+        df_realized = df_realized[[c for c in cols if c in df_realized.columns]]
 
-        # Rename and select columns
-        df_realized = df_realized.rename(columns={
-            'sale_date': 'Date',
-            'ticker': 'Ticker',
-            'sale_amount': 'Proceeds_PLN',
-            'cost_basis': 'Cost_PLN',
-            'profit_loss': 'P&L_PLN'
+    # --- 2. Dividends (FIXED: Show Tax in Cost Column) ---
+    div_records = []
+    for d in dividends:
+        gross = d.get('gross_amount_pln', 0.0)
+        tax = d.get('tax_withheld_pln', 0.0)
+        
+        div_records.append({
+            'Date': d.get('ex_date'),
+            'Ticker': d.get('ticker'),
+            'TransactionType': 'Dividend',
+            'Quantity': 0,
+            'Gross_PLN': gross,
+            'Tax_PLN': tax,
+            # Mapping for Unified Excel View:
+            'Proceeds_PLN': gross, # Выручка = Грязный дивиденд
+            'Cost_PLN': tax,       # Затраты = Уплаченный налог
+            'P&L_PLN': gross - tax, # Прибыль = Чистый дивиденд
+            'Currency': d.get('currency'),
+            'Rate': d.get('rate')
         })
-        df_realized = df_realized[[
-            'Date', 'Ticker', 'Proceeds_PLN', 'Cost_PLN', 'P&L_PLN', 
-            'Holding_Days', 'Holding_Category', 'TransactionType'
-        ]]
-    
-    # 2. Process Dividends
-    df_dividends = pd.DataFrame(dividends)
+    df_dividends = pd.DataFrame(div_records)
     if not df_dividends.empty:
-        df_dividends['TransactionType'] = 'Dividend'
-        df_dividends['Holding_Days'] = 'N/A' 
-        df_dividends['Holding_Category'] = 'N/A' 
-        
-        # Rename and select columns
-        df_dividends = df_dividends.rename(columns={
-            'ex_date': 'Date',
-            'ticker': 'Ticker',
-            'gross_amount_pln': 'Gross_PLN',
-            'tax_withheld_pln': 'Tax_PLN'
+        df_dividends['Date'] = pd.to_datetime(df_dividends['Date'], errors='coerce')
+        df_dividends = df_dividends.sort_values(by=['Date', 'Ticker']).reset_index(drop=True)
+        df_dividends['Date'] = df_dividends['Date'].dt.strftime('%Y-%m-%d')
+
+    # --- 3. Inventory ---
+    inv_records = []
+    today_str = datetime.today().strftime('%Y-%m-%d')
+    for i in inventory:
+        buy_date = i.get('buy_date')
+        inv_records.append({
+            'Buy_Date': buy_date,
+            'Ticker': i.get('ticker'),
+            'TransactionType': 'Inventory',
+            'Quantity': i.get('quantity'),
+            'Cost_per_Share': i.get('cost_per_share'),
+            'Total_Cost_PLN': i.get('total_cost'),
+            'Holding_Days': calculate_days(buy_date, today_str)
         })
-        df_dividends = df_dividends[['Date', 'Ticker', 'Gross_PLN', 'Tax_PLN', 'Holding_Days', 'Holding_Category', 'TransactionType']]
-    
-    # 3. Process Inventory (Open Positions)
-    df_inventory = pd.DataFrame(inventory)
+    df_inventory = pd.DataFrame(inv_records)
     if not df_inventory.empty:
-        df_inventory['TransactionType'] = 'Inventory'
-        
-        # Calculate current holding days for open positions (B1)
-        current_date = date.today().strftime('%Y-%m-%d')
-        df_inventory['Holding_Days'] = df_inventory.apply(
-            lambda row: calculate_holding_period_days(row.get('buy_date'), current_date), 
-            axis=1
-        )
-        df_inventory['Holding_Category'] = 'Open' 
+        df_inventory = df_inventory.sort_values(by=['Ticker', 'Buy_Date'])
 
-        # Rename and select columns
-        df_inventory = df_inventory.rename(columns={
-            'buy_date': 'Date',
-            'ticker': 'Ticker',
-            'quantity': 'Quantity',
-            'cost_per_share': 'Cost_per_Share_PLN',
-            'total_cost': 'Total_Cost_PLN'
-        })
-        df_inventory = df_inventory[['Date', 'Ticker', 'Quantity', 'Total_Cost_PLN', 'Holding_Days', 'Holding_Category', 'TransactionType']]
+    sheets_collection = {
+        'Sales P&L': df_realized,
+        'Dividends': df_dividends,
+        'Open Positions': df_inventory
+    }
 
-
-    # Combine all DataFrames (fills missing columns with NaN)
-    combined_df = pd.concat([df_realized, df_dividends, df_inventory], ignore_index=True)
-    
-    # Sort the final result by date for chronological viewing
-    if not combined_df.empty:
-        combined_df['Date'] = pd.to_datetime(combined_df['Date'])
-        combined_df = combined_df.sort_values(by='Date').reset_index(drop=True)
-        combined_df['Date'] = combined_df['Date'].dt.strftime('%Y-%m-%d')
-        
-    return combined_df
+    ticker_summary = calculate_ticker_summary(flat_records)
+    return sheets_collection, ticker_summary

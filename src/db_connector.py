@@ -27,11 +27,7 @@ class DBConnector:
             self.conn.row_factory = sqlite3.Row  # Allows accessing columns by name
             
             # Execute PRAGMA key to set the decryption key for SQLCipher
-            # SECURITY NOTE: Using PRAGMA key is secure over a local connection.
             self.conn.execute(f"PRAGMA key='{self.db_key}';")
-            
-            # Test connection and key validity (e.g., by checking a table)
-            # self.conn.execute("SELECT count(*) FROM trades;").fetchone()
             
             print(f"INFO: Successfully connected to encrypted DB: {self.db_path}")
             return self
@@ -39,6 +35,36 @@ class DBConnector:
         except Exception as e:
             print(f"ERROR: Failed to open SQLCipher connection. Check key and path. {e}")
             self.conn = None
+            raise
+
+    def initialize_schema(self):
+        """Creates the necessary database tables if they do not exist (e.g., 'transactions')."""
+        if not self.conn:
+            raise ConnectionError("Database connection is not open. Cannot initialize schema.")
+            
+        # Define the schema for the consolidated transactions table
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS transactions (
+            TradeId INTEGER PRIMARY KEY,
+            Date TEXT NOT NULL,
+            EventType TEXT NOT NULL, -- e.g., 'BUY', 'SELL', 'DIVIDEND', 'MANUAL_ADJUST'
+            Ticker TEXT NOT NULL,
+            Quantity REAL,
+            Price REAL,
+            Currency TEXT,
+            Amount REAL,
+            Fee REAL,
+            Description TEXT,
+            -- Add an index for faster filtering and sorting
+            INDEX_YEAR_TICKER INTEGER
+        );
+        """
+        try:
+            self.conn.execute(create_table_query)
+            self.conn.commit()
+            print("INFO: Database schema (transactions table) initialized successfully.")
+        except Exception as e:
+            print(f"ERROR: Failed to initialize schema. {e}")
             raise
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -66,15 +92,15 @@ class DBConnector:
         params = {}
         
         # 1. Filter by Target Year (Sales/Dividends that occurred in that year)
-        # We need all prior BUYS too, so we only filter the event date.
+        # We need all prior BUYS too, so we only filter the event date for non-BUYs.
         
         start_date = f"{target_year}-01-01"
         end_date = f"{target_year}-12-31"
         
-        # NOTE: This complex query simplifies filtering: it includes all Buys (Type='BUY') 
-        # and all other events (Sales, Divs) that fall within the target year.
+        # NOTE: This query includes all Buys (Type='BUY') and all other events 
+        # (Sales, Divs) that fall within the target year.
         query_parts.append(
-            f"AND (Type='BUY' OR Date BETWEEN :start_date AND :end_date)"
+            f"AND (EventType='BUY' OR Date BETWEEN :start_date AND :end_date)"
         )
         params['start_date'] = start_date
         params['end_date'] = end_date
