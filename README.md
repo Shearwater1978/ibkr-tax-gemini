@@ -97,3 +97,21 @@ To validate the code logic, rely on the **CI Pipeline**:
 # Command used in CI/CD pipeline
 pytest
 ```
+
+## 5. Testing Environment
+
+
+### 🚨 IMPORTANT: Pytest and Local Environments (Pyenv/Virtualenv)
+
+**Local Execution is Discouraged:** Due to the way Python manages module imports and caching (e.g., in `pyenv` or complex `virtualenv` setups), running certain tests (especially those involving deep mocking like `tests/test_nbp.py`) **locally** may lead to non-deterministic failures, such as:
+* `RecursionError` (due to cyclic import cache issues).
+* `AssertionError: Called 0 times` (due to global mock precedence).
+
+**The CI environment is the single source of truth for test validity.**
+
+To validate the code logic, rely solely on the **CI Pipeline** (GitHub Actions):
+
+```bash
+# Command used in CI/CD pipeline
+pytest
+```
