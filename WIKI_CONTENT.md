@@ -3,6 +3,12 @@
 ## 1. How to use Snapshots (Archiving History)
 As years go by, parsing 5-10 years of CSV history every time becomes slow and messy. Use Snapshots to "freeze" your inventory state.
 
+### 📝 Project Iteration History (Sprints)
+
+All major feature implementations, security upgrades, and technical decisions are documented by project sprint/iteration. This ensures clear traceability and context for development decisions.
+
+**Full Details:** Refer to the dedicated file **`SPRINT_HISTORY.md`** for the complete timeline, including the migration to SQLCipher, the fix for the NBP test environment, and core calculation logic implementation.
+
 ### Steps:
 1.  Ensure all historical CSVs (e.g., 2021-2024) are currently in `data/` folder.
 2.  Run the snapshot tool:
