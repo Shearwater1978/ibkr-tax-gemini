@@ -1,53 +1,29 @@
-# Technical Specification
+# Technical Specification (Sprint 3)
 
-## 1. Architecture
+## 1. Data Flow Pipeline
 
-The application follows a modular ETL (Extract, Transform, Load) pipeline pattern:
+1.  **Ingestion (ETL):**
+    * Input: IBKR CSV Flex Query.
+    * Process: `src.parser` reads CSV -> identifies Dividends/Trades/Taxes -> Normalizes data.
+    * Output: Inserts rows into `transactions` table in SQLCipher.
 
-1.  **Extract (Parser):**
-    * Reads raw CSV files from Interactive Brokers.
-    * Identifies events: Trade, Dividend, Tax, Corporate Action (Split/Merger).
-    * **Output:** Normalized records inserted into `transactions` table in SQLCipher.
+2.  **Storage:**
+    * Engine: SQLCipher (SQLite + AES-256).
+    * Schema: Consolidated `transactions` table with `EventType` (BUY, SELL, DIVIDEND, TAX).
 
-2.  **Storage (SQLCipher):**
-    * **File:** `db/ibkr_history.db.enc`
-    * **Encryption:** 256-bit AES (via PRAGMA key).
-    * **Schema:** `TradeId`, `Date`, `EventType`, `Ticker`, `Quantity`, `Price`, `Amount`, `Fee`, `Currency`.
+3.  **Processing (Runtime):**
+    * `main.py` initializes `DBConnector`.
+    * `src.processing` loads raw rows for the target year + historical buys.
+    * **Tax Linking:** Pre-scans `TAX` events and maps them to `DIVIDEND` events by (Date, Ticker).
+    * **FIFO:** `src.fifo.TradeMatcher` processes trades to calculate Realized P&L.
 
-3.  **Transform (Processing & FIFO):**
-    * **Loader:** `src.db_connector` fetches raw rows.
-    * **Enrichment:** `src.processing` fetches NBP rates for T-1. It also pre-scans for `TAX` rows to link them with `DIVIDEND` events.
-    * **Logic:** `src.fifo.TradeMatcher` queues Buy lots and matches Sells.
-    * **Tax Logic:**
-        * Capital Gains = (Sale Price * Rate) - (Buy Price * Buy Rate) - Costs.
-        * Dividends = (Gross * Rate) - (Foreign Tax * Rate).
+4.  **Reporting:**
+    * `src.data_collector` aggregates results into Pandas DataFrames.
+    * `src.excel_exporter` writes `.xlsx` with tabs: Summary, Sales P&L, Dividends, Open Positions.
+    * `src.report_pdf` uses ReportLab to create a printable statement.
 
-4.  **Load/Report (Exporters):**
-    * **Excel:** Uses `pandas` and `openpyxl` to generate multi-tab spreadsheets.
-    * **PDF:** Uses `reportlab` to generate printable statements. The `main.py` adapter prepares specific data structures.
+## 2. Key Logic Details
 
-## 2. Data Flow
-
-```
-[CSV Files] -> (src.parser) -> [SQLCipher DB]
-                                     |
-                                     v
-                                (src.db_connector)
-                                     |
-                                     v
-                                (src.processing) <-> [NBP API]
-                                     |
-                                     v
-                                (src.fifo)
-                                     |
-    +--------------------------------+--------------------------------+
-    |                                |                                |
-(src.excel_exporter)           (src.report_pdf)              (Console Output)
-    |                                |
-[ .xlsx Report ]               [ .pdf Report ]
-```
-
-## 3. Key Entities
-
-* **TradeMatcher:** State machine that holds inventory (`deque`) for every ticker.
-* **Restricted Assets:** Logic in `main.py` checks tickers against a hardcoded set (e.g., SBER, YNDX) to flag them in reports with a red highlight.
+* **Sanctions Check:** Hardcoded list of tickers (e.g. SBER, GAZP) in `main.py` marks assets in PDF as Restricted.
+* **Currency:** All foreign amounts converted to PLN using NBP mid-rate (T-1).
+* **Cost Basis:** Includes purchase commissions. Sales commissions reduce proceeds.

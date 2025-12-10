@@ -1,32 +1,23 @@
 # Sprint History
 
-## Sprint 1: Core Logic (Completed)
+## Sprint 1 & 2: Foundations (Completed)
 * Basic CSV parsing.
-* Initial FIFO implementation.
+* FIFO Logic (deque based).
 * NBP API integration.
 
-## Sprint 2: Architecture & CLI (Completed)
-* Refactoring into `src/` modules.
-* Added `tax_cli.py` (deprecated in v1.1, replaced by `main.py`).
-* Added `tests/`.
-
-## Sprint 3: Security & Reporting (Completed - 2025-12-09)
-* **Database Migration:** Switched from H2/SQLite to **SQLCipher** (Encrypted SQLite).
+## Sprint 3: Security & Reporting (CURRENT - COMPLETED)
+* **Architecture Shift:** Migrated from JSON Snapshots to **SQLCipher Database**.
+* **New Modules:**
+    * `src/db_connector.py`: Handles encrypted connections.
+    * `src/data_collector.py`: Prepares DataFrames for Excel.
+    * `src/excel_exporter.py`: Generates multi-sheet .xlsx.
 * **Refactoring:**
-    * Updated `src/db_connector.py` to handle encryption keys from `.env`.
-    * Updated `src/parser.py` to write directly to SQLCipher via transactions.
-    * Created `src/processing.py` as a bridge between DB and Logic.
-    * Updated `src/fifo.py` to support object-based matching and serialization.
+    * `src/parser.py`: Now writes directly to DB via transactions.
+    * `src/processing.py`: optimized to link Taxes to Dividends using a hash map.
 * **Reporting:**
-    * **Excel:** Added multi-sheet export (Sales, Dividends, Inventory).
-    * **PDF:** Restored and enhanced PDF generation.
-        * Added logic to aggregate Inventory by Ticker.
-        * Added highlighting for Restricted Assets (SBER, YNDX, etc.).
-        * Filtered "Trades History" to exclude Dividend/Tax rows.
-* **Fixes:**
-    * **Withholding Tax:** Implemented logic in `processing.py` to map TAX rows to DIVIDEND rows by date/ticker.
-    * **FIFO:** Fixed P&L calculation to include buy/sell commissions in Cost Basis.
+    * PDF now highlights Sanctioned Assets (SBER, YNDX, etc.).
+    * Excel includes separate sheets for Sales, Dividends, and Inventory.
 
 ## Upcoming Sprint 4
-* [ ] GUI Implementation (Tkinter/PyQt).
-* [ ] Advanced Corporate Action wizard.
+* [ ] GUI (Graphical User Interface).
+* [ ] Advanced Merger/Spinoff Wizard.

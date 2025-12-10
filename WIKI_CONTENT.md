@@ -1,15 +1,19 @@
 # Wiki / Glossary
 
-## Modules
+## How to Import Data
+We no longer use `ingest.py`. Use the parser module directly:
+`python -m src.parser --files "path/to/data/*.csv"`
 
-* **`main.py`**: The CLI orchestrator. Handles arguments and dependency injection. Contains the `prepare_data_for_pdf` adapter.
-* **`src.db_connector`**: Context manager for database connections. Handles `PRAGMA key` for encryption.
-* **`src.fifo`**: Contains the `TradeMatcher` class. Implements the core accounting logic.
-* **`src.parser`**: Handles the dirty work of parsing IBKR's specific CSV format.
-* **`src.processing`**: The business logic layer. It prepares data for the FIFO engine and handles Dividend/Tax linking.
+## Database
+The file `data/ibkr_history.db.enc` is encrypted. You cannot open it with standard SQLite browser unless you provide the key (PRAGMA key).
 
-## Business Logic Concepts
+## Excel Report Explanation
+* **Sales P&L:** Shows every closed position. If one Sell matched multiple Buys, it creates multiple rows.
+* **Dividends:** Shows Gross amount and Tax Paid (converted to PLN).
+* **Open Positions:** Your current inventory (FIFO queue).
 
-* **Row-Level Flattening**: For Excel exports, every Sell transaction is "exploded" into multiple rows.
-* **Aggregation**: For PDF reports, Inventory is aggregated by Ticker to show a clean portfolio view.
-* **Sanctions Flagging**: The system maintains a list of restricted tickers and highlights them in the portfolio report.
+## Sanctions / Restricted Assets
+The PDF report highlights assets like Yandex (YNDX) or Sberbank (SBER) in RED. This serves as a warning for tax filing (blocked assets).
+
+## Developer Notes
+To reset the project state for an LLM, use content from `RESTART_PROMPT.md`.
