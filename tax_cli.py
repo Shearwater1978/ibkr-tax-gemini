@@ -1,94 +1,67 @@
-import argparse
-import getpass
-import logging
+# tax_cli.py (Восстановленная обертка)
+
 import sys
+import argparse
+import subprocess
 import os
-from src.db_manager import set_db_password, get_connection, fetch_available_years
-from src.lock_unlock import unlock_db, lock_db
-from src.ingest import ingest_command
-from main import generate_report_command
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+# NOTE: We no longer import anything from main.py. We run main.py as a subprocess.
 
-def initialize_security(args):
-    # Handles password input, unlocking the DB, and setting the global password.
-    print("🔒 Iron Bank CLI Security")
-    
-    password = getpass.getpass("Enter Database Password: ")
-    set_db_password(password)
-    
-    # Attempt decryption (unlocking)
-    if not unlock_db(password):
-        print("Exiting: Decryption failed. Check your password or run initial lock.")
-        sys.exit(1)
-        
-    # Check if the plaintext DB is accessible (first run check)
-    try:
-        con = get_connection()
-        con.close()
-    except FileNotFoundError:
-        print("🚨 Error: Database file not found. Run 'python src/lock_unlock.py' first.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Database access failed after unlock: {e}")
-        sys.exit(1)
-        
-    return password
+def main_cli():
+    """
+    Command Line Interface wrapper to emulate the old tax_cli.py interface 
+    by executing main.py with the correct arguments.
+    """
+    parser = argparse.ArgumentParser(description="Tax CLI for broker reports.")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-def run_report_command(args):
-    # Executes the report generation for the specified year.
-    if not args.year:
-        print("❌ Error: Report year must be specified (e.g., report 2024).")
-        
-        available_years = fetch_available_years()
-        if available_years:
-            print(f"   Available years in DB: {', '.join(available_years)}")
-        
-        sys.exit(1)
-        
-    # Validation
-    available_years = fetch_available_years()
-    if args.year not in available_years:
-        print(f"⚠️ Warning: No trade data found for year {args.year}.")
-        print(f"   Available years in DB: {', '.join(available_years) or 'None'}")
-        
-    generate_report_command(args.year)
-
-def run_ingest_command(args):
-    # Executes the data ingestion command.
-    ingest_command()
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="IBKR Tax Assistant CLI (Iron Bank Edition).",
-        formatter_class=argparse.RawTextHelpFormatter
-    )
-
-    # Global security initializer will run first
-    password = initialize_security(None) 
-    
-    # Subcommands
-    subparsers = parser.add_subparsers(title='Available Commands', dest='command')
-
-    # 1. REPORT Command
+    # 1. REPORT Command (Maps to main.py --target-year <YEAR> --export-excel)
     report_parser = subparsers.add_parser('report', help='Generate tax report for a specific year.')
-    report_parser.add_argument('year', type=str, nargs='?', help='The target tax year (e.g., 2024).')
-    report_parser.set_defaults(func=run_report_command)
+    report_parser.add_argument('year', type=int, help='The target tax year (e.g., 2024).')
     
-    # 2. INGEST Command
-    ingest_parser = subparsers.add_parser('ingest', help='Process and load new CSV files from the data/ folder.')
-    ingest_parser.set_defaults(func=run_ingest_command)
+    # 2. IMPORT Command (Maps to src.parser.py --files <PATH>) - Optional for future sprints
+    import_parser = subparsers.add_parser('import', help='Import and parse raw broker data.')
+    import_parser.add_argument('path', type=str, help='Path to the data folder or file.')
+
 
     args = parser.parse_args()
     
-    if 'func' in args:
-        args.func(args)
-    elif not args.command:
-        parser.print_help()
+    # --- Execute Logic ---
     
-    # Final step: Lock the database
-    lock_db(password)
-    logging.info("ALL DONE! Database locked.")
+    if args.command == 'report':
+        target_year = args.year
+        
+        # Construct the command to execute main.py
+        # We assume main.py is in the current working directory
+        main_command = [
+            sys.executable,  # python interpreter
+            'main.py',       # main script
+            f'--target-year={target_year}',
+            f'--export-excel' # Always export Excel for the 'report' command
+        ]
+        
+        print(f"Executing: {' '.join(main_command)}")
+        try:
+            # Execute main.py
+            subprocess.run(main_command, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Report generation failed. Main script exited with code {e.returncode}.")
+            sys.exit(e.returncode)
+            
+    elif args.command == 'import':
+        # Example for the 'import' command
+        parser_command = [
+            sys.executable,
+            '-m', 'src.parser', # Execute parser as a module
+            '--files', args.path
+        ]
+        
+        print(f"Executing: {' '.join(parser_command)}")
+        try:
+            subprocess.run(parser_command, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Data import failed. Parser exited with code {e.returncode}.")
+            sys.exit(e.returncode)
 
 if __name__ == "__main__":
-    main()
+    main_cli()

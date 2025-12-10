@@ -1,3 +1,4 @@
+openpyxl
 requests
 reportlab
 pytest
@@ -6,3 +7,4 @@ flake8
 black
 pre-commit
 cryptography
+python-decouple

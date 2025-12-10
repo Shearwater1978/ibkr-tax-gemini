@@ -1,6 +1,11 @@
+# src/fifo.py
+
 import json
 from decimal import Decimal
 from collections import deque
+from typing import List, Dict, Any
+
+# Импортируем функции. Убедитесь, что src/utils.py существует.
 from .nbp import get_rate_for_tax_date
 from .utils import money
 
@@ -29,13 +34,19 @@ class TradeMatcher:
             "inventory": serializable_inv
         }
         
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-        print(f"💾 Snapshot saved to {filepath} (Cutoff: {cutoff_date})")
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+            print(f"💾 Snapshot saved to {filepath} (Cutoff: {cutoff_date})")
+        except Exception as e:
+            print(f"WARNING: Failed to save snapshot: {e}")
 
     def load_state(self, filepath: str) -> str:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return "1900-01-01"
         
         cutoff = data.get("cutoff_date", "1900-01-01")
         loaded_inv = data.get("inventory", {})
@@ -55,7 +66,7 @@ class TradeMatcher:
         print(f"📂 Snapshot loaded: {count_positions} positions restored (Cutoff: {cutoff}).")
         return cutoff
 
-    def process_trades(self, trades_list):
+    def process_trades(self, trades_list: List[Dict[str, Any]]):
         # Order matters for correct FIFO/Tax calculations
         type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
         
@@ -82,9 +93,16 @@ class TradeMatcher:
                     self._process_transfer_out(trade)
 
     def _process_buy(self, trade):
-        rate = get_rate_for_tax_date(trade['currency'], trade['date'])
+        # OPTIMIZATION: Use injected rate if available to avoid DB/API call
+        if 'rate' in trade and trade['rate']:
+            rate = trade['rate']
+        else:
+            rate = get_rate_for_tax_date(trade['currency'], trade['date'])
+            
         price = trade.get('price', Decimal(0))
         comm = trade.get('commission', Decimal(0))
+        
+        # Calculate Cost in PLN
         cost_pln = money((price * trade['qty'] * rate) + (abs(comm) * rate))
         
         self.inventory[trade['ticker']].append({
@@ -107,7 +125,12 @@ class TradeMatcher:
         ticker = trade['ticker']
         qty_to_sell = abs(trade['qty'])
         
-        sell_rate = get_rate_for_tax_date(trade['currency'], trade['date'])
+        # OPTIMIZATION: Use injected rate
+        if 'rate' in trade and trade['rate']:
+            sell_rate = trade['rate']
+        else:
+            sell_rate = get_rate_for_tax_date(trade['currency'], trade['date'])
+            
         price = trade.get('price', Decimal(0))
         comm = trade.get('commission', Decimal(0))
         
@@ -118,6 +141,9 @@ class TradeMatcher:
 
         while qty_to_sell > 0:
             if not self.inventory[ticker]: 
+                # Handling empty inventory (e.g. data missing or short sell)
+                # We log it and break to avoid infinite loops or crashes
+                print(f"WARNING: Insufficient inventory for {ticker} sell on {trade['date']}. Missing {qty_to_sell}")
                 break 
 
             buy_batch = self.inventory[ticker][0]
@@ -149,11 +175,15 @@ class TradeMatcher:
             
             self.realized_pnl.append({
                 "ticker": ticker,
+                "sale_date": trade['date'], # Renamed to match data_collector expectation
                 "date_sell": trade['date'],
-                "revenue_pln": float(sell_revenue_pln),
-                "cost_pln": float(total_cost),
-                "pnl": profit_pln,
-                "profit_pln": float(profit_pln),
+                "quantity": float(abs(trade['qty'])),
+                "sale_price": float(price),
+                "sale_rate": float(sell_rate),
+                "sale_amount": float(sell_revenue_pln), # Revenue
+                "cost_basis": float(total_cost),        # Cost
+                "profit_loss": float(profit_pln),       # P&L
+                "currency": trade['currency'],
                 "matched_buys": matched_buys
             })
 
@@ -166,16 +196,37 @@ class TradeMatcher:
         while self.inventory[ticker]:
             batch = self.inventory[ticker].popleft()
             new_qty = batch['qty'] * ratio
-            new_price = batch['price'] / ratio
+            
+            # Avoid division by zero if ratio is weird, though usually valid
+            if ratio != 0:
+                new_price = batch['price'] / ratio
+            else:
+                new_price = batch['price']
+
             batch['qty'] = new_qty
             batch['price'] = new_price
+            # cost_pln remains the same for the batch in a split
             new_deque.append(batch)
         self.inventory[ticker] = new_deque
 
+    def get_realized_gains(self):
+        """Adapter method for new architecture"""
+        return self.realized_pnl
+
     def get_current_inventory(self):
-        snapshot = {}
+        """
+        Returns inventory in a format suitable for the Excel exporter.
+        Flattens the deque queues into a list of dictionaries.
+        """
+        inventory_list = []
         for ticker, batches in self.inventory.items():
-            total = sum(b['qty'] for b in batches)
-            if total > 0:
-                snapshot[ticker] = total
-        return snapshot
+            for batch in batches:
+                inventory_list.append({
+                    'ticker': ticker,
+                    'buy_date': batch['date'],
+                    'quantity': float(batch['qty']),
+                    'cost_per_share': float(batch['price']),
+                    'total_cost': float(batch['cost_pln']),
+                    'currency': batch['currency']
+                })
+        return inventory_list

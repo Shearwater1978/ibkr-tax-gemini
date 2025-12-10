@@ -1,123 +1,52 @@
-# IBKR Tax Calculator 📊
+# IBKR Tax Calculator (Poland / PIT-38)
 
-This project provides a comprehensive tool for calculating capital gains and dividends according to FIFO rules, handling currency conversions (PLN) using the National Bank of Poland (NBP) API, and ensuring data security with SQLCipher encryption.
+A comprehensive tool for calculating Capital Gains Tax and Dividends for Polish tax residents using Interactive Brokers (IBKR).
 
----
+## 🚀 Key Features
 
-## 🚀 1. Setup and Installation
+* **Security First:** All financial data is stored in an **encrypted SQLCipher database** (`db/ibkr_history.db.enc`).
+* **Accurate Calculations:**
+    * **FIFO (First-In-First-Out):** Strict lot matching for precise cost basis calculation.
+    * **NBP Integration:** Automatic fetching of historical exchange rates (PLN) for T-1.
+    * **Corporate Actions:** Handling of Splits, Spin-offs, and Mergers.
+* **Reporting:**
+    * **Excel:** Detailed breakdown of Sales, Dividends, and Inventory (Multi-tab).
+    * **PDF:** Professional report including Portfolio composition, PIT-38 helper data, and Sanctions checks (e.g., restricted assets like SBER, YNDX marked in red).
+* **Data Import:**
+    * Parsing of IBKR CSV Flex Queries.
+    * Support for manual history adjustments.
 
-### Dependencies
-The project uses standard Python libraries, a secure database solution, and Pytest for validation.
+## 🛠 Prerequisites
 
-* **requests** (API calls)
-* **python-decouple** (Environment variable management)
-* **SQLCipher & cryptography** (Database encryption)
+* Python 3.12+
+* SQLCipher (via `pysqlcipher3` or compatible driver)
+* Pandas, ReportLab, OpenPyXL
 
-### Local Environment Setup
+## ⚙️ Setup & Usage
 
-1.  **Clone the repository:**
-    ```bash
-    git clone [your-repo-link]
-    cd ibkr-tax-calculator
+1.  **Environment Setup**
+    Create a `.env` file in the root directory:
+    ```env
+    DATABASE_PATH=db/ibkr_history.db.enc
+    SQLCIPHER_KEY='your_secure_random_key_here'
     ```
-2.  **Install dependencies:**
+
+2.  **Import Data**
+    Parse your broker reports (CSVs) into the encrypted database:
     ```bash
-    pip install -r requirements.txt
+    python -m src.parser --files "data/*.csv"
     ```
 
----
+3.  **Generate Reports**
+    Calculate taxes and generate Excel/PDF reports for a specific year:
+    ```bash
+    python main.py --target-year 2024 --export-excel --export-pdf
+    ```
 
-## 🔑 2. Configuration and Security
+## 📂 Project Structure
 
-The project requires sensitive configurations to be stored in a **`.env`** file in the root directory.
-
-### `.env` Example
-
-Create a file named `.env` and configure the following:
-
-```dotenv
-# --- General Settings ---
-TARGET_YEAR=2024
-DATABASE_PATH=data/ibkr_history.db
-
-# --- Security: Database Encryption Key ---
-# This key is mandatory for initializing and unlocking the SQLCipher database.
-# MUST BE KEPT CONFIDENTIAL.
-# You can generate a new key using the lock_unlock module.
-SQLCIPHER_KEY='[YOUR_32_BYTE_FERNET_KEY]' 
-```
-
-### Database Security (SQLCipher)
-
-The H2 database solution has been replaced by **SQLCipher**. This ensures that all sensitive financial history data is stored with **AES-256 encryption** at rest. The `src/lock_unlock.py` module manages the generation and handling of the `SQLCIPHER_KEY`.
-
----
-
-## ⚙️ 3. Usage: Generating the Report
-
-The core logic is executed via the `TaxCalculator` class, which handles data retrieval, FIFO matching, currency conversion, and final report generation.
-
-### Step 1: Initialize/Unlock the Database
-Before running the main calculations, ensure your database is unlocked or initialized using the provided key in `.env`.
-
-### Step 2: Run Calculations
-
-Execute the main processing script (assuming your entry point is `main.py` or similar):
-
-```bash
-python main.py
-```
-*(Note: Replace `main.py` with your project's primary execution file, e.g., `python src/processing.py`)*
-### Handling Missing Transactions (Manual Input)
-The system supports the manual entry of transactions that may be missing from standard broker reports (e.g., historical transfers, certain corporate actions). These manual records are critical for accurate FIFO matching.
-
-**Input Format:** Manual transactions must be provided in a separate CSV file (`manual_history.csv`) located in the `data/` directory. The required columns and format are specified in the project's **SPECIFICATION.md**.
-
-**Processing Priority:** Manual entries are loaded **before** broker data to ensure they are available for the initial state of the FIFO matching engine.
-
-### Output
-The system generates a report (e.g., PDF, CSV, or JSON) containing:
-* Realized **Capital Gains** (P&L for sales matched via FIFO).
-* **Dividends** and Withholding Taxes paid.
-* **Year-end Inventory** (unmatched buy batches).
-
----
-
-## 💸 4. Exchange Rate Logic
-
-The system strictly follows NBP rules for currency conversion to PLN.
-
-* **Source:** National Bank of Poland (NBP) API.
-* **Holiday/Weekend Handling:** If the NBP API returns no rate for the event date, the system automatically performs a **recursive lookup** for the rate on the preceding working day.
-* **Caching:** An aggressive memory cache and disk cache are used to prevent redundant API calls for historical data.
-
----
-
-## 🧪 5. Testing Environment
-
-**WARNING:** All critical integration and unit tests are designed to run in the **CI/CD environment** (GitHub Actions). Local execution may lead to ambiguous environmental errors (e.g., `RecursionError`, `AssertionError`) due to external factors (like local mocking behavior or dependency conflicts).
-
-To validate the code logic, rely on the **CI Pipeline**:
-
-```bash
-# Command used in CI/CD pipeline
-pytest
-```
-
-## 5. Testing Environment
-
-
-### 🚨 IMPORTANT: Pytest and Local Environments (Pyenv/Virtualenv)
-
-**Local Execution is Discouraged:** Due to the way Python manages module imports and caching (e.g., in `pyenv` or complex `virtualenv` setups), running certain tests (especially those involving deep mocking like `tests/test_nbp.py`) **locally** may lead to non-deterministic failures, such as:
-* `RecursionError` (due to cyclic import cache issues).
-* `AssertionError: Called 0 times` (due to global mock precedence).
-
-**The CI environment is the single source of truth for test validity.**
-
-To validate the code logic, rely solely on the **CI Pipeline** (GitHub Actions):
-
-```bash
-# Command used in CI/CD pipeline
-pytest
-```
+* `main.py`: Entry point. Adapts data for reports, filters history, checks sanctions.
+* `src/parser.py`: Entry point for data import. Parses CSVs to DB.
+* `src/db_connector.py`: Handles encrypted database connections.
+* `src/processing.py`: Core logic bridge. Matches Tax rows to Dividends.
+* `src/fifo.py`: Trade matching algorithm (TradeMatcher).

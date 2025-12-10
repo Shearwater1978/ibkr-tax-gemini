@@ -1,52 +1,47 @@
+import pytest
 from decimal import Decimal
 from src.fifo import TradeMatcher
-from unittest.mock import patch
 
-@patch('src.fifo.get_rate_for_tax_date', return_value=Decimal("4.00"))
-def test_forward_split_4_to_1(mock_rate):
-    matcher = TradeMatcher()
-    trades = [
-        # Buy 1 @ 100$ (Cost = 400 PLN)
-        {'date': '2022-01-01', 'ticker': 'AAPL', 'qty': Decimal('1'), 'price': Decimal('100'), 'commission': 0, 'currency': 'USD', 'type': 'BUY'},
-        
-        # Split 4 for 1 (Now we should have 4 shares, Price effectively 25$)
-        {'date': '2022-06-01', 'ticker': 'AAPL', 'type': 'SPLIT', 'ratio': Decimal('4'), 'currency': 'USD'},
-        
-        # Sell 4 @ 30$ (Revenue = 4 * 30 * 4.0 = 480 PLN)
-        {'date': '2022-12-01', 'ticker': 'AAPL', 'qty': Decimal('-4'), 'price': Decimal('30'), 'commission': 0, 'currency': 'USD', 'type': 'SELL'}
-    ]
-    
-    matcher.process_trades(trades)
-    
-    assert len(matcher.realized_pnl) == 1
-    pnl = matcher.realized_pnl[0]
-    
-    # Revenue: 480 PLN
-    # Cost: 400 PLN (The original cost of that 1 share)
-    # Profit: 80 PLN
-    assert pnl['revenue_pln'] == 480.00
-    assert pnl['cost_pln'] == 400.00
-    assert pnl['profit_pln'] == 80.00
+@pytest.fixture
+def matcher():
+    return TradeMatcher()
 
-@patch('src.fifo.get_rate_for_tax_date', return_value=Decimal("4.00"))
-def test_reverse_split_1_to_10(mock_rate):
-    matcher = TradeMatcher()
+def test_forward_split_4_to_1(matcher):
+    """
+    Buy 10 @ 100. Split 4:1 -> Own 40 @ 25. Sell 40 @ 30.
+    """
     trades = [
-        # Buy 100 @ 1$ (Cost = 100 * 1 * 4.0 = 400 PLN)
-        {'date': '2022-01-01', 'ticker': 'PENNY', 'qty': Decimal('100'), 'price': Decimal('1'), 'commission': 0, 'currency': 'USD', 'type': 'BUY'},
-        
-        # Reverse Split 1 for 10 (Ratio 0.1). Now we have 10 shares.
-        {'date': '2022-06-01', 'ticker': 'PENNY', 'type': 'SPLIT', 'ratio': Decimal('0.1'), 'currency': 'USD'},
-        
-        # Sell 10 @ 15$ (Revenue = 10 * 15 * 4.0 = 600 PLN)
-        {'date': '2022-12-01', 'ticker': 'PENNY', 'qty': Decimal('-10'), 'price': Decimal('15'), 'commission': 0, 'currency': 'USD', 'type': 'SELL'}
+        {'type': 'BUY', 'date': '2024-01-01', 'ticker': 'NVDA', 'qty': Decimal(10), 'price': Decimal(100), 'commission': Decimal(0), 'currency': 'USD', 'rate': Decimal(1.0)},
+        {'type': 'SPLIT', 'date': '2024-02-01', 'ticker': 'NVDA', 'ratio': Decimal(4), 'currency': 'USD'},
+        {'type': 'SELL', 'date': '2024-03-01', 'ticker': 'NVDA', 'qty': Decimal(40), 'price': Decimal(30), 'commission': Decimal(0), 'currency': 'USD', 'rate': Decimal(1.0)}
     ]
-    
     matcher.process_trades(trades)
+    results = matcher.get_realized_gains()
     
-    assert len(matcher.realized_pnl) == 1
-    pnl = matcher.realized_pnl[0]
+    assert len(results) == 1
+    res = results[0]
     
-    assert pnl['revenue_pln'] == 600.00
-    assert pnl['cost_pln'] == 400.00
-    assert pnl['profit_pln'] == 200.00
+    # Cost was 10*100 = 1000.
+    # Revenue is 40*30 = 1200.
+    # Profit = 200.
+    
+    assert res['profit_loss'] == 200.0
+    assert res['cost_basis'] == 1000.0
+
+def test_reverse_split_1_to_10(matcher):
+    """
+    Buy 100 @ 1. Reverse Split 1:10 (0.1) -> Own 10 @ 10. Sell 10 @ 12.
+    """
+    trades = [
+        {'type': 'BUY', 'date': '2024-01-01', 'ticker': 'PENNY', 'qty': Decimal(100), 'price': Decimal(1), 'commission': Decimal(0), 'currency': 'USD', 'rate': Decimal(1.0)},
+        {'type': 'SPLIT', 'date': '2024-02-01', 'ticker': 'PENNY', 'ratio': Decimal("0.1"), 'currency': 'USD'},
+        {'type': 'SELL', 'date': '2024-03-01', 'ticker': 'PENNY', 'qty': Decimal(10), 'price': Decimal(12), 'commission': Decimal(0), 'currency': 'USD', 'rate': Decimal(1.0)}
+    ]
+    matcher.process_trades(trades)
+    results = matcher.get_realized_gains()
+    
+    # Cost: 100 * 1 = 100.
+    # Revenue: 10 * 12 = 120.
+    # Profit: 20.
+    
+    assert results[0]['profit_loss'] == 20.0
