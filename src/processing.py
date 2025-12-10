@@ -1,135 +1,124 @@
-import hashlib
+# src/processing.py
+
+from typing import List, Dict, Any, Tuple
 from decimal import Decimal
-from .fifo import TradeMatcher
-from .nbp import get_rate_for_tax_date
-from .utils import money
-from .db_manager import fetch_all_trades, fetch_dividends, fetch_taxes, fetch_assets_metadata
+from collections import defaultdict
+import logging
 
-class TaxCalculator:
-    def __init__(self, target_year: str):
-        self.target_year = target_year
-        self.report_data = {
-            "dividends": [],
-            "monthly_dividends": {},
-            "capital_gains": [],
-            "holdings": [],
-            "trades_history": [],
-            "corp_actions": [],
-            "diagnostics": {},
-            "per_currency": {}
-        }
-        self.matcher = TradeMatcher()
+# Project imports
+from src.nbp import get_nbp_rate
+from src.fifo import TradeMatcher 
 
-    def run_calculations(self):
-        print(f"📊 [DB Mode] Fetching history up to end of {self.target_year}...")
-        
-        cutoff = f"{self.target_year}-12-31"
-        all_trades = fetch_all_trades(cutoff_date=cutoff)
-        assets_meta = fetch_assets_metadata()
-        
-        print(f"   Loaded {len(all_trades)} trades. Running FIFO Engine...")
-        
-        self.matcher.process_trades(all_trades)
-        fifo_inventory = self.matcher.get_current_inventory()
-        
-        # Holdings
-        self.report_data["holdings"] = []
-        for ticker, qty in fifo_inventory.items():
-            if qty > 0:
-                meta = assets_meta.get(ticker, {})
-                curr = meta.get('currency', 'USD')
-                is_restr = meta.get('is_restricted', False)
-                
-                if ticker not in assets_meta and ticker in self.matcher.inventory:
-                     if self.matcher.inventory[ticker]:
-                         curr = self.matcher.inventory[ticker][0].get('currency', 'USD')
-                         if curr == 'RUB': is_restr = True
+def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+    """
+    Orchestrates the processing of raw database records into calculated tax reports.
+    Adapts SQLCipher data to the TradeMatcher input format.
+    Matches Withholding Taxes to Dividends.
+    """
+    
+    matcher = TradeMatcher()
+    
+    dividends = []
+    fifo_input_list = []
+    
+    print(f"INFO: Processing {len(raw_trades)} trades via FIFO engine...")
 
-                self.report_data["holdings"].append({
-                    "ticker": ticker,
-                    "qty": float(qty),
-                    "currency": curr,
-                    "is_restricted": is_restr,
-                    "fifo_match": True
-                })
-        
-        # History
-        history = []
-        actions = []
-        for t in all_trades:
-            if t['date'].startswith(self.target_year):
-                is_split = t['type'] == 'SPLIT'
-                if is_split or t['type'] == 'TRANSFER':
-                    actions.append(t)
-                else:
-                    history.append(t)
-                    
-        self.report_data["trades_history"] = sorted(history, key=lambda x: x['date'])
-        self.report_data["corp_actions"] = sorted(actions, key=lambda x: x['date'])
-        
-        # Dividends & Taxes
-        raw_divs = fetch_dividends(year=self.target_year)
-        raw_taxes = fetch_taxes(year=self.target_year)
-        self._process_dividends(raw_divs, raw_taxes)
+    # --- 0. Pre-process Taxes (Link TAX rows to Dividends) ---
+    # IBKR reports store Withholding Tax as separate rows.
+    # We map (Date, Ticker) -> Total Tax Amount (absolute value)
+    tax_map = defaultdict(Decimal)
+    
+    for t in raw_trades:
+        if t['EventType'] == 'TAX':
+            # Tax amount is usually negative in DB, we need positive magnitude
+            amt = Decimal(str(t['Amount'])) if t['Amount'] else Decimal(0)
+            key = (t['Date'], t['Ticker'])
+            tax_map[key] += abs(amt)
 
-        # Capital Gains
-        unique_tickers = set()
-        for pnl in self.matcher.realized_pnl:
-            if pnl['date_sell'].startswith(self.target_year):
-                self.report_data["capital_gains"].append(pnl)
-                unique_tickers.add(pnl['ticker'])
-                
-        self.report_data["diagnostics"] = {
-            "tickers_count": len(unique_tickers),
-            "div_rows_count": len(raw_divs),
-            "tax_rows_count": len(raw_taxes)
-        }
+    # Sort trades by date and ID
+    sorted_trades = sorted(raw_trades, key=lambda x: (x['Date'], x['TradeId']))
 
-    def _process_dividends(self, raw_divs, raw_taxes):
-        monthly_map = {} 
-        currency_map = {}
+    for trade in sorted_trades:
+        # Extract basic fields from DB
+        date_str = trade['Date']
+        ticker = trade['Ticker']
+        event_type = trade['EventType'] # BUY, SELL, DIVIDEND, SPLIT, TAX
+        currency = trade['Currency']
         
-        for div in raw_divs:
-            rate = get_rate_for_tax_date(div['currency'], div['date'])
-            amount_pln = money(div['amount'] * rate)
+        # Convert DB types to Decimal
+        quantity = Decimal(str(trade['Quantity'])) if trade['Quantity'] else Decimal(0)
+        price = Decimal(str(trade['Price'])) if trade['Price'] else Decimal(0)
+        amount_currency = Decimal(str(trade['Amount'])) if trade['Amount'] else Decimal(0)
+        fee = Decimal(str(trade['Fee'])) if trade['Fee'] else Decimal(0)
+        
+        description = trade.get('Description', '')
+
+        # --- 1. Get NBP Rate ---
+        rate = Decimal("1.0")
+        if currency != 'PLN':
+            try:
+                rate = get_nbp_rate(currency, date_str)
+            except Exception as e:
+                print(f"WARNING: Could not fetch NBP rate for {currency} on {date_str}. Using 1.0. Error: {e}")
+                rate = Decimal("1.0")
+
+        # --- 2. Build Logic ---
+        
+        if event_type == 'DIVIDEND':
+            # Calculate Dividend in PLN
+            gross_pln = amount_currency * rate
             
-            curr = div['currency']
-            if curr not in currency_map: currency_map[curr] = Decimal("0.00")
-            currency_map[curr] += amount_pln
+            # Look up the tax for this specific dividend (Same Date, Same Ticker)
+            tax_in_original_currency = tax_map.get((date_str, ticker), Decimal(0))
+            tax_pln = tax_in_original_currency * rate
             
-            # Ищем соответствующий налог (по дате и тикеру)
-            # Примечание: Это простая эвристика. Если в один день 2 див. по одному тикеру, 
-            # налог может быть суммирован. 
-            tax_paid = Decimal("0")
-            tax_paid_pln = Decimal("0")
+            div_record = {
+                'ex_date': date_str,
+                'ticker': ticker,
+                'gross_amount_pln': float(gross_pln),
+                'tax_withheld_pln': float(tax_pln), # <--- NOW FILLED
+                'currency': currency,
+                'rate': float(rate)
+            }
+            if date_str.startswith(str(target_year)):
+                dividends.append(div_record)
+        
+        elif event_type == 'TAX':
+            # Skip processing TAX rows here, as they are handled via tax_map above
+            pass
             
-            for t in raw_taxes:
-                if t['ticker'] == div['ticker'] and t['date'] == div['date']:
-                    # Налог в IBKR обычно отрицательный (списан), поэтому берем abs
-                    tax_paid += abs(t['amount'])
-                    tax_paid_pln += abs(money(t['amount'] * rate))
+        else:
+            # Handle Trades (BUY, SELL, SPLIT, TRANSFER)
+            matcher_type = event_type
             
-            self.report_data["dividends"].append({
-                "ticker": div['ticker'],
-                "date": div['date'],
-                "amount": float(div['amount']),
-                "currency": div['currency'],
-                "rate": float(rate),
-                "amount_pln": float(amount_pln),
-                "tax_paid": float(tax_paid),
-                "tax_paid_pln": float(tax_paid_pln)
-            })
+            trade_record = {
+                'type': matcher_type,
+                'date': date_str,
+                'ticker': ticker,
+                'qty': quantity,
+                'price': price,
+                'commission': fee,
+                'currency': currency,
+                'rate': rate,
+                'source': 'DB'
+            }
             
-            month = div['date'].split('-')[1]
-            if month not in monthly_map:
-                monthly_map[month] = {"gross_pln": 0, "tax_pln": 0, "net_pln": 0}
-            
-            monthly_map[month]["gross_pln"] += float(amount_pln)
-            monthly_map[month]["tax_pln"] += float(tax_paid_pln)
-            monthly_map[month]["net_pln"] += float(amount_pln - tax_paid_pln)
+            if matcher_type == 'SPLIT':
+                trade_record['ratio'] = Decimal("1") 
 
-        self.report_data["monthly_dividends"] = monthly_map
-        self.report_data["per_currency"] = {k: float(v) for k, v in currency_map.items()}
+            fifo_input_list.append(trade_record)
 
-    def get_results(self):
-        return {"year": self.target_year, "data": self.report_data}
+    # --- 3. Execute FIFO Logic ---
+    matcher.process_trades(fifo_input_list)
+
+    # --- 4. Extract Results ---
+    all_realized = matcher.get_realized_gains()
+    
+    target_realized = [
+        r for r in all_realized 
+        if r['sale_date'].startswith(str(target_year))
+    ]
+    
+    inventory = matcher.get_current_inventory()
+    
+    return target_realized, dividends, inventory

@@ -1,57 +1,53 @@
-# Technical Specification: IBKR Tax Assistant (v1.2.0)
+# Technical Specification
 
-## 1. Project Goal
-Automate tax calculation (PIT-38) for Polish tax residents using Interactive Brokers.
-Features support for complex corporate actions, FIFO methodology, currency conversion (NBP D-1), and history optimization via Snapshots.
+## 1. Architecture
 
-## 2. Architecture
-* **Language:** Python 3.10+
-* **Core Modules:**
-    * `src/parser.py`: CSV parsing, deduplication (GE), date fixes (KVUE), hidden ticker extraction (Spin-offs).
-    * `src/fifo.py`: FIFO Engine. Supports `save_state`/`load_state` (JSON) for inventory rollover between years.
-    * `src/processing.py`: Orchestrator. Loads Snapshots and filters out processed historical trades.
-    * `src/nbp.py`: National Bank of Poland API client.
-* **Tools:**
-    * `main.py`: Entry point. Automatically detects and loads the appropriate snapshot for the target year.
-    * `create_snapshot.py`: Utility to generate a JSON inventory snapshot at year-end.
-    * `src/report_pdf.py`: PDF Generator (PIT-38, Monthly Divs, Reconciliation Check).
+The application follows a modular ETL (Extract, Transform, Load) pipeline pattern:
 
-## 3. Business Logic
+1.  **Extract (Parser):**
+    * Reads raw CSV files from Interactive Brokers.
+    * Identifies events: Trade, Dividend, Tax, Corporate Action (Split/Merger).
+    * **Output:** Normalized records inserted into `transactions` table in SQLCipher.
 
-### 3.1. Parsing & Data Normalization
-* **Data Corrections:**
-    * KVUE: Hardcoded date `2023-08-23` for "Voluntary Offer" events (Time Travel Fix).
-    * GE: Removal of duplicate split entries within a single file.
-    * Spin-offs: WBD, OGN, FG extracted from text descriptions.
-* **FIFO Priority:** Intra-day operations are sorted: Split -> Transfer/Buy -> Sell.
+2.  **Storage (SQLCipher):**
+    * **File:** `db/ibkr_history.db.enc`
+    * **Encryption:** 256-bit AES (via PRAGMA key).
+    * **Schema:** `TradeId`, `Date`, `EventType`, `Ticker`, `Quantity`, `Price`, `Amount`, `Fee`, `Currency`.
 
-### 3.2. Optimization (Snapshots)
-* **Problem:** Parsing 5-10 years of CSV history is inefficient.
-* **Solution:**
-    1.  User generates `snapshot_YYYY.json` (inventory state as of Dec 31, YYYY).
-    2.  When calculating year `YYYY+1`, the script loads the JSON as the Cost Basis foundation.
-    3.  Historical CSVs can be archived/deleted; FIFO remains consistent.
+3.  **Transform (Processing & FIFO):**
+    * **Loader:** `src.db_connector` fetches raw rows.
+    * **Enrichment:** `src.processing` fetches NBP rates for T-1. It also pre-scans for `TAX` rows to link them with `DIVIDEND` events.
+    * **Logic:** `src.fifo.TradeMatcher` queues Buy lots and matches Sells.
+    * **Tax Logic:**
+        * Capital Gains = (Sale Price * Rate) - (Buy Price * Buy Rate) - Costs.
+        * Dividends = (Gross * Rate) - (Foreign Tax * Rate).
 
-### 3.3. Tax Math & Reporting
-* **Reconciliation:** Compares "Broker View" vs "FIFO Engine View". Status: `OK` or `MISMATCH`.
-* **Visuals:** Red highlighting for restricted assets (e.g., RUB, Sanctions).
-* **Layout:** "Spacious" mode for dividend details (easy bank statement verification).
+4.  **Load/Report (Exporters):**
+    * **Excel:** Uses `pandas` and `openpyxl` to generate multi-tab spreadsheets.
+    * **PDF:** Uses `reportlab` to generate printable statements. The `main.py` adapter prepares specific data structures.
 
-## 4. Tech Stack
-* `reportlab` (PDF generation)
-* `requests` (API calls)
-* `pytest` (Edge case testing)
+## 2. Data Flow
 
-## Database
+```
+[CSV Files] -> (src.parser) -> [SQLCipher DB]
+                                     |
+                                     v
+                                (src.db_connector)
+                                     |
+                                     v
+                                (src.processing) <-> [NBP API]
+                                     |
+                                     v
+                                (src.fifo)
+                                     |
+    +--------------------------------+--------------------------------+
+    |                                |                                |
+(src.excel_exporter)           (src.report_pdf)              (Console Output)
+    |                                |
+[ .xlsx Report ]               [ .pdf Report ]
+```
 
-**SQLCipher Implementation:** The system must use SQLCipher for persistence. This ensures mandatory AES-256 encryption for the entire database file.
+## 3. Key Entities
 
-**Key Management:** A dedicated module (`src/lock_unlock.py`) must handle the secure generation, storage, and retrieval of the SQLCipher key using `cryptography`.
-
-## Exchange Rate Logic
-
-**Source:** Rates are fetched from the National Bank of Poland (NBP) API.
-
-**Holiday/Weekend Handling:** If the NBP API does not return a rate for the requested date (e.g., weekend or holiday), the system must implement a **recursive lookup** to find the rate for the immediately preceding working day. This logic is validated by `test_get_nbp_rate_holiday_recursion`.
-
-**Caching:** An aggressive caching mechanism (both memory cache `_MEMORY_CACHE` and disk cache) must be implemented in `src/nbp.py` to minimize redundant API calls.
+* **TradeMatcher:** State machine that holds inventory (`deque`) for every ticker.
+* **Restricted Assets:** Logic in `main.py` checks tickers against a hardcoded set (e.g., SBER, YNDX) to flag them in reports with a red highlight.
