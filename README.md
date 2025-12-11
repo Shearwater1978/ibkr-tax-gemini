@@ -19,8 +19,8 @@
 
 1.  **Clone:**
     ```bash
-    git clone [https://github.com/your-repo/ibkr-tax-pl.git](https://github.com/your-repo/ibkr-tax-pl.git)
-    cd ibkr-tax-pl
+    git clone [https://github.com/your-repo/ibkr-tax-gemini.git](https://github.com/your-repo/ibkr-tax-gemini.git)
+    cd ibkr-tax-gemini
     ```
 
 2.  **Install:**
@@ -31,8 +31,8 @@
 3.  **Setup Security:**
     Create `.env`:
     ```ini
-    SQLCIPHER_KEY=your_secret_key
-    DATABASE_PATH=data/ibkr_history.db.enc
+    SQLCIPHER_KEY='your_secret_key'
+    DATABASE_PATH=db/ibkr_history.db.enc
     ```
 
 ## 🏃 Usage
