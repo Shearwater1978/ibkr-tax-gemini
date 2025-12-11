@@ -1,340 +1,213 @@
+# src/parser.py
+
 import csv
 import re
-import os
 import glob
 import argparse
+import os
+from datetime import datetime
 from decimal import Decimal
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from src.db_connector import DBConnector
 
-# Import the DBConnector
-from src.db_connector import DBConnector 
+def parse_decimal(value: str) -> Decimal:
+    """Убирает запятые и пробелы, парсит число."""
+    if not value: return Decimal(0)
+    clean = value.replace(',', '').replace('"', '').strip()
+    try:
+        return Decimal(clean)
+    except:
+        return Decimal(0)
 
-IGNORED_TICKERS = {"EXAMPLE", "DUMMY_TICKER_FOR_EXAMPLE"}
+def normalize_date(date_str: str) -> Optional[str]:
+    """Приводит дату к формату YYYY-MM-DD. Возвращает None, если дата пустая."""
+    if not date_str: return None
+    
+    # Отрезаем время, если есть
+    clean = date_str.split(',')[0].strip().split(' ')[0]
+    
+    formats = ["%Y-%m-%d", "%Y%m%d", "%m/%d/%Y", "%d/%m/%Y", "%d-%b-%y"]
+    for fmt in formats:
+        try:
+            return datetime.strptime(clean, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
 
-# --- YOUR EXISTING PARSING LOGIC (UNCHANGED) ---
-
-def extract_ticker(description: str) -> str:
+def extract_ticker(description: str, symbol_col: str) -> str:
+    if symbol_col and symbol_col.strip(): return symbol_col.strip()
     if not description: return "UNKNOWN"
     match = re.search(r'^([A-Za-z0-9\.]+)\(', description)
     if match: return match.group(1)
-    
     parts = description.split()
-    if parts:
-        if parts[0].isupper() and len(parts[0]) < 6: return parts[0].split('(')[0]
+    if parts and parts[0].isupper() and len(parts[0]) < 6:
+        return parts[0].split('(')[0]
     return "UNKNOWN"
 
-def extract_target_ticker(description: str) -> str:
-    match = re.search(r'\(([A-Za-z0-9\.]+),\s+[A-Za-z0-9]', description)
-    if match:
-        return match.group(1)
-    return None
-
 def classify_trade_type(description: str, quantity: Decimal) -> str:
+    """Определяет тип сделки: BUY, SELL или TRANSFER."""
     desc_upper = description.upper()
-    transfer_keywords = [
-        "ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM", 
-        "RECEIVE DELIVER", "INTER-COMPANY"
-    ]
+    # Ключевые слова для трансферов (ввод/вывод активов без продажи)
+    transfer_keywords = ["ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM", "RECEIVE DELIVER"]
+    
     if any(k in desc_upper for k in transfer_keywords):
         return "TRANSFER"
     if quantity > 0: return "BUY"
     if quantity < 0: return "SELL"
     return "UNKNOWN"
 
-def parse_manual_history(filepath: str):
-    manual_trades = []
-    if not os.path.exists(filepath):
-        return manual_trades
-        
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                ticker = row.get('Ticker', '').strip().upper()
-                if not ticker or ticker in IGNORED_TICKERS: continue
-                manual_trades.append({
-                    "ticker": ticker,
-                    "currency": row['Currency'].strip().upper(),
-                    "date": row['Date'].strip(),
-                    "qty": Decimal(row['Quantity']),
-                    "price": Decimal(row['Price']),
-                    "commission": Decimal(row.get('Commission', 0)),
-                    "type": "BUY", # Usually manual history are initial buys
-                    "source": "MANUAL",
-                    "raw_desc": "Manual History"
-                })
-    except Exception as e: 
-        print(f"WARNING: Error parsing manual history: {e}")
-    return manual_trades
+def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[int]:
+    for name in possible_names:
+        if name in headers: return headers[name]
+    return None
 
-def parse_csv(filepath):
-    data_out = {"dividends": [], "taxes": [], "trades": []}
-    seen_actions = set() # DEDUP: Prevent double splits from same file
+def parse_csv(filepath: str) -> Dict[str, List]:
+    data = {'trades': [], 'dividends': [], 'taxes': []}
+    section_headers = {}
+    print(f"\n📂 Parsing file: {os.path.basename(filepath)}")
     
     with open(filepath, 'r', encoding='utf-8-sig') as f:
         reader = csv.reader(f)
         for row in reader:
-            if not row: continue
+            if len(row) < 2: continue
+            section, row_type = row[0], row[1]
             
+            if row_type == 'Header':
+                header_map = {name.strip(): idx for idx, name in enumerate(row)}
+                section_headers[section] = header_map
+                continue
+
+            if row_type != 'Data': continue
+            if section not in section_headers: continue
+            
+            headers = section_headers[section]
+
             # --- DIVIDENDS ---
-            if row[0] == "Dividends" and row[1] == "Data":
-                try:
-                    if "Total" in row[2] or "Total" in row[4]: continue
-                    ticker = extract_ticker(row[4])
-                    if ticker in IGNORED_TICKERS: continue
-                    data_out["dividends"].append({
-                        "ticker": ticker,
-                        "currency": row[2],
-                        "date": row[3],
-                        "amount": Decimal(row[5])
-                    })
-                except: pass
+            if section == 'Dividends':
+                idx_cur  = get_col_idx(headers, ['Currency'])
+                idx_date = get_col_idx(headers, ['Date', 'PayDate'])
+                idx_desc = get_col_idx(headers, ['Description', 'Label'])
+                idx_amt  = get_col_idx(headers, ['Amount', 'Gross Rate', 'Gross Amount'])
+
+                if any(x is None for x in [idx_cur, idx_date, idx_desc, idx_amt]): continue
+
+                desc = row[idx_desc]
+                if "Total" in desc or "Total" in row[idx_cur]: continue
+
+                date_norm = normalize_date(row[idx_date])
+                if not date_norm: continue 
+
+                ticker = extract_ticker(desc, "")
+                amount = parse_decimal(row[idx_amt])
+                
+                print(f"   💰 Found DIVIDEND: {date_norm} | {ticker} | {amount} {row[idx_cur]}")
+                
+                data['dividends'].append({
+                    'ticker': ticker,
+                    'currency': row[idx_cur],
+                    'date': date_norm,
+                    'amount': amount
+                })
 
             # --- TAXES ---
-            if row[0] == "Withholding Tax" and row[1] == "Data":
-                try:
-                    if "Total" in row[4]: continue
-                    ticker = extract_ticker(row[4])
-                    if ticker in IGNORED_TICKERS: continue
-                    data_out["taxes"].append({
-                        "ticker": ticker,
-                        "currency": row[2],
-                        "date": row[3],
-                        "amount": Decimal(row[5])
-                    })
-                except: pass
+            elif section == 'Withholding Tax':
+                idx_cur  = get_col_idx(headers, ['Currency'])
+                idx_date = get_col_idx(headers, ['Date'])
+                idx_desc = get_col_idx(headers, ['Description', 'Label'])
+                idx_amt  = get_col_idx(headers, ['Amount'])
 
+                if any(x is None for x in [idx_cur, idx_date, idx_desc, idx_amt]): continue
+                
+                desc = row[idx_desc]
+                if "Total" in desc or "Total" in row[idx_cur]: continue
+
+                date_norm = normalize_date(row[idx_date])
+                if not date_norm: continue 
+
+                print(f"   💸 Found TAX: {date_norm} | {extract_ticker(desc, '')} | {row[idx_amt]}")
+
+                data['taxes'].append({
+                    'ticker': extract_ticker(desc, ""),
+                    'currency': row[idx_cur],
+                    'date': date_norm,
+                    'amount': parse_decimal(row[idx_amt])
+                })
+            
             # --- TRADES ---
-            if row[0] == "Trades" and row[1] == "Data" and row[2] == "Order" and row[3] == "Stocks":
-                try:
-                    ticker = row[5]
-                    if ticker in IGNORED_TICKERS: continue
-                    
-                    # Clean currency
-                    curr = row[4]
-                    
-                    data_out["trades"].append({
-                        "ticker": ticker,
-                        "currency": curr,
-                        "date": row[6].split(",")[0],
-                        "qty": Decimal(row[7]),
-                        "price": Decimal(row[8]),
-                        "commission": Decimal(row[11]),
-                        "type": classify_trade_type(row[5], Decimal(row[7])),
-                        "source": "IBKR"
-                    })
-                except: pass
+            elif section == 'Trades':
+                col_asset = get_col_idx(headers, ['Asset Category', 'Asset Class'])
+                if col_asset and row[col_asset] not in ['Stocks', 'Equity']: continue
+                
+                col_disc = get_col_idx(headers, ['DataDiscriminator', 'Header'])
+                if col_disc and row[col_disc] not in ['Order', 'Trade']: continue
 
-            # --- CORPORATE ACTIONS ---
-            if row[0] == "Corporate Actions" and row[1] == "Data" and row[2] == "Stocks":
-                try:
-                    desc = row[6]
-                    if "Total" in desc: continue
-                    
-                    # DATE FIX: Revert GE logic (use row date), Keep KVUE fix
-                    date_raw = row[4].split(",")[0]
-                    curr = row[3]
-                    
-                    # 1. SPLITS
-                    if "Split" in desc:
-                        ticker = extract_ticker(desc)
-                        if ticker in IGNORED_TICKERS: continue
-                        match = re.search(r'Split (\d+) for (\d+)', desc, re.IGNORECASE)
-                        if match:
-                            numerator = Decimal(match.group(1))
-                            denominator = Decimal(match.group(2))
-                            if denominator != 0:
-                                ratio = numerator / denominator
-                                
-                                # DEDUP CHECK
-                                action_sig = (date_raw, ticker, "SPLIT", ratio)
-                                if action_sig in seen_actions: continue
-                                seen_actions.add(action_sig)
-                                
-                                data_out["trades"].append({
-                                    "ticker": ticker,
-                                    "currency": curr,
-                                    "date": date_raw,
-                                    "qty": Decimal("0"),
-                                    "price": Decimal("0"),
-                                    "commission": Decimal("0"),
-                                    "type": "SPLIT",
-                                    "ratio": ratio,
-                                    "source": "IBKR_SPLIT"
-                                })
-                        continue 
+                idx_cur   = get_col_idx(headers, ['Currency'])
+                idx_sym   = get_col_idx(headers, ['Symbol', 'Ticker'])
+                idx_date  = get_col_idx(headers, ['Date/Time', 'Date', 'TradeDate'])
+                idx_qty   = get_col_idx(headers, ['Quantity'])
+                idx_price = get_col_idx(headers, ['T. Price', 'TradePrice', 'Price'])
+                idx_comm  = get_col_idx(headers, ['Comm/Fee', 'IBCommission', 'Commission'])
+                idx_desc  = get_col_idx(headers, ['Description'])
 
-                    # 2. COMPLEX ACTIONS
-                    is_spinoff = "Spin-off" in desc or "Spinoff" in desc
-                    is_merger = "Merged" in desc or "Acquisition" in desc
-                    is_stock_div = "Stock Dividend" in desc
-                    is_tender = "Tendered" in desc
-                    is_voluntary = "Voluntary Offer" in desc
-                    
-                    if is_stock_div or is_spinoff or is_merger or is_tender or is_voluntary:
-                        target_ticker = None
-                        
-                        # Explicit Fixes
-                        if is_voluntary and "(KVUE," in desc:
-                             target_ticker = "KVUE"
-                             date_raw = "2023-08-23" # KVUE Force Date
-                        elif is_spinoff and "(WBD," in desc: target_ticker = "WBD"
-                        elif is_spinoff and "(OGN," in desc: target_ticker = "OGN"
-                        elif is_spinoff and "(FG," in desc: target_ticker = "FG"
-                        
-                        if not target_ticker:
-                            if is_spinoff or is_merger or is_tender or is_voluntary:
-                                target_ticker = extract_target_ticker(desc)
-                        if not target_ticker:
-                            target_ticker = extract_ticker(desc)
-                            
-                        if target_ticker and target_ticker not in IGNORED_TICKERS:
-                            qty = Decimal(row[7])
-                            
-                            # DEDUP CHECK
-                            action_sig = (date_raw, target_ticker, "TRANSFER", qty)
-                            if action_sig in seen_actions: continue
-                            seen_actions.add(action_sig)
+                if any(x is None for x in [idx_cur, idx_date, idx_qty, idx_price]): continue
+                if idx_desc and "Total" in row[idx_desc]: continue
 
-                            data_out["trades"].append({
-                                "ticker": target_ticker,
-                                "currency": curr,
-                                "date": date_raw,
-                                "qty": qty,
-                                "price": Decimal("0.0"),
-                                "commission": Decimal("0.0"),
-                                "type": "TRANSFER",
-                                "source": "IBKR_CORP_ACTION"
-                            })
-                except: pass
-                    
-    return data_out
+                date_norm = normalize_date(row[idx_date])
+                if not date_norm: continue
 
-# --- NEW: DATABASE WRITING LOGIC ---
+                qty = parse_decimal(row[idx_qty])
+                desc = row[idx_desc] if idx_desc else ""
+                
+                # Использование восстановленной функции
+                trade_type = classify_trade_type(desc, qty)
 
-def save_to_database(all_data: Dict[str, List[Dict]]):
-    """
-    Takes the parsed dictionary (trades, dividends, taxes) and inserts it into SQLCipher.
-    """
-    
-    # Flatten the dictionary into a list of tuples for the DB schema
-    # DB Schema: TradeId (Auto), Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description
-    
+                data['trades'].append({
+                    'ticker': extract_ticker(desc, row[idx_sym] if idx_sym else ""),
+                    'currency': row[idx_cur],
+                    'date': date_norm,
+                    'qty': qty,
+                    'price': parse_decimal(row[idx_price]),
+                    'commission': parse_decimal(row[idx_comm]) if idx_comm else Decimal(0),
+                    'type': trade_type,
+                    'source': 'IBKR'
+                })
+
+    return data
+
+def save_to_database(all_data):
     db_records = []
-    
-    # 1. Process TRADES (Buys, Sells, Splits, Transfers)
     for t in all_data.get('trades', []):
-        # Calculate Amount (Approximate for now, normally Qty * Price)
-        qty = float(t.get('qty', 0))
-        price = float(t.get('price', 0))
-        fee = float(t.get('commission', 0))
-        amount = qty * price
-        
-        # Special handling for SPLIT ratio storage if needed, usually stored in Quantity or Description
-        # For this schema, we stick to standard fields.
-        
-        record = (
-            t['date'],
-            t['type'], # EventType
-            t['ticker'],
-            qty,
-            price,
-            t['currency'],
-            amount,
-            fee,
-            t.get('source', 'IBKR') # Description
-        )
-        db_records.append(record)
-
-    # 2. Process DIVIDENDS
+        db_records.append((t['date'], t['type'], t['ticker'], float(t['qty']), float(t['price']), t['currency'], float(t['qty']*t['price']), float(t['commission']), t['source']))
     for d in all_data.get('dividends', []):
-        amount = float(d['amount'])
-        record = (
-            d['date'],
-            'DIVIDEND',
-            d['ticker'],
-            0.0, # Qty
-            0.0, # Price
-            d['currency'],
-            amount,
-            0.0, # Fee
-            'Dividend Payout'
-        )
-        db_records.append(record)
-        
-    # 3. Process TAXES
+        db_records.append((d['date'], 'DIVIDEND', d['ticker'], 0, 0, d['currency'], float(d['amount']), 0, 'Dividend'))
     for x in all_data.get('taxes', []):
-        amount = float(x['amount']) # Usually negative in reports
-        record = (
-            x['date'],
-            'TAX',
-            x['ticker'],
-            0.0,
-            0.0,
-            x['currency'],
-            amount,
-            0.0,
-            'Withholding Tax'
-        )
-        db_records.append(record)
+        db_records.append((x['date'], 'TAX', x['ticker'], 0, 0, x['currency'], float(x['amount']), 0, 'Tax'))
 
     if not db_records:
-        print("INFO: No records found to insert.")
+        print("⚠️  No records parsed!")
         return
 
-    # INSERT into DB
-    try:
-        with DBConnector() as db:
-            db.initialize_schema()
-            
-            # We use executemany for performance
-            query = """
-            INSERT INTO transactions 
-            (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """
-            
-            db.conn.executemany(query, db_records)
-            db.conn.commit() # <--- CRITICAL: SAVES DATA
-            
-            print(f"SUCCESS: Imported {len(db_records)} records into SQLCipher.")
-            
-    except Exception as e:
-        print(f"FATAL ERROR writing to DB: {e}")
+    with DBConnector() as db:
+        db.initialize_schema()
+        print("🧹 Cleaning DB before import...")
+        db.conn.execute("DELETE FROM transactions")
+        print(f"📥 Inserting {len(db_records)} records...")
+        db.conn.executemany('INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) VALUES (?,?,?,?,?,?,?,?,?)', db_records)
+        db.conn.commit()
 
-
-# --- MAIN EXECUTION ---
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="IBKR Report Parser & Importer")
-    parser.add_argument('--files', type=str, required=True, help="Folder with CSVs or single file")
-    parser.add_argument('--manual', type=str, default="data/manual_history.csv", help="Path to manual history CSV")
-    
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--files', required=True)
     args = parser.parse_args()
+    combined = {'trades': [], 'dividends': [], 'taxes': []}
     
-    # 1. Collect CSV files
-    if os.path.isdir(args.files):
-        file_paths = glob.glob(os.path.join(args.files, "*.csv"))
-    else:
-        file_paths = glob.glob(args.files)
-        
-    # 2. Parse Everything
-    combined_data = {"trades": [], "dividends": [], "taxes": []}
-    
-    # A. Parse Broker Reports
-    for fp in file_paths:
-        print(f"Parsing: {fp}")
-        file_data = parse_csv(fp)
-        combined_data["trades"].extend(file_data["trades"])
-        combined_data["dividends"].extend(file_data["dividends"])
-        combined_data["taxes"].extend(file_data["taxes"])
+    files = glob.glob(args.files)
+    if not files:
+        print("No files found.")
+        exit(1)
 
-    # B. Parse Manual History
-    if args.manual and os.path.exists(args.manual):
-        print(f"Parsing Manual History: {args.manual}")
-        manual_recs = parse_manual_history(args.manual)
-        combined_data["trades"].extend(manual_recs)
-        
-    # 3. Save to DB
-    print("Writing to database...")
-    save_to_database(combined_data)
+    for fp in files:
+        parsed = parse_csv(fp)
+        for k in combined: combined[k].extend(parsed[k])
+    
+    save_to_database(combined)
