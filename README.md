@@ -1,4 +1,4 @@
-# 🇵🇱 IBKR Tax Calculator (PIT-38 Poland) v2.1.0 
+# 🇵🇱 IBKR Tax Calculator (PIT-38 Poland) v2.1.0
 
 **Automated Capital Gains & Dividend Tax Calculator for Polish Residents using Interactive Brokers.**
 
