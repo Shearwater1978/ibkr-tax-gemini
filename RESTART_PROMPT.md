@@ -1,313 +1,347 @@
-# RESTART PROMPT (SPRINT 3 COMPLETE - v1.3.0)
+# RESTART PROMPT (GOLDEN BACKUP - Sprint 3 - v1.5.0)
 
-I want to recreate the Python project exactly as it exists now.
-It is an **IBKR Tax Calculator for Poland (PIT-38)** using **SQLCipher** for security.
+**Role:** Expert Python Developer (Finance/Tax domain).
+**Project:** IBKR Tax Calculator for Poland (PIT-38).
+**Current State:** Sprint 3 Completed + Hotfixes (Parser/NBP).
+**Features:**
+- SQLCipher Encrypted DB
+- FIFO Calculation
+- Activity Statement Parsing (Dynamic Columns + Date Normalization)
+- NBP Batch Caching (Smart T-1 lookup, low API usage)
+- PDF/Excel Reporting
 
 ## 1. File Structure
 ```text
 ROOT/
-    .env                       # Stores SQLCIPHER_KEY and DATABASE_PATH
+    .env                       # SQLCIPHER_KEY, DATABASE_PATH
     main.py                    # Entry point (CLI)
-    requirements.txt           # pysqlcipher3, pandas, reportlab, openpyxl
+    requirements.txt           # pysqlcipher3, pandas, reportlab, openpyxl, python-decouple
     src/
         db_connector.py        # SQLCipher connection manager
-        parser.py              # CSV Parsing logic
+        parser.py              # CSV Parsing logic (Activity Statements & Flex Queries)
         processing.py          # Logic Bridge: Links Tax->Divs, Runs FIFO
         fifo.py                # TradeMatcher (FIFO Engine)
         data_collector.py      # Prepares DataFrames for Excel
         excel_exporter.py      # Writes .xlsx files
-        report_pdf.py          # Writes .pdf files
-        nbp.py                 # NBP API Client
-        utils.py               # Rounding helpers
+        report_pdf.py          # Writes .pdf files (ReportLab)
+        nbp.py                 # NBP API Client (Batch Caching)
+        utils.py               # Financial rounding helpers
+    tests/
+        test_fifo.py
+        test_processing.py
+        test_parser.py
+        test_nbp.py
 ```
 
-## 2. Technical Specification (Sprint 3)
+## 2. Source Code Restoration
+Please restore the files exactly as provided below.
 
-### 2.1. Project Goal
-Automate PIT-38 calculations. Securely store financial data. Generate audit-ready Excel/PDF reports.
-
-### 2.2. Architecture
-* **Storage:** `src/db_connector.py` uses **SQLCipher** (AES-256). No clear-text JSON/CSV storage for processed data.
-* **Processing:** Functional approach (`process_yearly_data` in `src/processing.py`).
-* **Exchange Rates:** NBP API (T-1 rule).
-
-### 2.3. Key Logic Changes (vs v1.2)
-* **Withholding Tax:** Now handled by pre-scanning `TAX` rows and linking them to `DIVIDEND` rows by `(Date, Ticker)`.
-* **Reporting:**
-    * **Excel:** Separated into tabs: *Sales P&L*, *Dividends*, *Open Positions*.
-    * **PDF:** 'Trades History' filtered to show only BUY/SELL (clean view). 'Portfolio' aggregates lots by Ticker.
-* **Sanctions:** `main.py` contains a hardcoded list of restricted assets (SBER, YNDX, RUB, etc.) to highlight in PDF.
-
-## 3. SOURCE CODE
-Please populate the files with the following content exactly.
-
-# --- FILE: ./main.py ---
+# --- FILE: src/nbp.py ---
 ```python
-import argparse
-from datetime import date
-from collections import defaultdict
-import sys
-import pandas as pd
-
-from src.data_collector import collect_all_trade_data
-from src.excel_exporter import export_to_excel
-from src.db_connector import DBConnector 
-from src.processing import process_yearly_data 
-
-try:
-    from src.report_pdf import generate_pdf
-    PDF_AVAILABLE = True
-except ImportError:
-    print("WARNING: src/report_pdf.py not found. PDF export disabled.")
-    PDF_AVAILABLE = False
-
-def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inventory):
-    # --- SANCTIONS / RESTRICTED LIST ---
-    RESTRICTED_TICKERS = {
-        "YNDX", "OZON", "VKCO", "FIVE", "FIXP", "HHR", "QIWI", "CIAN", "GEMC", "HMSG", "MDMG",
-        "POLY", "PLZL", "GMKN", "NLMK", "CHMF", "MAGN", "RUAL", "ALRS", "PHOR", "GLTR",
-        "GAZP", "LKOH", "NVTK", "ROSN", "TATN", "SNGS", "SNGSP",
-        "SBER", "SBERP", "VTBR", "TCSG", "CBOM",
-        "MTSS", "AFKS", "AFLT"
-    }
-    RESTRICTED_CURRENCIES = {"RUB"}
-
-    history_trades = []
-    corp_actions = []
-    raw_trades.sort(key=lambda x: x['Date'])
-    
-    for t in raw_trades:
-        if t['Date'].startswith(str(target_year)):
-            event_type = t['EventType']
-            if event_type in ['SPLIT', 'TRANSFER', 'MERGER', 'SPINOFF']:
-                corp_actions.append({
-                    'date': t['Date'], 'ticker': t['Ticker'], 'type': event_type,
-                    'qty': float(t['Quantity']) if t['Quantity'] else 0,
-                    'ratio': 1, 'source': t.get('Description', 'DB')
-                })
-            elif event_type in ['BUY', 'SELL']:
-                history_trades.append({
-                    'date': t['Date'], 'ticker': t['Ticker'], 'type': event_type,
-                    'qty': float(t['Quantity']) if t['Quantity'] else 0,
-                    'price': float(t['Price']) if t['Price'] else 0,
-                    'commission': float(t['Fee']) if t['Fee'] else 0,
-                    'currency': t['Currency']
-                })
-
-    monthly_divs = defaultdict(lambda: {'gross_pln': 0.0, 'tax_pln': 0.0, 'net_pln': 0.0})
-    formatted_divs = []
-    for d in dividends:
-        date_str = d['ex_date']
-        month_key = date_str[5:7]
-        gross = d['gross_amount_pln']
-        tax = d.get('tax_withheld_pln', 0.0)
-        net = gross - tax
-        monthly_divs[month_key]['gross_pln'] += gross
-        monthly_divs[month_key]['tax_pln'] += tax
-        monthly_divs[month_key]['net_pln'] += net
-        formatted_divs.append({
-            'date': date_str, 'ticker': d['ticker'],
-            'amount': d.get('gross_amount_pln', 0) / d.get('rate', 1) if d.get('rate') else 0,
-            'currency': d.get('currency', 'UNK'), 'rate': d.get('rate', 1.0),
-            'amount_pln': gross, 'tax_paid_pln': tax
-        })
-
-    cap_gains_data = [{'revenue_pln': g['sale_amount'], 'cost_pln': g['cost_basis']} for g in realized_gains]
-
-    aggregated_holdings = defaultdict(float)
-    restricted_status = {}
-    for i in inventory:
-        ticker = i['ticker']
-        qty = i['quantity']
-        aggregated_holdings[ticker] += qty
-        if ticker in RESTRICTED_TICKERS or i.get('currency') in RESTRICTED_CURRENCIES:
-            restricted_status[ticker] = True
-
-    holdings_data = []
-    for ticker, total_qty in aggregated_holdings.items():
-        if abs(total_qty) > 0.000001:
-            holdings_data.append({
-                'ticker': ticker, 'qty': total_qty,
-                'is_restricted': restricted_status.get(ticker, False), 'fifo_match': True
-            })
-    holdings_data.sort(key=lambda x: x['ticker'])
-
-    per_curr = defaultdict(float)
-    for d in dividends: per_curr[d.get('currency', 'UNK')] += d['gross_amount_pln']
-
-    return {
-        'year': target_year,
-        'data': {
-            'holdings': holdings_data, 'trades_history': history_trades, 'corp_actions': corp_actions,
-            'monthly_dividends': dict(monthly_divs), 'dividends': formatted_divs,
-            'capital_gains': cap_gains_data, 'per_currency': dict(per_curr),
-            'diagnostics': {'tickers_count': len(aggregated_holdings), 'div_rows_count': len(dividends), 'tax_rows_count': 0}
-        }
-    }
-
-def main():
-    parser = argparse.ArgumentParser(description="IBKR Tax Calculator")
-    parser.add_argument('--target-year', type=int, default=date.today().year, help='Year for calculation.')
-    parser.add_argument('--ticker', type=str, default=None, help='Filter by ticker.')
-    parser.add_argument('--export-excel', action='store_true', help='Export to Excel.')
-    parser.add_argument('--export-pdf', action='store_true', help='Export to PDF.')
-    args = parser.parse_args()
-
-    print(f"Starting tax calculation for {args.target_year}...")
-    raw_trades = []
-    try:
-        with DBConnector() as db:
-            db.initialize_schema() 
-            raw_trades = db.get_trades_for_calculation(target_year=args.target_year, ticker=args.ticker)
-            print(f"INFO: Loaded {len(raw_trades)} records from SQLCipher.")
-    except Exception as e:
-        print(f"FATAL ERROR: DB Connection failed. {e}")
-        sys.exit(1)
-
-    if not raw_trades:
-        print("WARNING: No trades found. Import data first.")
-        return
-
-    realized_gains, dividends, inventory = process_yearly_data(raw_trades, args.target_year)
-    
-    total_pl = sum(r['profit_loss'] for r in realized_gains)
-    total_dividends = sum(d['gross_amount_pln'] for d in dividends)
-    print(f"\n--- Results {args.target_year} ---")
-    print(f"Realized P&L: {total_pl:.2f} PLN")
-    print(f"Dividends (Gross): {total_dividends:.2f} PLN")
-
-    sheets_dict, ticker_summary = collect_all_trade_data(realized_gains, dividends, inventory)
-    suffix = f"_{args.ticker}" if args.ticker else ""
-
-    if args.export_excel:
-        out_xlsx = f"output/tax_report_{args.target_year}{suffix}.xlsx"
-        summary_metrics = {"Total P&L": total_pl, "Dividends": total_dividends}
-        export_to_excel(sheets_dict, out_xlsx, summary_metrics, ticker_summary)
-
-    if args.export_pdf and PDF_AVAILABLE:
-        out_pdf = f"output/tax_report_{args.target_year}{suffix}.pdf"
-        pdf_data = prepare_data_for_pdf(args.target_year, raw_trades, realized_gains, dividends, inventory)
-        generate_pdf(pdf_data, out_pdf)
-        print(f"SUCCESS: PDF saved to {out_pdf}")
-
-if __name__ == "__main__":
-    main()
-```
-
-# --- FILE: ./src/processing.py ---
-```python
-from typing import List, Dict, Any, Tuple
+import requests
+import calendar
+from datetime import datetime, timedelta, date
 from decimal import Decimal
-from collections import defaultdict
-from src.nbp import get_nbp_rate
-from src.fifo import TradeMatcher 
+from typing import Dict, Optional
 
-def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> Tuple[List[Dict], List[Dict], List[Dict]]:
-    matcher = TradeMatcher()
-    dividends = []
-    fifo_input_list = []
-    
-    # 0. Pre-process Taxes
-    tax_map = defaultdict(Decimal)
-    for t in raw_trades:
-        if t['EventType'] == 'TAX':
-            amt = Decimal(str(t['Amount'])) if t['Amount'] else Decimal(0)
-            key = (t['Date'], t['Ticker'])
-            tax_map[key] += abs(amt)
+# Global Cache: {(currency, year, month): {date_str: rate_decimal}}
+_MONTHLY_CACHE: Dict[tuple, Dict[str, Decimal]] = {}
 
-    sorted_trades = sorted(raw_trades, key=lambda x: (x['Date'], x['TradeId']))
-    
-    for trade in sorted_trades:
-        date_str = trade['Date']
-        ticker = trade['Ticker']
-        event_type = trade['EventType']
-        currency = trade['Currency']
-        quantity = Decimal(str(trade['Quantity'])) if trade['Quantity'] else Decimal(0)
-        price = Decimal(str(trade['Price'])) if trade['Price'] else Decimal(0)
-        amount = Decimal(str(trade['Amount'])) if trade['Amount'] else Decimal(0)
-        fee = Decimal(str(trade['Fee'])) if trade['Fee'] else Decimal(0)
-        
-        rate = Decimal("1.0")
-        if currency != 'PLN':
-             # Note: In real app, handle NBP exceptions properly
-             try: rate = get_nbp_rate(currency, date_str)
-             except: rate = Decimal("1.0")
+def fetch_month_rates(currency: str, year: int, month: int) -> None:
+    cache_key = (currency, year, month)
+    if cache_key in _MONTHLY_CACHE: return
+    start_date = date(year, month, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    end_date = date(year, month, last_day)
+    if start_date > date.today():
+        _MONTHLY_CACHE[cache_key] = {}
+        return
+    if end_date > date.today(): end_date = date.today()
+    fmt_start = start_date.strftime('%Y-%m-%d')
+    fmt_end = end_date.strftime('%Y-%m-%d')
+    url = f'http://api.nbp.pl/api/exchangerates/rates/a/{currency}/{fmt_start}/{fmt_end}/?format=json'
+    try:
+        response = requests.get(url, timeout=10)
+        rates_map = {}
+        if response.status_code == 200:
+            data = response.json()
+            for item in data.get('rates', []):
+                rates_map[item['effectiveDate']] = Decimal(str(item['mid']))
+        _MONTHLY_CACHE[cache_key] = rates_map
+    except Exception as e:
+        print(f'❌ NBP Network Error for {fmt_start}: {e}')
 
-        if event_type == 'DIVIDEND':
-            gross_pln = amount * rate
-            tax_in_curr = tax_map.get((date_str, ticker), Decimal(0))
-            tax_pln = tax_in_curr * rate
-            if date_str.startswith(str(target_year)):
-                dividends.append({
-                    'ex_date': date_str, 'ticker': ticker,
-                    'gross_amount_pln': float(gross_pln), 'tax_withheld_pln': float(tax_pln),
-                    'currency': currency, 'rate': float(rate)
-                })
-        elif event_type == 'TAX':
-            pass # Handled in pre-process
-        else:
-            # TRADES
-            trade_record = {
-                'type': event_type, 'date': date_str, 'ticker': ticker,
-                'qty': quantity, 'price': price, 'commission': fee,
-                'currency': currency, 'rate': rate, 'source': 'DB'
-            }
-            if event_type == 'SPLIT': trade_record['ratio'] = Decimal("1") # Simplified for snippet
-            fifo_input_list.append(trade_record)
+def get_nbp_rate(currency: str, date_str: str) -> Decimal:
+    if currency == 'PLN': return Decimal('1.0')
+    try: event_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError: return Decimal('1.0')
+    target_date = event_date - timedelta(days=1)
+    for _ in range(10):
+        t_year, t_month = target_date.year, target_date.month
+        if (currency, t_year, t_month) not in _MONTHLY_CACHE:
+            fetch_month_rates(currency, t_year, t_month)
+        month_data = _MONTHLY_CACHE.get((currency, t_year, t_month), {})
+        t_str = target_date.strftime('%Y-%m-%d')
+        if t_str in month_data: return month_data[t_str]
+        target_date -= timedelta(days=1)
+    print(f'❌ NBP FATAL: No rate for {currency} near {date_str}. Using 1.0')
+    return Decimal('1.0')
 
-    matcher.process_trades(fifo_input_list)
-    all_realized = matcher.get_realized_gains()
-    target_realized = [r for r in all_realized if r['sale_date'].startswith(str(target_year))]
-    inventory = matcher.get_current_inventory()
-    return target_realized, dividends, inventory
+def get_rate_for_tax_date(currency, trade_date):
+    return get_nbp_rate(currency, trade_date)
 ```
 
-# --- FILE: ./src/db_connector.py ---
+# --- FILE: src/parser.py ---
+```python
+import csv
+import re
+import glob
+import argparse
+import os
+from datetime import datetime
+from decimal import Decimal
+from typing import List, Dict, Any, Optional
+from src.db_connector import DBConnector
+
+def parse_decimal(value: str) -> Decimal:
+    if not value: return Decimal(0)
+    clean = value.replace(',', '').replace('"', '').strip()
+    try: return Decimal(clean)
+    except: return Decimal(0)
+
+def normalize_date(date_str: str) -> Optional[str]:
+    if not date_str: return None
+    clean = date_str.split(',')[0].strip().split(' ')[0]
+    formats = ['%Y-%m-%d', '%Y%m%d', '%m/%d/%Y', '%d/%m/%Y', '%d-%b-%y']
+    for fmt in formats:
+        try: return datetime.strptime(clean, fmt).strftime('%Y-%m-%d')
+        except ValueError: continue
+    return None
+
+def extract_ticker(description: str, symbol_col: str) -> str:
+    if symbol_col and symbol_col.strip(): return symbol_col.strip()
+    if not description: return 'UNKNOWN'
+    match = re.search(r'^([A-Za-z0-9\.]+)\(', description)
+    if match: return match.group(1)
+    parts = description.split()
+    if parts and parts[0].isupper() and len(parts[0]) < 6:
+        return parts[0].split('(')[0]
+    return 'UNKNOWN'
+
+def classify_trade_type(description: str, quantity: Decimal) -> str:
+    desc_upper = description.upper()
+    transfer_keywords = ['ACATS', 'TRANSFER', 'INTERNAL', 'POSITION MOVEM', 'RECEIVE DELIVER']
+    if any(k in desc_upper for k in transfer_keywords): return 'TRANSFER'
+    if quantity > 0: return 'BUY'
+    if quantity < 0: return 'SELL'
+    return 'UNKNOWN'
+
+def get_col_idx(headers, possible_names):
+    for name in possible_names:
+        if name in headers: return headers[name]
+    return None
+
+def parse_csv(filepath: str) -> Dict[str, List]:
+    data = {'trades': [], 'dividends': [], 'taxes': []}
+    section_headers = {}
+    print(f'Parsing: {os.path.basename(filepath)}')
+    with open(filepath, 'r', encoding='utf-8-sig') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if len(row) < 2: continue
+            section, row_type = row[0], row[1]
+            if row_type == 'Header':
+                section_headers[section] = {n.strip(): i for i, n in enumerate(row)}
+                continue
+            if row_type != 'Data' or section not in section_headers: continue
+            headers = section_headers[section]
+
+            if section == 'Dividends':
+                idx_cur = get_col_idx(headers, ['Currency'])
+                idx_date = get_col_idx(headers, ['Date', 'PayDate'])
+                idx_desc = get_col_idx(headers, ['Description', 'Label'])
+                idx_amt = get_col_idx(headers, ['Amount', 'Gross Rate', 'Gross Amount'])
+                if any(x is None for x in [idx_cur, idx_date, idx_desc, idx_amt]): continue
+                if 'Total' in row[idx_desc] or 'Total' in row[idx_cur]: continue
+                date_norm = normalize_date(row[idx_date])
+                if not date_norm: continue
+                data['dividends'].append({
+                    'ticker': extract_ticker(row[idx_desc], ''), 'currency': row[idx_cur],
+                    'date': date_norm, 'amount': parse_decimal(row[idx_amt])
+                })
+
+            elif section == 'Withholding Tax':
+                idx_cur = get_col_idx(headers, ['Currency'])
+                idx_date = get_col_idx(headers, ['Date'])
+                idx_desc = get_col_idx(headers, ['Description', 'Label'])
+                idx_amt = get_col_idx(headers, ['Amount'])
+                if any(x is None for x in [idx_cur, idx_date, idx_desc, idx_amt]): continue
+                if 'Total' in row[idx_desc] or 'Total' in row[idx_cur]: continue
+                date_norm = normalize_date(row[idx_date])
+                if not date_norm: continue
+                data['taxes'].append({
+                    'ticker': extract_ticker(row[idx_desc], ''), 'currency': row[idx_cur],
+                    'date': date_norm, 'amount': parse_decimal(row[idx_amt])
+                })
+
+            elif section == 'Trades':
+                col_asset = get_col_idx(headers, ['Asset Category', 'Asset Class'])
+                if col_asset and row[col_asset] not in ['Stocks', 'Equity']: continue
+                col_disc = get_col_idx(headers, ['DataDiscriminator', 'Header'])
+                if col_disc and row[col_disc] not in ['Order', 'Trade']: continue
+                idx_cur = get_col_idx(headers, ['Currency'])
+                idx_sym = get_col_idx(headers, ['Symbol', 'Ticker'])
+                idx_date = get_col_idx(headers, ['Date/Time', 'Date', 'TradeDate'])
+                idx_qty = get_col_idx(headers, ['Quantity'])
+                idx_price = get_col_idx(headers, ['T. Price', 'TradePrice', 'Price'])
+                idx_comm = get_col_idx(headers, ['Comm/Fee', 'IBCommission', 'Commission'])
+                idx_desc = get_col_idx(headers, ['Description'])
+                if any(x is None for x in [idx_cur, idx_date, idx_qty, idx_price]): continue
+                if idx_desc and 'Total' in row[idx_desc]: continue
+                date_norm = normalize_date(row[idx_date])
+                if not date_norm: continue
+                qty = parse_decimal(row[idx_qty])
+                desc = row[idx_desc] if idx_desc else ''
+                data['trades'].append({
+                    'ticker': extract_ticker(desc, row[idx_sym] if idx_sym else ''),
+                    'currency': row[idx_cur], 'date': date_norm, 'qty': qty,
+                    'price': parse_decimal(row[idx_price]),
+                    'commission': parse_decimal(row[idx_comm]) if idx_comm else Decimal(0),
+                    'type': classify_trade_type(desc, qty), 'source': 'IBKR'
+                })
+    return data
+
+def save_to_database(all_data):
+    db_records = []
+    for t in all_data['trades']: db_records.append((t['date'], t['type'], t['ticker'], float(t['qty']), float(t['price']), t['currency'], float(t['qty']*t['price']), float(t['commission']), t['source']))
+    for d in all_data['dividends']: db_records.append((d['date'], 'DIVIDEND', d['ticker'], 0, 0, d['currency'], float(d['amount']), 0, 'Dividend'))
+    for x in all_data['taxes']: db_records.append((x['date'], 'TAX', x['ticker'], 0, 0, x['currency'], float(x['amount']), 0, 'Tax'))
+    if not db_records: return
+    with DBConnector() as db:
+        db.initialize_schema()
+        db.conn.execute('DELETE FROM transactions')
+        db.conn.executemany('INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) VALUES (?,?,?,?,?,?,?,?,?)', db_records)
+        db.conn.commit()
+    print(f'SUCCESS: Imported {len(db_records)} records.')
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--files', required=True)
+    args = parser.parse_args()
+    combined = {'trades': [], 'dividends': [], 'taxes': []}
+    for fp in glob.glob(args.files):
+        parsed = parse_csv(fp)
+        for k in combined: combined[k].extend(parsed[k])
+    save_to_database(combined)
+```
+
+# --- FILE: src/db_connector.py ---
 ```python
 import sqlite3
-import os
+from typing import List, Dict, Any, Optional
 from decouple import config
 
 class DBConnector:
     def __init__(self):
-        self.db_path = config('DATABASE_PATH', default='db/ibkr_history.db.enc')
-        self.key = config('SQLCIPHER_KEY', default='TEST_KEY')
-        self.conn = None
+        self.db_path = config('DATABASE_PATH', default='data/ibkr_history.db')
+        self.db_key = config('SQLCIPHER_KEY', default='')
+        self.conn: Optional[sqlite3.Connection] = None
+        if not self.db_key: raise ValueError('SQLCIPHER_KEY missing in .env')
 
     def __enter__(self):
-        self.conn = sqlite3.connect(self.db_path)
-        # Enforce SQLCipher encryption
-        self.conn.execute(f"PRAGMA key = '{self.key}';")
-        self.conn.row_factory = sqlite3.Row
-        return self
+        try:
+            self.conn = sqlite3.connect(self.db_path)
+            self.conn.row_factory = sqlite3.Row
+            self.conn.execute(f"PRAGMA key='{self.db_key}';")
+            return self
+        except Exception as e:
+            print(f'ERROR: SQLCipher failed. {e}')
+            raise
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.conn:
-            self.conn.close()
+        if self.conn: self.conn.close()
 
     def initialize_schema(self):
-        # Standard table schema
+        if not self.conn: raise ConnectionError('DB not connected')
         query = """
         CREATE TABLE IF NOT EXISTS transactions (
-            TradeId INTEGER PRIMARY KEY AUTOINCREMENT,
-            Date TEXT, EventType TEXT, Ticker TEXT,
-            Quantity REAL, Price REAL, Amount REAL, Fee REAL, Currency TEXT, Description TEXT
+            TradeId INTEGER PRIMARY KEY,
+            Date TEXT NOT NULL, EventType TEXT NOT NULL, Ticker TEXT NOT NULL,
+            Quantity REAL, Price REAL, Currency TEXT, Amount REAL, Fee REAL, Description TEXT
         );
         """
         self.conn.execute(query)
+        self.conn.commit()
 
-    def get_trades_for_calculation(self, target_year, ticker=None):
-        # Returns ALL history up to end of target_year to ensure FIFO correctness
-        end_date = f"{target_year}-12-31"
-        query = "SELECT * FROM transactions WHERE Date <= :end_date"
-        params = {'end_date': end_date}
+    def get_trades_for_calculation(self, target_year: int, ticker: Optional[str]) -> List[Dict[str, Any]]:
+        if not self.conn: return []
+        query = 'SELECT * FROM transactions WHERE 1=1'
+        params = {}
+        start_date = f'{target_year}-01-01'
+        end_date = f'{target_year}-12-31'
+        query += ' AND (EventType="BUY" OR Date BETWEEN :start AND :end)'
+        params['start'] = start_date
+        params['end'] = end_date
         if ticker:
-            query += " AND Ticker = :ticker"
+            query += ' AND Ticker = :ticker'
             params['ticker'] = ticker
-        return [dict(row) for row in self.conn.execute(query, params)]
+        query += ' ORDER BY Date ASC, TradeId ASC;'
+        cursor = self.conn.execute(query, params)
+        return [dict(row) for row in cursor.fetchall()]
 ```
 
----
-**INSTRUCTION:**
-Use the above file contents to initialize the environment.
-The DB logic replaces the old JSON snapshot system.
+# --- FILE: tests/test_parser.py ---
+```python
+import pytest
+from decimal import Decimal
+from src.parser import normalize_date, extract_ticker, parse_decimal, classify_trade_type
+
+def test_normalize_date():
+    assert normalize_date('20250102') == '2025-01-02'
+    assert normalize_date('01/02/2025') == '2025-01-02'
+    assert normalize_date('') is None
+
+def test_extract_ticker():
+    assert extract_ticker('AGR(US...)', '') == 'AGR'
+    assert extract_ticker('TEST Cash Div', '') == 'TEST'
+    assert extract_ticker('Unknown', 'AAPL') == 'AAPL'
+
+def test_classify_trade():
+    assert classify_trade_type('ACATS Transfer', Decimal(10)) == 'TRANSFER'
+    assert classify_trade_type('Buy', Decimal(10)) == 'BUY'
+```
+
+# --- FILE: tests/test_nbp.py ---
+```python
+import pytest
+from decimal import Decimal
+from unittest.mock import patch, MagicMock
+from src.nbp import get_nbp_rate, _MONTHLY_CACHE
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    _MONTHLY_CACHE.clear()
+
+@patch('src.nbp.requests.get')
+def test_fetch_month_rates_success(mock_get):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        'rates': [
+            {'effectiveDate': '2025-01-02', 'mid': 4.10},
+            {'effectiveDate': '2025-01-03', 'mid': 4.15}
+        ]
+    }
+    mock_get.return_value = mock_response
+    rate = get_nbp_rate('USD', '2025-01-03')
+    assert rate == Decimal('4.10')
+    assert mock_get.call_count == 1
+    rate2 = get_nbp_rate('USD', '2025-01-04')
+    assert rate2 == Decimal('4.15')
+    assert mock_get.call_count == 1
+```
+
+## 3. Instructions
+Restore these files. Ensure `src/fifo.py`, `src/processing.py`, and `src/report_pdf.py` are present (from Sprint 3 baseline).
+Run `python -m src.parser --files 'data/*.csv'` to re-import data.
+Run `pytest` to verify integrity.
