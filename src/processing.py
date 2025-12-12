@@ -1,5 +1,3 @@
-# src/processing.py
-
 from typing import List, Dict, Any, Tuple
 from decimal import Decimal
 from collections import defaultdict
@@ -11,9 +9,11 @@ from src.fifo import TradeMatcher
 
 def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> Tuple[List[Dict], List[Dict], List[Dict]]:
     """
-    Orchestrates the processing of raw database records into calculated tax reports.
-    Adapts SQLCipher data to the TradeMatcher input format.
-    Matches Withholding Taxes to Dividends.
+    Main Processing Pipeline:
+    1. Fetches raw data from DB.
+    2. Maps Withholding Taxes to Dividends.
+    3. Feeds all events (Trades, Corp Actions, Dividends) into the FIFO engine.
+    4. Returns calculated Realized Gains, Dividends, and Inventory.
     """
     
     matcher = TradeMatcher()
@@ -23,29 +23,29 @@ def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> T
     
     print(f"INFO: Processing {len(raw_trades)} trades via FIFO engine...")
 
-    # --- 0. Pre-process Taxes (Link TAX rows to Dividends) ---
-    # IBKR reports store Withholding Tax as separate rows.
-    # We map (Date, Ticker) -> Total Tax Amount (absolute value)
+    # --- 1. Pre-process Taxes ---
+    # IBKR stores Withholding Tax as separate rows.
+    # We aggregate them into a map: (Date, Ticker) -> Total Tax Amount
     tax_map = defaultdict(Decimal)
     
     for t in raw_trades:
         if t['EventType'] == 'TAX':
-            # Tax amount is usually negative in DB, we need positive magnitude
+            # Tax amount in DB is usually negative. We store the absolute magnitude.
             amt = Decimal(str(t['Amount'])) if t['Amount'] else Decimal(0)
             key = (t['Date'], t['Ticker'])
             tax_map[key] += abs(amt)
 
-    # Sort trades by date and ID
+    # Sort trades chronologically to ensure correct processing order
     sorted_trades = sorted(raw_trades, key=lambda x: (x['Date'], x['TradeId']))
 
     for trade in sorted_trades:
-        # Extract basic fields from DB
+        # Extract fields
         date_str = trade['Date']
         ticker = trade['Ticker']
-        event_type = trade['EventType'] # BUY, SELL, DIVIDEND, SPLIT, TAX
+        event_type = trade['EventType'] # BUY, SELL, SPLIT, DIVIDEND, STOCK_DIV, MERGER, etc.
         currency = trade['Currency']
         
-        # Convert DB types to Decimal
+        # Convert to Decimal for precision
         quantity = Decimal(str(trade['Quantity'])) if trade['Quantity'] else Decimal(0)
         price = Decimal(str(trade['Price'])) if trade['Price'] else Decimal(0)
         amount_currency = Decimal(str(trade['Amount'])) if trade['Amount'] else Decimal(0)
@@ -53,7 +53,7 @@ def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> T
         
         description = trade.get('Description', '')
 
-        # --- 1. Get NBP Rate ---
+        # --- 2. Get Exchange Rate (NBP) ---
         rate = Decimal("1.0")
         if currency != 'PLN':
             try:
@@ -62,13 +62,13 @@ def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> T
                 print(f"WARNING: Could not fetch NBP rate for {currency} on {date_str}. Using 1.0. Error: {e}")
                 rate = Decimal("1.0")
 
-        # --- 2. Build Logic ---
+        # --- 3. Event Routing ---
         
         if event_type == 'DIVIDEND':
-            # Calculate Dividend in PLN
+            # --- Handle Cash Dividends ---
             gross_pln = amount_currency * rate
             
-            # Look up the tax for this specific dividend (Same Date, Same Ticker)
+            # Find matching tax
             tax_in_original_currency = tax_map.get((date_str, ticker), Decimal(0))
             tax_pln = tax_in_original_currency * rate
             
@@ -76,19 +76,21 @@ def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> T
                 'ex_date': date_str,
                 'ticker': ticker,
                 'gross_amount_pln': float(gross_pln),
-                'tax_withheld_pln': float(tax_pln), # <--- NOW FILLED
+                'tax_withheld_pln': float(tax_pln),
                 'currency': currency,
                 'rate': float(rate)
             }
+            # Only include dividends from the target year in the report
             if date_str.startswith(str(target_year)):
                 dividends.append(div_record)
         
         elif event_type == 'TAX':
-            # Skip processing TAX rows here, as they are handled via tax_map above
+            # Already handled in Pre-process step
             pass
             
         else:
-            # Handle Trades (BUY, SELL, SPLIT, TRANSFER)
+            # --- Handle FIFO Events (Trades & Corp Actions) ---
+            # BUY, SELL, SPLIT, TRANSFER, STOCK_DIV, MERGER, SPINOFF
             matcher_type = event_type
             
             trade_record = {
@@ -108,12 +110,13 @@ def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> T
 
             fifo_input_list.append(trade_record)
 
-    # --- 3. Execute FIFO Logic ---
+    # --- 4. Execute FIFO Engine ---
     matcher.process_trades(fifo_input_list)
 
-    # --- 4. Extract Results ---
+    # --- 5. Extract Final Results ---
     all_realized = matcher.get_realized_gains()
     
+    # Filter P&L for the requested tax year
     target_realized = [
         r for r in all_realized 
         if r['sale_date'].startswith(str(target_year))

@@ -7,16 +7,17 @@ from reportlab.lib.units import mm
 import itertools
 
 APP_NAME = "IBKR Tax Assistant"
-APP_VERSION = "v1.1.0"
+APP_VERSION = "v1.2.0"
 
 def get_zebra_style(row_count, header_color=colors.HexColor('#D0D0D0')):
     cmds = [
         ('BACKGROUND', (0,0), (-1,0), header_color),
-        ('GRID', (0,0), (-1,-1), 1, colors.black),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
         ('ALIGN', (0,0), (-1,0), 'CENTER'),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 9),
+        ('FONTSIZE', (0,0), (-1,-1), 8), # Slightly smaller font to fit extra column
+        ('ALIGN', (0,1), (0,-1), 'CENTER'), # Center the Numbering column
     ]
     for i in range(1, row_count):
         if i % 2 == 0:
@@ -36,22 +37,23 @@ def add_footer(canvas, doc):
     canvas.restoreState()
 
 def generate_pdf(json_data, filename="report.pdf"):
-    doc = SimpleDocTemplate(filename, pagesize=A4, bottomMargin=20*mm, topMargin=20*mm)
+    doc = SimpleDocTemplate(filename, pagesize=A4, bottomMargin=20*mm, topMargin=20*mm,
+                            leftMargin=10*mm, rightMargin=10*mm) # Slightly wider margins for tables
     elements = []
     styles = getSampleStyleSheet()
     
     year = json_data['year']
     data = json_data['data']
 
-    title_style = ParagraphStyle('ReportTitle', parent=styles['Title'], fontSize=28, spaceAfter=30, alignment=TA_CENTER)
-    subtitle_style = ParagraphStyle('ReportSubtitle', parent=styles['Normal'], fontSize=14, alignment=TA_CENTER)
-    h2_style = ParagraphStyle('H2Centered', parent=styles['Heading2'], alignment=TA_CENTER, spaceAfter=15, spaceBefore=20)
-    h3_style = ParagraphStyle('H3Centered', parent=styles['Heading3'], alignment=TA_CENTER, spaceAfter=10, spaceBefore=5)
+    title_style = ParagraphStyle('ReportTitle', parent=styles['Title'], fontSize=24, spaceAfter=20, alignment=TA_CENTER)
+    subtitle_style = ParagraphStyle('ReportSubtitle', parent=styles['Normal'], fontSize=12, alignment=TA_CENTER)
+    h2_style = ParagraphStyle('H2Centered', parent=styles['Heading2'], alignment=TA_CENTER, spaceAfter=12, spaceBefore=18)
+    h3_style = ParagraphStyle('H3Centered', parent=styles['Heading3'], alignment=TA_CENTER, spaceAfter=8, spaceBefore=4)
     normal_style = styles['Normal']
     italic_small = ParagraphStyle('ItalicSmall', parent=styles['Italic'], fontSize=8, alignment=TA_LEFT)
     
     # PAGE 1
-    elements.append(Spacer(1, 100))
+    elements.append(Spacer(1, 50))
     elements.append(Paragraph(f"Tax report — {year}", title_style))
     elements.append(Spacer(1, 10))
     elements.append(Paragraph(f"Report period: 01-01-{year} - 31-12-{year}", subtitle_style))
@@ -60,7 +62,8 @@ def generate_pdf(json_data, filename="report.pdf"):
     # PAGE 2: PORTFOLIO (WITH FIFO CHECK)
     elements.append(Paragraph(f"Portfolio Composition (as of Dec 31, {year})", h2_style))
     if data['holdings']:
-        holdings_data = [["Ticker", "Quantity", "FIFO Check"]]
+        # Header with Numbering column
+        holdings_data = [["#", "Ticker", "Quantity", "FIFO Check"]]
         restricted_indices = []
         has_restricted = False
         
@@ -73,20 +76,28 @@ def generate_pdf(json_data, filename="report.pdf"):
                 restricted_indices.append(row_idx)
             
             check_mark = "OK" if h.get('fifo_match', False) else "MISMATCH!"
-            holdings_data.append([display_ticker, f"{h['qty']:.3f}", check_mark])
+            
+            holdings_data.append([
+                str(row_idx), 
+                display_ticker, 
+                f"{h['qty']:.4f}", 
+                check_mark
+            ])
             row_idx += 1
             
-        t_holdings = Table(holdings_data, colWidths=[180, 100, 100], repeatRows=1)
+        # Adjusted widths for 4 columns
+        t_holdings = Table(holdings_data, colWidths=[30, 180, 100, 100], repeatRows=1)
         ts = get_zebra_style(len(holdings_data))
         
         # --- STYLING ---
-        ts.add('ALIGN', (1,1), (1,-1), 'RIGHT')  # Qty -> Right
-        ts.add('ALIGN', (2,1), (2,-1), 'CENTER') # FIFO Check -> Center (FIXED)
+        # Note: Indices shifted by +1 because of the new "#" column at index 0
+        ts.add('ALIGN', (2,1), (2,-1), 'RIGHT')  # Qty -> Right (Index 2)
+        ts.add('ALIGN', (3,1), (3,-1), 'CENTER') # FIFO Check -> Center (Index 3)
         
         # Color coding for Mismatches
         for i, row in enumerate(holdings_data[1:], start=1):
-            if row[2] != "OK":
-                ts.add('TEXTCOLOR', (2, i), (2, i), colors.red)
+            if row[3] != "OK": # Index 3 is Check
+                ts.add('TEXTCOLOR', (3, i), (3, i), colors.red)
         
         # Red Highlight for Restricted
         for r_idx in restricted_indices:
@@ -105,26 +116,30 @@ def generate_pdf(json_data, filename="report.pdf"):
     # PAGE 3: TRADES HISTORY
     elements.append(Paragraph(f"Trades History ({year})", h2_style))
     if data['trades_history']:
-        trades_header = [["Date", "Ticker", "Type", "Qty", "Price", "Comm", "Curr"]]
+        # Header with Numbering
+        trades_header = [["#", "Date", "Ticker", "Type", "Qty", "Price", "Comm", "Curr"]]
         trades_rows = []
-        for t in data['trades_history']:
+        
+        for i, t in enumerate(data['trades_history'], 1):
             t_type = t.get('type', 'UNKNOWN')
             row = [
+                str(i),
                 t['date'],
                 t['ticker'],
                 t_type,
-                f"{abs(t['qty']):.3f}",
+                f"{abs(t['qty']):.4f}",
                 f"{t['price']:.2f}",
                 f"{t['commission']:.2f}",
                 t['currency']
             ]
             trades_rows.append(row)
+            
         full_table_data = trades_header + trades_rows
-        col_widths = [65, 55, 55, 55, 55, 55, 45]
+        # Adjusted widths
+        col_widths = [25, 60, 50, 50, 50, 50, 50, 40]
         t_trades = Table(full_table_data, colWidths=col_widths, repeatRows=1)
         ts_trades = get_zebra_style(len(full_table_data))
-        ts_trades.add('ALIGN', (3,1), (-1,-1), 'RIGHT') 
-        ts_trades.add('FONTSIZE', (0,0), (-1,-1), 8)    
+        ts_trades.add('ALIGN', (4,1), (-1,-1), 'RIGHT') # Qty right align
         t_trades.setStyle(ts_trades)
         elements.append(t_trades)
     else:
@@ -134,22 +149,27 @@ def generate_pdf(json_data, filename="report.pdf"):
     if data['corp_actions']:
         elements.append(PageBreak())
         elements.append(Paragraph(f"Corporate Actions & Splits ({year})", h2_style))
-        corp_header = [["Date", "Ticker", "Type", "Details"]]
+        corp_header = [["#", "Date", "Ticker", "Type", "Details"]]
         corp_rows = []
-        for act in data['corp_actions']:
+        
+        for i, act in enumerate(data['corp_actions'], 1):
             details = ""
             if act['type'] == 'SPLIT':
                 ratio = act.get('ratio', 1)
                 details = f"Split Ratio: {ratio:.4f}"
-            elif act['type'] == 'BUY' and act.get('source') == 'IBKR_CORP_ACTION':
-                 details = f"Stock Div: +{act['qty']:.4f} shares"
-            elif act['type'] == 'TRANSFER' and act.get('source') == 'IBKR_CORP_ACTION':
+            elif act['type'] == 'STOCK_DIV' or (act['type'] == 'BUY' and act.get('source') == 'IBKR_CORP_ACTION'):
+                 details = f"Stock Div: +{act['qty']:.4f}"
+            elif act['type'] == 'MERGER' or (act['type'] == 'SELL' and act.get('source') == 'IBKR_CORP_ACTION'):
+                 details = f"Merger/Liq: {act['qty']:.4f}"
+            elif act['type'] == 'TRANSFER':
                  details = f"Adjustment: {act['qty']:.4f}"
             else:
                  details = "Other Adjustment"
-            corp_rows.append([act['date'], act['ticker'], act['type'], details])
+            
+            corp_rows.append([str(i), act['date'], act['ticker'], act['type'], details])
+            
         full_corp_data = corp_header + corp_rows
-        t_corp = Table(full_corp_data, colWidths=[100, 80, 80, 200], repeatRows=1)
+        t_corp = Table(full_corp_data, colWidths=[25, 75, 60, 70, 200], repeatRows=1)
         t_corp.setStyle(get_zebra_style(len(full_corp_data)))
         elements.append(t_corp)
 
@@ -160,12 +180,15 @@ def generate_pdf(json_data, filename="report.pdf"):
     month_names = { "01": "January", "02": "February", "03": "March", "04": "April", "05": "May", "06": "June", "07": "July", "08": "August", "09": "September", "10": "October", "11": "November", "12": "December" }
     
     if data['monthly_dividends']:
-        m_data = [["Month", "Gross (PLN)", "Tax Paid (PLN)", "Net (PLN)"]]
+        # Note: Summary tables usually don't need row numbers, but added for consistency if requested.
+        m_data = [["#", "Month", "Gross (PLN)", "Tax Paid (PLN)", "Net (PLN)"]]
         sorted_months = sorted(data['monthly_dividends'].keys())
         total_gross, total_tax = 0, 0
-        for m in sorted_months:
+        
+        for i, m in enumerate(sorted_months, 1):
             vals = data['monthly_dividends'][m]
             m_data.append([
+                str(i),
                 month_names.get(m, m),
                 f"{vals['gross_pln']:,.2f}",
                 f"{vals['tax_pln']:,.2f}",
@@ -173,12 +196,14 @@ def generate_pdf(json_data, filename="report.pdf"):
             ])
             total_gross += vals['gross_pln']
             total_tax += vals['tax_pln']
-        m_data.append(["TOTAL", f"{total_gross:,.2f}", f"{total_tax:,.2f}", f"{total_gross - total_tax:,.2f}"])
-        t_months = Table(m_data, colWidths=[110, 110, 110, 110], repeatRows=1)
+            
+        m_data.append(["", "TOTAL", f"{total_gross:,.2f}", f"{total_tax:,.2f}", f"{total_gross - total_tax:,.2f}"])
+        
+        t_months = Table(m_data, colWidths=[25, 90, 100, 100, 100], repeatRows=1)
         ts = get_zebra_style(len(m_data))
-        ts.add('FONT-WEIGHT', (0,-1), (-1,-1), 'BOLD')
+        ts.add('FONT-WEIGHT', (1,-1), (-1,-1), 'BOLD') # Bold Total Row
         ts.add('BACKGROUND', (0,-1), (-1,-1), colors.lightgrey)
-        ts.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
+        ts.add('ALIGN', (2,1), (-1,-1), 'RIGHT') # Numbers right align
         t_months.setStyle(ts)
         elements.append(t_months)
         
@@ -191,6 +216,8 @@ def generate_pdf(json_data, filename="report.pdf"):
         sorted_divs = sorted(data['dividends'], key=lambda x: x['date'])
         
         is_first_month = True
+        global_div_idx = 1
+        
         for month_key, group in itertools.groupby(sorted_divs, key=lambda x: x['date'][:7]):
             if not is_first_month:
                 elements.append(PageBreak())
@@ -200,10 +227,12 @@ def generate_pdf(json_data, filename="report.pdf"):
             m_name = month_names.get(m, m)
             elements.append(Paragraph(f"{m_name} {y}", h2_style))
             
-            det_header = [["Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]]
+            det_header = [["#", "Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]]
             det_rows = []
+            
             for d in group:
                 det_rows.append([
+                    str(global_div_idx),
                     d['date'],
                     d['ticker'],
                     f"{d['amount']:.2f} {d['currency']}",
@@ -211,11 +240,12 @@ def generate_pdf(json_data, filename="report.pdf"):
                     f"{d['amount_pln']:.2f}",
                     f"{d['tax_paid_pln']:.2f}"
                 ])
+                global_div_idx += 1
+                
             full_det_data = det_header + det_rows
-            t_det = Table(full_det_data, colWidths=[70, 50, 90, 50, 70, 70], repeatRows=1)
+            t_det = Table(full_det_data, colWidths=[25, 60, 45, 80, 45, 65, 65], repeatRows=1)
             ts_det = get_zebra_style(len(full_det_data))
-            ts_det.add('ALIGN', (2,1), (-1,-1), 'RIGHT')
-            ts_det.add('FONTSIZE', (0,0), (-1,-1), 8)
+            ts_det.add('ALIGN', (3,1), (-1,-1), 'RIGHT')
             t_det.setStyle(ts_det)
             elements.append(t_det)
         

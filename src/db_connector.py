@@ -1,5 +1,3 @@
-# src/db_connector.py
-
 import sqlite3
 from typing import List, Dict, Any, Optional
 from decouple import config
@@ -7,7 +5,7 @@ from decouple import config
 class DBConnector:
     """
     Manages the connection to the SQLCipher encrypted SQLite database.
-    Handles connection setup, key management, and data retrieval with filtering.
+    Handles connection setup, key management, and data retrieval.
     """
     def __init__(self):
         # Configuration is loaded from .env via python-decouple
@@ -29,7 +27,7 @@ class DBConnector:
             # Execute PRAGMA key to set the decryption key for SQLCipher
             self.conn.execute(f"PRAGMA key='{self.db_key}';")
             
-            print(f"INFO: Successfully connected to encrypted DB: {self.db_path}")
+            # print(f"INFO: Successfully connected to encrypted DB: {self.db_path}")
             return self
 
         except Exception as e:
@@ -47,20 +45,20 @@ class DBConnector:
         CREATE TABLE IF NOT EXISTS transactions (
             TradeId INTEGER PRIMARY KEY,
             Date TEXT NOT NULL,
-            EventType TEXT NOT NULL, -- e.g., 'BUY', 'SELL', 'DIVIDEND', 'MANUAL_ADJUST'
+            EventType TEXT NOT NULL, -- e.g., 'BUY', 'SELL', 'DIVIDEND', 'MERGER', 'SPINOFF'
             Ticker TEXT NOT NULL,
             Quantity REAL,
             Price REAL,
             Currency TEXT,
             Amount REAL,
             Fee REAL,
-            Description TEXT,
-            -- Add an index for faster filtering and sorting
-            INDEX_YEAR_TICKER INTEGER
+            Description TEXT
         );
         """
         try:
             self.conn.execute(create_table_query)
+            # Index for performance
+            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_date_ticker ON transactions(Date, Ticker);")
             self.conn.commit()
             print("INFO: Database schema (transactions table) initialized successfully.")
         except Exception as e:
@@ -74,11 +72,18 @@ class DBConnector:
 
     def get_trades_for_calculation(self, target_year: int, ticker: Optional[str]) -> List[Dict[str, Any]]:
         """
-        Retrieves all trades (buys, sales, dividends) relevant to the calculation.
-        Filters data based on the target year and optional ticker.
+        Retrieves ALL trades (buys, sales, dividends, corporate actions) from the entire history.
         
+        CRITICAL FIX:
+        We intentionally IGNORE 'target_year' in the SQL WHERE clause.
+        To calculate the correct Inventory (Cost Basis) and Realized Gains for the current year,
+        the FIFO engine must replay the ENTIRE history of transactions (Sales, Mergers, Spinoffs)
+        from previous years. 
+        
+        Filtering for the final report happens later in the processing layer.
+
         Args:
-            target_year: The year used to determine which sales and dividends to include.
+            target_year: Not used in SQL query anymore (see explanation above).
             ticker: Optional ticker to filter trades.
 
         Returns:
@@ -87,41 +92,20 @@ class DBConnector:
         if not self.conn:
             return []
 
-        # We assume the database has a consolidated 'transactions' table
-        query_parts = ["SELECT * FROM transactions WHERE 1=1"]
+        # Start building the query
+        query = "SELECT * FROM transactions WHERE 1=1"
         params = {}
         
-        # 1. Filter by Target Year (Sales/Dividends that occurred in that year)
-        # We need all prior BUYS too, so we only filter the event date for non-BUYs.
-        
-        start_date = f"{target_year}-01-01"
-        end_date = f"{target_year}-12-31"
-        
-        # NOTE: This query includes all Buys (Type='BUY') and all other events 
-        # (Sales, Divs) that fall within the target year.
-        query_parts.append(
-            f"AND (EventType='BUY' OR Date BETWEEN :start_date AND :end_date)"
-        )
-        params['start_date'] = start_date
-        params['end_date'] = end_date
-
-        # 2. Filter by Ticker (if specified)
+        # 1. Filter by Ticker (if specified)
         if ticker:
-            query_parts.append("AND Ticker = :ticker")
+            query += " AND Ticker = :ticker"
             params['ticker'] = ticker
 
-        query = " ".join(query_parts) + " ORDER BY Date ASC, TradeId ASC;"
+        # 2. Sort Order
+        # Chronological order is essential for FIFO
+        query += " ORDER BY Date ASC, TradeId ASC;"
         
         cursor = self.conn.execute(query, params)
         
         # Convert sqlite3.Row objects to standard dictionaries for processing
         return [dict(row) for row in cursor.fetchall()]
-
-# Example usage (simulated)
-# if __name__ == "__main__":
-#     try:
-#         with DBConnector() as db:
-#             trades = db.get_trades_for_calculation(target_year=2024, ticker='AAPL')
-#             print(f"Loaded {len(trades)} records.")
-#     except Exception:
-#         print("Connection failed.")
