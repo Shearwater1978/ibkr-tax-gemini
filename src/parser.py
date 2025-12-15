@@ -1,3 +1,5 @@
+# src/parser.py
+
 import csv
 import re
 import glob
@@ -8,11 +10,9 @@ from decimal import Decimal
 from typing import List, Dict, Optional
 from src.db_connector import DBConnector
 
-# --- FILE DATE LIMITS ---
-FILE_DATE_LIMITS = {
-    "U5801627_20210315_20220107.csv": datetime(2021, 12, 31).date()
-}
-
+# --- КОНФИГУРАЦИЯ ---
+# Оставляем пустым, чтобы парсить всё. Дедупликация уберет лишнее.
+FILE_DATE_LIMITS = {} 
 MANUAL_FIXES_FILE = "manual_fixes.csv"
 
 def parse_decimal(value: str) -> Decimal:
@@ -23,7 +23,6 @@ def parse_decimal(value: str) -> Decimal:
 
 def normalize_date(date_str: str) -> Optional[str]:
     if not date_str: return None
-    # Handle various formats
     clean = date_str.split(',')[0].strip().split(' ')[0]
     formats = ["%Y-%m-%d", "%Y%m%d", "%m/%d/%Y", "%d/%m/%Y", "%d-%b-%y"]
     for fmt in formats:
@@ -32,12 +31,7 @@ def normalize_date(date_str: str) -> Optional[str]:
     return None
 
 def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
-    """
-    Extracts the CORRECT ticker for Corporate Actions.
-    """
-    desc_upper = description.upper()
-    
-    # 1. REMOVAL (Qty < 0) -> ALWAYS use Symbol column
+    # 1. Списание (Qty < 0) -> Всегда верим колонке Symbol (списываем старую акцию)
     if quantity < 0:
         if symbol_col and symbol_col.strip():
             return symbol_col.strip()
@@ -45,7 +39,7 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
         if match_start:
             return match_start.group(1)
             
-    # 2. ADDITION (Qty > 0) -> Check description for New Ticker
+    # 2. Зачисление (Qty > 0) -> Ищем новый тикер в описании (для спин-оффов и слияний)
     if quantity > 0:
         embedded_match = re.search(r'\(([A-Za-z0-9\.]+),\s+[^,]+,\s+[A-Za-z0-9]{9,}\)', description)
         if embedded_match:
@@ -67,13 +61,8 @@ def classify_trade_type(description: str, quantity: Decimal) -> str:
     return "UNKNOWN"
 
 def classify_corp_action(description: str, quantity: Decimal) -> str:
-    """
-    Relaxed logic: Trust the quantity sign for Add/Remove.
-    """
-    if quantity > 0:
-        return "STOCK_DIV" 
-    if quantity < 0:
-        return "MERGER" 
+    if quantity > 0: return "STOCK_DIV" 
+    if quantity < 0: return "MERGER" 
     return "CORP_ACTION_INFO"
 
 def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[int]:
@@ -82,10 +71,8 @@ def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[
     return None
 
 def load_manual_fixes(filepath: str) -> List[Dict]:
-    """Loads manual corrections from a CSV file."""
     fixes = []
     if not os.path.exists(filepath):
-        print(f"ℹ️ No manual fixes file found at {filepath}. Skipping.")
         return fixes
 
     print(f"🔧 Loading manual fixes from {filepath}...")
@@ -93,9 +80,7 @@ def load_manual_fixes(filepath: str) -> List[Dict]:
         with open(filepath, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                # Basic validation
-                if not row['Date'] or not row['Ticker']:
-                    continue
+                if not row['Date'] or not row['Ticker']: continue
                 
                 fixes.append({
                     'ticker': row['Ticker'].strip(),
@@ -105,7 +90,8 @@ def load_manual_fixes(filepath: str) -> List[Dict]:
                     'price': parse_decimal(row['Price']),
                     'commission': Decimal(0),
                     'type': row['Type'].strip(),
-                    'source': 'MANUAL_FIX'
+                    'source': 'MANUAL_FIX',
+                    'source_file': 'manual_fixes.csv' 
                 })
     except Exception as e:
         print(f"❌ Error loading manual fixes: {e}")
@@ -118,8 +104,6 @@ def parse_csv(filepath: str) -> Dict[str, List]:
     filename = os.path.basename(filepath)
     print(f"📂 Parsing file: {filename}")
     
-    date_limit = FILE_DATE_LIMITS.get(filename)
-
     try:
         with open(filepath, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f)
@@ -137,9 +121,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                 def check_date_and_parse(row, idx_date_col):
                     d_str = normalize_date(row[idx_date_col])
                     if not d_str: return None
-                    d_obj = datetime.strptime(d_str, "%Y-%m-%d").date()
-                    if date_limit and d_obj > date_limit:
-                        return None 
+                    # Мы убрали проверку даты, чтобы не терять сделки из "старых" файлов
                     return d_str
 
                 # --- TRADES ---
@@ -176,7 +158,8 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         'price': parse_decimal(row[idx_price]),
                         'commission': parse_decimal(row[idx_comm]) if idx_comm else Decimal(0),
                         'type': classify_trade_type(desc_raw, qty),
-                        'source': 'IBKR'
+                        'source': 'IBKR',
+                        'source_file': filename 
                     })
 
                 # --- CORPORATE ACTIONS ---
@@ -211,7 +194,8 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                             'price': Decimal(0), 
                             'commission': Decimal(0),
                             'type': action_type,
-                            'source': 'IBKR_CORP'
+                            'source': 'IBKR_CORP',
+                            'source_file': filename
                         })
 
                 # --- DIVIDENDS ---
@@ -233,7 +217,8 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         'ticker': ticker,
                         'currency': row[idx_cur],
                         'date': date_norm,
-                        'amount': parse_decimal(row[idx_amt])
+                        'amount': parse_decimal(row[idx_amt]),
+                        'source_file': filename
                     })
                 
                 # --- TAXES ---
@@ -255,7 +240,8 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         'ticker': ticker,
                         'currency': row[idx_cur],
                         'date': date_norm,
-                        'amount': parse_decimal(row[idx_amt])
+                        'amount': parse_decimal(row[idx_amt]),
+                        'source_file': filename
                     })
 
     except Exception as e:
@@ -264,44 +250,68 @@ def parse_csv(filepath: str) -> Dict[str, List]:
     return data
 
 def save_to_database(all_data):
-    # Load and merge manual fixes
+    # Загружаем ручные правки
     manual_fixes = load_manual_fixes(MANUAL_FIXES_FILE)
     if manual_fixes:
         all_data['corp_actions'].extend(manual_fixes)
-        print(f"✅ Applied {len(manual_fixes)} manual adjustments.")
 
-    seen = set()
+    seen_registry = {} 
     unique_records = []
+    duplicates_count = 0
     
-    def process_list(datalist):
+    # Универсальная обработка списков
+    def process_list(datalist, category):
+        nonlocal duplicates_count
         for t in datalist:
-            qty_sig = f"{t['qty']:.6f}"
-            price_sig = f"{t['price']:.6f}"
-            sig = (t['date'], t['ticker'], qty_sig, price_sig, t['type'])
+            # Используем .get(), чтобы избежать KeyError (у дивидендов нет qty)
+            qty_val = t.get('qty', 0)
+            price_val = t.get('price', 0)
+            amount_val = t.get('amount', 0)
             
-            if sig in seen: continue
-            seen.add(sig)
+            # Формируем хеш-сигнатуру
+            qty_sig = f"{qty_val:.6f}"
+            price_sig = f"{price_val:.6f}"
+            amt_sig = f"{amount_val:.6f}"
             
-            unique_records.append((
-                t['date'], t['type'], t['ticker'], 
-                float(t['qty']), float(t['price']), t['currency'], 
-                float(t['qty']*t['price']), float(t['commission']), t['source']
-            ))
+            sig = (
+                t['date'], 
+                t['ticker'], 
+                qty_sig, 
+                price_sig, 
+                amt_sig,
+                t.get('type', category)
+            )
+            
+            current_file = t.get('source_file', 'UNKNOWN')
 
-    process_list(all_data['trades'])
-    process_list(all_data['corp_actions'])
+            if sig in seen_registry:
+                # Нашли дубликат - пропускаем
+                duplicates_count += 1
+                continue
+            
+            # Регистрируем новую уникальную запись
+            seen_registry[sig] = current_file
+            
+            # Добавляем в список для БД
+            if category == 'DIVIDEND':
+                unique_records.append((t['date'], 'DIVIDEND', t['ticker'], 0, 0, t['currency'], float(amount_val), 0, 'Dividend'))
+            elif category == 'TAX':
+                unique_records.append((t['date'], 'TAX', t['ticker'], 0, 0, t['currency'], float(amount_val), 0, 'Tax'))
+            else:
+                 unique_records.append((
+                    t['date'], t['type'], t['ticker'], 
+                    float(qty_val), float(price_val), t['currency'], 
+                    float(qty_val * price_val), float(t['commission']), t['source']
+                ))
 
-    for d in all_data['dividends']:
-        sig = (d['date'], d['ticker'], f"{d['amount']:.6f}", 'DIV')
-        if sig in seen: continue
-        seen.add(sig)
-        unique_records.append((d['date'], 'DIVIDEND', d['ticker'], 0, 0, d['currency'], float(d['amount']), 0, 'Dividend'))
+    # Обрабатываем все списки через единую логику
+    process_list(all_data['trades'], 'TRADE')
+    process_list(all_data['corp_actions'], 'CORP')
+    process_list(all_data['dividends'], 'DIVIDEND')
+    process_list(all_data['taxes'], 'TAX')
 
-    for x in all_data['taxes']:
-        sig = (x['date'], x['ticker'], f"{x['amount']:.6f}", 'TAX')
-        if sig in seen: continue
-        seen.add(sig)
-        unique_records.append((x['date'], 'TAX', x['ticker'], 0, 0, x['currency'], float(x['amount']), 0, 'Tax'))
+    if duplicates_count > 0:
+        print(f"🧹 Deduplication: Skipped {duplicates_count} duplicate records found across overlapping files.")
 
     if not unique_records:
         print("WARNING: No valid records to save.")

@@ -1,52 +1,74 @@
 import sqlite3
-from typing import List, Dict, Any, Optional
-from decouple import config
+import os
+import sys
+
+# Попытка импорта dotenv для чтения .env файла
+try:
+    from dotenv import load_dotenv
+    load_dotenv()  # Загружаем переменные из .env
+except ImportError:
+    # Если библиотеки нет, скрипт продолжит работу, но переменные окружения должны быть заданы иначе
+    pass
+
+# --- КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ ---
+# Читаем путь и ключ из .env.
+# Если переменные не заданы в .env, используются значения по умолчанию (или None).
+DB_PATH = os.getenv("DATABASE_PATH", "db/ibkr_history.db.enc")
+DB_KEY = os.getenv("SQLCIPHER_KEY")
 
 class DBConnector:
-    """
-    Manages the connection to the SQLCipher encrypted SQLite database.
-    Handles connection setup, key management, and data retrieval.
-    """
-    def __init__(self):
-        # Configuration is loaded from .env via python-decouple
-        self.db_path = config('DATABASE_PATH', default='data/ibkr_history.db')
-        self.db_key = config('SQLCIPHER_KEY', default='')
-        self.conn: Optional[sqlite3.Connection] = None
-
-        if not self.db_key:
-            raise ValueError("SQLCIPHER_KEY is not set in the .env file. Cannot connect to encrypted database.")
+    def __init__(self, db_path=None):
+        # Если путь передан явно при инициализации - используем его, иначе берем из констант/.env
+        self.db_path = db_path if db_path else DB_PATH
+        self.conn = None
 
     def __enter__(self):
-        """Opens the encrypted database connection."""
-        try:
-            # NOTE: We use the standard sqlite3 interface, assuming the underlying
-            # environment (like pysqlcipher3) handles the encryption settings via PRAGMA.
-            self.conn = sqlite3.connect(self.db_path)
-            self.conn.row_factory = sqlite3.Row  # Allows accessing columns by name
-            
-            # Execute PRAGMA key to set the decryption key for SQLCipher
-            self.conn.execute(f"PRAGMA key='{self.db_key}';")
-            
-            # print(f"INFO: Successfully connected to encrypted DB: {self.db_path}")
-            return self
+        self.connect()
+        return self
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def connect(self):
+        # Создаем папку для БД, если её нет
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        
+        try:
+            self.conn = sqlite3.connect(self.db_path)
+            
+            # --- ЛОГИКА SQLCIPHER ---
+            if DB_KEY:
+                # Если ключ есть в переменных окружения, применяем его.
+                self.conn.execute(f"PRAGMA key = '{DB_KEY}';")
+                
+                # Проверка ключа: пробуем выполнить легкую команду.
+                # Если ключ неверный, здесь вылетит исключение.
+                try:
+                    self.conn.execute("SELECT count(*) FROM sqlite_master;")
+                except sqlite3.DatabaseError:
+                    print("ОШИБКА: Неверный ключ шифрования или база данных повреждена.")
+                    sys.exit(1)
+            
+            # Используем sqlite3.Row, чтобы обращаться к колонкам по имени
+            self.conn.row_factory = sqlite3.Row
+            
         except Exception as e:
-            print(f"ERROR: Failed to open SQLCipher connection. Check key and path. {e}")
-            self.conn = None
-            raise
+            print(f"FATAL ERROR: Could not connect to database. {e}")
+            sys.exit(1)
+
+    def close(self):
+        if self.conn:
+            self.conn.close()
 
     def initialize_schema(self):
-        """Creates the necessary database tables if they do not exist (e.g., 'transactions')."""
-        if not self.conn:
-            raise ConnectionError("Database connection is not open. Cannot initialize schema.")
-            
-        # Define the schema for the consolidated transactions table
-        create_table_query = """
+        """Создает таблицу транзакций, если она не существует."""
+        # Колонки именуются в PascalCase (Date, EventType...) как в исторической схеме
+        query = """
         CREATE TABLE IF NOT EXISTS transactions (
-            TradeId INTEGER PRIMARY KEY,
-            Date TEXT NOT NULL,
-            EventType TEXT NOT NULL, -- e.g., 'BUY', 'SELL', 'DIVIDEND', 'MERGER', 'SPINOFF'
-            Ticker TEXT NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Date TEXT,
+            EventType TEXT,
+            Ticker TEXT,
             Quantity REAL,
             Price REAL,
             Currency TEXT,
@@ -55,57 +77,61 @@ class DBConnector:
             Description TEXT
         );
         """
-        try:
-            self.conn.execute(create_table_query)
-            # Index for performance
-            self.conn.execute("CREATE INDEX IF NOT EXISTS idx_date_ticker ON transactions(Date, Ticker);")
-            self.conn.commit()
-            print("INFO: Database schema (transactions table) initialized successfully.")
-        except Exception as e:
-            print(f"ERROR: Failed to initialize schema. {e}")
-            raise
+        self.conn.execute(query)
+        self.conn.commit()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Closes the database connection."""
-        if self.conn:
-            self.conn.close()
-
-    def get_trades_for_calculation(self, target_year: int, ticker: Optional[str]) -> List[Dict[str, Any]]:
+    def get_trades_for_calculation(self, target_year=None, ticker=None):
         """
-        Retrieves ALL trades (buys, sales, dividends, corporate actions) from the entire history.
-        
-        CRITICAL FIX:
-        We intentionally IGNORE 'target_year' in the SQL WHERE clause.
-        To calculate the correct Inventory (Cost Basis) and Realized Gains for the current year,
-        the FIFO engine must replay the ENTIRE history of transactions (Sales, Mergers, Spinoffs)
-        from previous years. 
-        
-        Filtering for the final report happens later in the processing layer.
-
-        Args:
-            target_year: Not used in SQL query anymore (see explanation above).
-            ticker: Optional ticker to filter trades.
-
-        Returns:
-            A list of trade records as dictionaries.
+        Загружает сделки для FIFO.
+        Использует rowid как TradeId, чтобы гарантировать наличие ID даже в старых БД.
+        Возвращает имена колонок как есть (PascalCase), чтобы удовлетворить processing.py.
         """
-        if not self.conn:
-            return []
+        query = """
+            SELECT 
+                rowid as TradeId,
+                Date, 
+                EventType, 
+                Ticker, 
+                Quantity, 
+                Price, 
+                Currency, 
+                Amount, 
+                Fee, 
+                Description 
+            FROM transactions 
+            WHERE 1=1
+        """
+        params = []
 
-        # Start building the query
-        query = "SELECT * FROM transactions WHERE 1=1"
-        params = {}
-        
-        # 1. Filter by Ticker (if specified)
+        # Фильтр по тикеру
         if ticker:
-            query += " AND Ticker = :ticker"
-            params['ticker'] = ticker
+            query += " AND Ticker = ?"
+            params.append(ticker)
 
-        # 2. Sort Order
-        # Chronological order is essential for FIFO
-        query += " ORDER BY Date ASC, TradeId ASC;"
-        
+        # Фильтр по дате: всё ДО конца целевого года включительно
+        if target_year:
+            end_date = f"{target_year}-12-31"
+            query += " AND Date <= ?"
+            params.append(end_date)
+
+        query += " ORDER BY Date ASC"
+
         cursor = self.conn.execute(query, params)
+        rows = cursor.fetchall()
         
-        # Convert sqlite3.Row objects to standard dictionaries for processing
-        return [dict(row) for row in cursor.fetchall()]
+        # Конвертируем sqlite3.Row в обычные словари
+        return [dict(row) for row in rows]
+
+    def save_transaction(self, data):
+        """Вспомогательный метод для ручного сохранения транзакции."""
+        query = """
+            INSERT INTO transactions 
+            (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        self.conn.execute(query, (
+            data['date'], data['type'], data['ticker'], 
+            data['qty'], data['price'], data['currency'], 
+            data['amount'], data['fee'], data['desc']
+        ))
+        self.conn.commit()
