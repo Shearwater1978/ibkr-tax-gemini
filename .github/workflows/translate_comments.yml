@@ -32,7 +32,7 @@ jobs:
           pip install langdetect deep-translator
 
       - name: Run translation script
-        run: python translate_comments.py
+        run: python tools/translate_comments.py
 
       - name: Commit and Push changes
         uses: stefanzweifel/git-auto-commit-action@v5
