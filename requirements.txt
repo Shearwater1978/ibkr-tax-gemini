@@ -9,3 +9,5 @@ pre-commit
 cryptography
 python-decouple
 pandas
+langdetect
+deep-translator

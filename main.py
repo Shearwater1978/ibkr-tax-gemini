@@ -6,27 +6,27 @@ from collections import defaultdict
 import sys
 import pandas as pd 
 
-# Импорт модулей проекта
+# Import project modules
 from src.data_collector import collect_all_trade_data
 from src.excel_exporter import export_to_excel
 from src.db_connector import DBConnector 
 from src.processing import process_yearly_data 
 
-# Попытка импорта генератора PDF
+# Attempt to import the PDF generator
 try:
     from src.report_pdf import generate_pdf
     PDF_AVAILABLE = True
 except ImportError:
-    print("ВНИМАНИЕ: src/report_pdf.py не найден. PDF экспорт отключен.")
+    print("WARNING: src/report_pdf.py not found. PDF export is disabled.")
     PDF_AVAILABLE = False
 
 def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inventory):
     """
-    Адаптер: Конвертирует результаты обработки в структуру словаря,
-    которую ожидает src/report_pdf.py.
+    Adapter: Converts processing results into a dictionary structure
+    expected by src/report_pdf.py.
     """
     
-    # --- СПИСОК САНКЦИОННЫХ БУМАГ ---
+    # --- RESTRICTED SECURITIES ---
     RESTRICTED_TICKERS = {
         "YNDX", "OZON", "VKCO", "FIVE", "FIXP", "HHR", "QIWI", "CIAN", "GEMC", "HMSG", "MDMG",
         "POLY", "PLZL", "GMKN", "NLMK", "CHMF", "MAGN", "RUAL", "ALRS", "PHOR", "GLTR",
@@ -36,19 +36,19 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
     }
     RESTRICTED_CURRENCIES = {"RUB"}
 
-    # 1. Фильтрация сырых сделок для секции "История"
+    # 1. Filter raw trades for the "History" section
     history_trades = []
     corp_actions = []
     
-    # Сортировка по ключу 'Date' (PascalCase из БД)
+    # Sort by 'Date' key (PascalCase from DB)
     raw_trades.sort(key=lambda x: x['Date'])
     
     for t in raw_trades:
-        # Проверяем год. Ключ 'Date'
+        # Check year. Key 'Date'
         if t['Date'].startswith(str(target_year)):
-            event_type = t['EventType'] # Ключ 'EventType'
+            event_type = t['EventType'] # Key 'EventType'
             
-            # Разделяем события. В историю попадают только BUY и SELL.
+            # Split events. Only BUY and SELL go into history.
             if event_type in ['SPLIT', 'TRANSFER', 'MERGER', 'SPINOFF']:
                 corp_actions.append({
                     'date': t['Date'], 
@@ -59,7 +59,7 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
                     'source': t.get('Description', 'DB')
                 })
             
-            elif event_type in ['BUY', 'SELL']: # <--- СТРОГИЙ ФИЛЬТР
+            elif event_type in ['BUY', 'SELL']: # <--- STRICT FILTER
                 history_trades.append({
                     'date': t['Date'], 
                     'ticker': t['Ticker'], 
@@ -69,14 +69,14 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
                     'commission': float(t['Fee']) if t['Fee'] else 0,
                     'currency': t['Currency']
                 })
-            # События DIVIDEND и TAX сюда НЕ попадают (они идут в dividends)
+            # DIVIDEND and TAX events do NOT belong here (they go to dividends)
 
-    # 2. Агрегация дивидендов по месяцам
+    # 2. Aggregate dividends by month
     monthly_divs = defaultdict(lambda: {'gross_pln': 0.0, 'tax_pln': 0.0, 'net_pln': 0.0})
     formatted_divs = []
     
     for d in dividends:
-        # dividends приходят из модуля processing.py, который обычно возвращает snake_case
+        # dividends come from processing.py module, which usually returns snake_case
         date_str = d['ex_date']
         month_key = date_str[5:7] # MM
         
@@ -98,16 +98,16 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
             'tax_paid_pln': tax
         })
 
-    # 3. Прирост капитала (Capital Gains)
+    # 3. Capital growth (Capital Gains)
     cap_gains_data = []
     for g in realized_gains:
-        # Аналогично, realized_gains приходит из processing.py в snake_case
+        # Similarly, realized_gains comes from processing.py in snake_case
         cap_gains_data.append({
             'revenue_pln': g['sale_amount'],
             'cost_pln': g['cost_basis']
         })
 
-    # 4. Активы на конец периода (Inventory)
+    # 4. End-of-period assets (Inventory)
     aggregated_holdings = defaultdict(float)
     restricted_status = {}
 
@@ -131,7 +131,7 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
     
     holdings_data.sort(key=lambda x: x['ticker'])
 
-    # 5. Диагностика
+    # 5. Diagnostics
     per_curr = defaultdict(float)
     for d in dividends:
         per_curr[d.get('currency', 'UNK')] += d['gross_amount_pln']
@@ -156,63 +156,63 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
     return pdf_payload
 
 def main():
-    parser = argparse.ArgumentParser(description="Налоговый калькулятор IBKR")
+    parser = argparse.ArgumentParser(description="Tax Calculator IBKR")
     
-    # Аргументы фильтрации
+    # Filtering arguments
     parser.add_argument('--target-year', type=int, default=date.today().year, 
-                        help='Год для расчета налогов (например, 2024).')
+                        help='Year for tax calculation (e.g., 2024).')
     parser.add_argument('--ticker', type=str, default=None, 
-                        help='Фильтр по тикеру акции (например, AAPL).')
+                        help='Filter by stock ticker (e.g., AAPL).')
     
-    # Аргументы экспорта
-    parser.add_argument('--export-excel', action='store_true', help='Экспорт полной истории в Excel.')
-    parser.add_argument('--export-pdf', action='store_true', help='Экспорт налогового отчета в PDF.')
+    # Export arguments
+    parser.add_argument('--export-excel', action='store_true', help='Export full history to Excel.')
+    parser.add_argument('--export-pdf', action='store_true', help='Export tax report to PDF.')
     
     args = parser.parse_args()
     
-    print(f"Запуск расчета налогов за {args.target_year} год...")
+    print(f"Launch tax calculation for {args.target_year} year...")
     
-    # --- 1. Загрузка данных из БД ---
+    # --- 1. Load data from DB ---
     raw_trades = []
     try:
-        # Инициализируем соединение (переменные окружения подтянутся внутри)
+        # Initialize connection (env vars will be loaded inside)
         with DBConnector() as db:
             db.initialize_schema() 
             raw_trades = db.get_trades_for_calculation(target_year=args.target_year, ticker=args.ticker)
-            print(f"ИНФО: Загружено {len(raw_trades)} записей из БД.")
+            print(f"INFO: Loaded {len(raw_trades)} records from DB.")
     except Exception as e:
-        # Вывод ошибки без sys.exit здесь, так как контекстный менеджер закроет соединение
-        print(f"КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться или получить данные. {e}")
+        # Print error but do not exit here since the context manager will close the connection
+        print(f"CRITICAL ERROR: Could not connect or retrieve data. {e}")
         sys.exit(1)
         
     if not raw_trades:
-        print("ВНИМАНИЕ: Сделки не найдены. Сначала импортируйте данные.")
+        print("WARNING: No trades found. Please import the data first.")
         return
 
-    # --- 2. Запуск логики FIFO ---
-    print("ИНФО: Запуск сопоставления FIFO и конвертации по курсу ЦБ...")
+    # --- 2. Run FIFO logic ---
+    print("INFO: Running FIFO matching and conversion using CB rates...")
     try:
-        # process_yearly_data работает с оригинальными ключами БД (PascalCase + TradeId)
+        # process_yearly_data works with the original DB keys (PascalCase + TradeId)
         realized_gains, dividends, inventory = process_yearly_data(raw_trades, args.target_year)
     except Exception as e:
-        print(f"КРИТИЧЕСКАЯ ОШИБКА во время обработки (processing): {e}")
+        print(f"CRITICAL ERROR during processing (processing): {e}")
         sys.exit(1)
     
-    # Расчет итогов
+    # Calculate totals
     total_pl = sum(r['profit_loss'] for r in realized_gains)
     total_dividends = sum(d['gross_amount_pln'] for d in dividends)
     
-    print(f"\n--- Результаты за {args.target_year} ---")
-    print(f"Реализованный P&L (FIFO): {total_pl:.2f} PLN")
-    print(f"Дивиденды (Брутто): {total_dividends:.2f} PLN")
-    print(f"Открытые позиции (лотов): {len(inventory)}")
+    print(f"\n--- Results for {args.target_year} year ---")
+    print(f"Realized P&L (FIFO): {total_pl:.2f} PLN")
+    print(f"Dividends (Gross): {total_dividends:.2f} PLN")
+    print(f"Open positions (lots): {len(inventory)}")
 
-    # Подготовка данных для экспорта
+    # Prepare data for export
     file_name_suffix = f"_{args.ticker}" if args.ticker else ""
 
-    # --- 3. Экспорт в Excel ---
+    # --- 3. Export to Excel ---
     if args.export_excel:
-        print("\nНачинаем экспорт в Excel...")
+        print("\nStarting export to Excel...")
         try:
             sheets_dict, ticker_summary = collect_all_trade_data(realized_gains, dividends, inventory)
             
@@ -220,32 +220,32 @@ def main():
                 "Total P&L": f"{total_pl:.2f} PLN", 
                 "Total Dividends (Gross)": f"{total_dividends:.2f} PLN",
                 "Report Year": args.target_year,
-                "Filtered Ticker": args.ticker if args.ticker else "Все тикеры",
+                "Filtered Ticker": args.ticker if args.ticker else "All tickers",
                 "Database Records": len(raw_trades)
             }
             output_path_xlsx = f"output/tax_report_{args.target_year}{file_name_suffix}.xlsx"
             export_to_excel(sheets_dict, output_path_xlsx, summary_metrics, ticker_summary)
-            print(f"УСПЕХ: Excel отчет сохранен в {output_path_xlsx}")
+            print(f"SUCCESS: Excel report saved to {output_path_xlsx}")
         except Exception as e:
-            print(f"ОШИБКА при экспорте в Excel: {e}")
+            print(f"ERROR exporting to Excel: {e}")
 
-    # --- 4. Экспорт в PDF ---
+    # --- 4. Export to PDF ---
     if args.export_pdf:
         if PDF_AVAILABLE:
-            print("\nНачинаем экспорт в PDF...")
+            print("\nStarting export to PDF...")
             output_path_pdf = f"output/tax_report_{args.target_year}{file_name_suffix}.pdf"
             
-            # Подготовка данных для PDF с учетом ключей PascalCase
+            # Prepare data for PDF considering PascalCase keys
             try:
                 pdf_data = prepare_data_for_pdf(args.target_year, raw_trades, realized_gains, dividends, inventory)
                 generate_pdf(pdf_data, output_path_pdf)
-                print(f"УСПЕХ: PDF отчет сохранен в {output_path_pdf}")
+                print(f"SUCCESS: PDF report saved to {output_path_pdf}")
             except Exception as e:
-                print(f"ОШИБКА: Не удалось создать PDF: {e}")
+                print(f"ERROR: Could not create PDF: {e}")
         else:
-            print("ОШИБКА: Модуль генерации PDF (src/report_pdf.py) не найден.")
+            print("ERROR: PDF generation module (src/report_pdf.py) not found.")
 
-    print("Обработка завершена.")
+    print("Processing complete.")
 
 if __name__ == "__main__":
     main()
