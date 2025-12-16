@@ -1,7 +1,11 @@
 # RESTART PROMPT: TESTS (v2.1.0)
 
-**Context:** Part 2 of 2. Contains pytest suite.
+**Context:** Part 3 of 3. Contains pytest suite and mock data.
 **Instructions:** Restore these files to `tests/` directory.
+
+# --- FILE: tests/__init__.py ---
+```python
+```
 
 # --- FILE: tests/mock_trades.json ---
 ```json
@@ -42,103 +46,117 @@
             "currency": "USD"
         }
     ]
-}
-```
+}```
 
-# --- FILE: tests/test_parser.py ---
+# --- FILE: tests/test_calculation_logic.py ---
 ```python
 import pytest
 from decimal import Decimal
-from src.parser import normalize_date, extract_ticker, parse_decimal, classify_trade_type
+from unittest.mock import patch
+from src.processing import process_yearly_data
 
-def test_normalize_date():
-    # Тестируем разные форматы из Activity Statement
-    assert normalize_date("20250102") == "2025-01-02"
-    assert normalize_date("01/02/2025") == "2025-01-02" # US format MM/DD/YYYY
-    assert normalize_date("2025-01-02, 15:00:00") == "2025-01-02"
+@pytest.fixture
+def mock_raw_trades():
+    return [
+        # Buy: Cost = (10 * 100 * 4) + (5 * 4) = 4020 PLN total.
+        {'TradeId': 1, 'Date': '2023-01-10', 'Ticker': 'AAPL', 'EventType': 'BUY', 'Quantity': 10.0, 'Price': 100.0, 'Amount': -1000.0, 'Fee': 5.0, 'Currency': 'USD', 'Description': ''},
+        
+        # Sell half (5): 
+        # Revenue = 5 * 150 * 4 = 3000 PLN.
+        # Sell Fee = 5 * 4 = 20 PLN.
+        # Cost Portion (from Buy) = 4020 / 2 = 2010 PLN.
+        # Total Cost Basis (for Report) = Cost Portion (2010) + Sell Fee (20) = 2030 PLN.
+        {'TradeId': 3, 'Date': '2024-02-20', 'Ticker': 'AAPL', 'EventType': 'SELL', 'Quantity': -5.0, 'Price': 150.0, 'Amount': 750.0, 'Fee': 5.0, 'Currency': 'USD', 'Description': ''},
+    ]
+
+@patch('src.processing.get_nbp_rate')
+def test_process_yearly_data_fifo_logic(mock_get_rate, mock_raw_trades):
+    mock_get_rate.return_value = Decimal("4.0")
     
-    # Проверка на пустые/битые значения (Total row)
-    assert normalize_date("") is None
-    assert normalize_date(None) is None
-
-def test_extract_ticker():
-    # Стандартный случай с ISIN
-    assert extract_ticker("AGR(US05351W1036) Cash Dividend", "") == "AGR"
+    realized_gains, _, _ = process_yearly_data(mock_raw_trades, 2024)
     
-    # Fallback случай (без ISIN), тикер должен быть коротким (<6 символов)
-    # БЫЛО: "SIMPLE" (6 букв - фейл), СТАЛО: "TEST" (4 буквы - ок)
-    assert extract_ticker("TEST Cash Div", "") == "TEST"
+    assert len(realized_gains) == 1
+    sale = realized_gains[0]
     
-    # Приоритет колонки Symbol
-    assert extract_ticker("Unknown Desc", "AAPL") == "AAPL" 
+    assert sale['sale_amount'] == 3000.0
+    assert sale['cost_basis'] == 2030.0 # Updated expectation to include full transaction costs
+    assert sale['profit_loss'] == 970.0 # 3000 - 2030```
 
-def test_parse_decimal():
-    assert parse_decimal("1,000.50") == Decimal("1000.50")
-    assert parse_decimal("-500") == Decimal("-500")
-    assert parse_decimal("") == Decimal("0")
-
-def test_classify_trade():
-    assert classify_trade_type("ACATS Transfer", Decimal(10)) == "TRANSFER"
-    assert classify_trade_type("Buy Order", Decimal(10)) == "BUY"
-    assert classify_trade_type("Sell", Decimal(-5)) == "SELL"
-```
-
-# --- FILE: tests/test_nbp.py ---
+# --- FILE: tests/test_db_connector.py ---
 ```python
 import pytest
-import requests
-from decimal import Decimal
+import sqlite3
 from unittest.mock import patch, MagicMock
-from src.nbp import get_nbp_rate, _MONTHLY_CACHE
+from src.db_connector import DBConnector
 
-@pytest.fixture(autouse=True)
-def clear_cache():
-    # Очищаем кэш перед каждым тестом
-    _MONTHLY_CACHE.clear()
+DB_KEY = "test_key"
+DB_PATH = "test.db"
 
-@patch('src.nbp.requests.get')
-def test_fetch_month_rates_success(mock_get):
-    # Симулируем ответ API за Январь 2025
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "rates": [
-            {"effectiveDate": "2025-01-02", "mid": 4.10},
-            {"effectiveDate": "2025-01-03", "mid": 4.15}
-        ]
-    }
-    mock_get.return_value = mock_response
+@pytest.fixture
+def mock_config():
+    with patch('src.db_connector.config') as mock:
+        def side_effect(key, default=None):
+            if key == 'DATABASE_PATH': return DB_PATH
+            if key == 'SQLCIPHER_KEY': return DB_KEY
+            return default
+        mock.side_effect = side_effect
+        yield mock
 
-    # Запрашиваем курс на 3 января (должен взять T-1 = 2 января)
-    rate = get_nbp_rate("USD", "2025-01-03")
+@pytest.fixture
+def mock_db_connection():
+    with patch('src.db_connector.sqlite3.connect') as mock_connect:
+        mock_conn = MagicMock()
+        mock_conn.row_factory = sqlite3.Row
+        mock_connect.return_value = mock_conn
+        yield mock_connect, mock_conn
+
+def test_get_trades_no_ticker_filter(mock_config, mock_db_connection):
+    mock_connect, mock_conn = mock_db_connection
     
-    assert rate == Decimal("4.10") # Курс за 2-е число
-    assert mock_get.call_count == 1 # Был ровно 1 запрос в сеть
+    with DBConnector() as db:
+        db.get_trades_for_calculation(2024, None)
+        
+        # Check that query uses EventType, NOT Type
+        call_args = mock_conn.execute.call_args
+        query = call_args[0][0]
+        
+        assert "EventType='BUY'" in query
+        assert "Date BETWEEN :start_date AND :end_date" in query
+
+def test_get_trades_with_ticker_filter(mock_config, mock_db_connection):
+    mock_connect, mock_conn = mock_db_connection
     
-    # Запрашиваем курс на 4 января (T-1 = 3 января). 
-    # Запроса в сеть быть НЕ должно, данные уже в кэше.
-    rate2 = get_nbp_rate("USD", "2025-01-04")
-    assert rate2 == Decimal("4.15")
-    assert mock_get.call_count == 1 # Счетчик запросов не изменился!
+    with DBConnector() as db:
+        db.get_trades_for_calculation(2024, "AAPL")
+        
+        call_args = mock_conn.execute.call_args
+        query = call_args[0][0]
+        
+        assert "AND Ticker = :ticker" in query```
 
-@patch('src.nbp.requests.get')
-def test_weekend_lookback(mock_get):
-    # Тест на выходные: Пн 6.01, берем курс за Пт 3.01 (T-1=5(вс), T-2=4(сб), T-3=3(пт))
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "rates": [
-            {"effectiveDate": "2025-01-03", "mid": 4.20} 
-        ]
-    }
-    mock_get.return_value = mock_response
+# --- FILE: tests/test_edge_cases.py ---
+```python
+import pytest
+from decimal import Decimal
+from src.fifo import TradeMatcher
 
-    rate = get_nbp_rate("USD", "2025-01-06")
-    assert rate == Decimal("4.20")
-
-def test_pln_is_always_one():
-    assert get_nbp_rate("PLN", "2025-01-01") == Decimal("1.0")
-```
+def test_fifo_sorting_priority():
+    """Ensure trades are processed in correct order: SPLIT -> BUY -> SELL within same day."""
+    matcher = TradeMatcher()
+    
+    # Unsorted input: Sell comes before Buy in list, but same date
+    trades = [
+        {'type': 'SELL', 'date': '2024-01-01', 'ticker': 'A', 'qty': Decimal(10), 'price': 10, 'commission': 0, 'currency': 'USD', 'rate': 1},
+        {'type': 'BUY', 'date': '2024-01-01', 'ticker': 'A', 'qty': Decimal(10), 'price': 5, 'commission': 0, 'currency': 'USD', 'rate': 1},
+    ]
+    
+    # Should not crash. If sorted incorrectly, Sell would happen with empty inventory.
+    matcher.process_trades(trades)
+    results = matcher.get_realized_gains()
+    
+    assert len(results) == 1
+    # Cost 50, Rev 100 -> Profit 50
+    assert results[0]['profit_loss'] == 50.0```
 
 # --- FILE: tests/test_fifo.py ---
 ```python
@@ -202,60 +220,101 @@ def test_fifo_multiple_buys(matcher):
     assert res['cost_basis'] == 2000.0
     
     # Profit
-    assert res['profit_loss'] == 2500.0
-```
+    assert res['profit_loss'] == 2500.0```
 
-# --- FILE: tests/test_db_connector.py ---
+# --- FILE: tests/test_nbp.py ---
 ```python
 import pytest
-import sqlite3
+import requests
+from decimal import Decimal
 from unittest.mock import patch, MagicMock
-from src.db_connector import DBConnector
+from src.nbp import get_nbp_rate, _MONTHLY_CACHE
 
-DB_KEY = "test_key"
-DB_PATH = "test.db"
+@pytest.fixture(autouse=True)
+def clear_cache():
+    # Очищаем кэш перед каждым тестом
+    _MONTHLY_CACHE.clear()
 
-@pytest.fixture
-def mock_config():
-    with patch('src.db_connector.config') as mock:
-        def side_effect(key, default=None):
-            if key == 'DATABASE_PATH': return DB_PATH
-            if key == 'SQLCIPHER_KEY': return DB_KEY
-            return default
-        mock.side_effect = side_effect
-        yield mock
+@patch('src.nbp.requests.get')
+def test_fetch_month_rates_success(mock_get):
+    # Симулируем ответ API за Январь 2025
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "rates": [
+            {"effectiveDate": "2025-01-02", "mid": 4.10},
+            {"effectiveDate": "2025-01-03", "mid": 4.15}
+        ]
+    }
+    mock_get.return_value = mock_response
 
-@pytest.fixture
-def mock_db_connection():
-    with patch('src.db_connector.sqlite3.connect') as mock_connect:
-        mock_conn = MagicMock()
-        mock_conn.row_factory = sqlite3.Row
-        mock_connect.return_value = mock_conn
-        yield mock_connect, mock_conn
-
-def test_get_trades_no_ticker_filter(mock_config, mock_db_connection):
-    mock_connect, mock_conn = mock_db_connection
+    # Запрашиваем курс на 3 января (должен взять T-1 = 2 января)
+    rate = get_nbp_rate("USD", "2025-01-03")
     
-    with DBConnector() as db:
-        db.get_trades_for_calculation(2024, None)
-        
-        # Check that query uses EventType, NOT Type
-        call_args = mock_conn.execute.call_args
-        query = call_args[0][0]
-        
-        assert "EventType='BUY'" in query
-        assert "Date BETWEEN :start_date AND :end_date" in query
-
-def test_get_trades_with_ticker_filter(mock_config, mock_db_connection):
-    mock_connect, mock_conn = mock_db_connection
+    assert rate == Decimal("4.10") # Курс за 2-е число
+    assert mock_get.call_count == 1 # Был ровно 1 запрос в сеть
     
-    with DBConnector() as db:
-        db.get_trades_for_calculation(2024, "AAPL")
-        
-        call_args = mock_conn.execute.call_args
-        query = call_args[0][0]
-        
-        assert "AND Ticker = :ticker" in query
+    # Запрашиваем курс на 4 января (T-1 = 3 января). 
+    # Запроса в сеть быть НЕ должно, данные уже в кэше.
+    rate2 = get_nbp_rate("USD", "2025-01-04")
+    assert rate2 == Decimal("4.15")
+    assert mock_get.call_count == 1 # Счетчик запросов не изменился!
+
+@patch('src.nbp.requests.get')
+def test_weekend_lookback(mock_get):
+    # Тест на выходные: Пн 6.01, берем курс за Пт 3.01 (T-1=5(вс), T-2=4(сб), T-3=3(пт))
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "rates": [
+            {"effectiveDate": "2025-01-03", "mid": 4.20} 
+        ]
+    }
+    mock_get.return_value = mock_response
+
+    rate = get_nbp_rate("USD", "2025-01-06")
+    assert rate == Decimal("4.20")
+
+def test_pln_is_always_one():
+    assert get_nbp_rate("PLN", "2025-01-01") == Decimal("1.0")
+```
+
+# --- FILE: tests/test_parser.py ---
+```python
+import pytest
+from decimal import Decimal
+from src.parser import normalize_date, extract_ticker, parse_decimal, classify_trade_type
+
+def test_normalize_date():
+    # Тестируем разные форматы из Activity Statement
+    assert normalize_date("20250102") == "2025-01-02"
+    assert normalize_date("01/02/2025") == "2025-01-02" # US format MM/DD/YYYY
+    assert normalize_date("2025-01-02, 15:00:00") == "2025-01-02"
+    
+    # Проверка на пустые/битые значения (Total row)
+    assert normalize_date("") is None
+    assert normalize_date(None) is None
+
+def test_extract_ticker():
+    # Стандартный случай с ISIN
+    assert extract_ticker("AGR(US05351W1036) Cash Dividend", "") == "AGR"
+    
+    # Fallback случай (без ISIN), тикер должен быть коротким (<6 символов)
+    # БЫЛО: "SIMPLE" (6 букв - фейл), СТАЛО: "TEST" (4 буквы - ок)
+    assert extract_ticker("TEST Cash Div", "") == "TEST"
+    
+    # Приоритет колонки Symbol
+    assert extract_ticker("Unknown Desc", "AAPL") == "AAPL" 
+
+def test_parse_decimal():
+    assert parse_decimal("1,000.50") == Decimal("1000.50")
+    assert parse_decimal("-500") == Decimal("-500")
+    assert parse_decimal("") == Decimal("0")
+
+def test_classify_trade():
+    assert classify_trade_type("ACATS Transfer", Decimal(10)) == "TRANSFER"
+    assert classify_trade_type("Buy Order", Decimal(10)) == "BUY"
+    assert classify_trade_type("Sell", Decimal(-5)) == "SELL"
 ```
 
 # --- FILE: tests/test_processing.py ---
@@ -344,68 +403,7 @@ def test_reverse_split_1_to_10(matcher):
     # Revenue: 10 * 12 = 120.
     # Profit: 20.
     
-    assert results[0]['profit_loss'] == 20.0
-```
-
-# --- FILE: tests/test_edge_cases.py ---
-```python
-import pytest
-from decimal import Decimal
-from src.fifo import TradeMatcher
-
-def test_fifo_sorting_priority():
-    """Ensure trades are processed in correct order: SPLIT -> BUY -> SELL within same day."""
-    matcher = TradeMatcher()
-    
-    # Unsorted input: Sell comes before Buy in list, but same date
-    trades = [
-        {'type': 'SELL', 'date': '2024-01-01', 'ticker': 'A', 'qty': Decimal(10), 'price': 10, 'commission': 0, 'currency': 'USD', 'rate': 1},
-        {'type': 'BUY', 'date': '2024-01-01', 'ticker': 'A', 'qty': Decimal(10), 'price': 5, 'commission': 0, 'currency': 'USD', 'rate': 1},
-    ]
-    
-    # Should not crash. If sorted incorrectly, Sell would happen with empty inventory.
-    matcher.process_trades(trades)
-    results = matcher.get_realized_gains()
-    
-    assert len(results) == 1
-    # Cost 50, Rev 100 -> Profit 50
-    assert results[0]['profit_loss'] == 50.0
-```
-
-# --- FILE: tests/test_calculation_logic.py ---
-```python
-import pytest
-from decimal import Decimal
-from unittest.mock import patch
-from src.processing import process_yearly_data
-
-@pytest.fixture
-def mock_raw_trades():
-    return [
-        # Buy: Cost = (10 * 100 * 4) + (5 * 4) = 4020 PLN total.
-        {'TradeId': 1, 'Date': '2023-01-10', 'Ticker': 'AAPL', 'EventType': 'BUY', 'Quantity': 10.0, 'Price': 100.0, 'Amount': -1000.0, 'Fee': 5.0, 'Currency': 'USD', 'Description': ''},
-        
-        # Sell half (5): 
-        # Revenue = 5 * 150 * 4 = 3000 PLN.
-        # Sell Fee = 5 * 4 = 20 PLN.
-        # Cost Portion (from Buy) = 4020 / 2 = 2010 PLN.
-        # Total Cost Basis (for Report) = Cost Portion (2010) + Sell Fee (20) = 2030 PLN.
-        {'TradeId': 3, 'Date': '2024-02-20', 'Ticker': 'AAPL', 'EventType': 'SELL', 'Quantity': -5.0, 'Price': 150.0, 'Amount': 750.0, 'Fee': 5.0, 'Currency': 'USD', 'Description': ''},
-    ]
-
-@patch('src.processing.get_nbp_rate')
-def test_process_yearly_data_fifo_logic(mock_get_rate, mock_raw_trades):
-    mock_get_rate.return_value = Decimal("4.0")
-    
-    realized_gains, _, _ = process_yearly_data(mock_raw_trades, 2024)
-    
-    assert len(realized_gains) == 1
-    sale = realized_gains[0]
-    
-    assert sale['sale_amount'] == 3000.0
-    assert sale['cost_basis'] == 2030.0 # Updated expectation to include full transaction costs
-    assert sale['profit_loss'] == 970.0 # 3000 - 2030
-```
+    assert results[0]['profit_loss'] == 20.0```
 
 # --- FILE: tests/test_utils.py ---
 ```python
@@ -430,5 +428,5 @@ def test_money_handles_floats_and_strings():
     """Ensure utility handles various input types."""
     assert money(2.345) == Decimal("2.35")
     assert money("2.345") == Decimal("2.35")
-    assert money(2) == Decimal("2.00")
-```
+    assert money(2) == Decimal("2.00")```
+
