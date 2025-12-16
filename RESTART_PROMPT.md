@@ -267,8 +267,7 @@ def main():
     print("Обработка завершена.")
 
 if __name__ == "__main__":
-    main()
-```
+    main()```
 
 # --- FILE: requirements.txt ---
 ```text
@@ -282,6 +281,7 @@ black
 pre-commit
 cryptography
 python-decouple
+pandas
 ```
 
 # --- FILE: .gitignore ---
