@@ -19,7 +19,7 @@
 
 1.  **Clone:**
     ```bash
-    git clone [https://github.com/your-repo/ibkr-tax-gemini.git](https://github.com/your-repo/ibkr-tax-gemini.git)
+    git clone https://github.com/your-repo/ibkr-tax-gemini.git
     cd ibkr-tax-gemini
     ```
 
