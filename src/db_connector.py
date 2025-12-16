@@ -56,6 +56,26 @@ class DBConnector:
             print(f"FATAL ERROR: Could not connect to database. {e}")
             sys.exit(1)
 
+    def change_password(self, new_password: str) -> bool:
+        """
+        Changes the encryption key of the current database (Rekey).
+        The database must already be open with the old password.
+        """
+        if not self.conn:
+            print("ERROR: Database not connected. Run connect() first.")
+            return False
+
+        try:
+            # SQLCipher command to change the key
+            self.conn.execute(f"PRAGMA rekey = '{new_password}';")
+            # Vacuum to force rewrite of all pages with the new key
+            self.conn.execute("VACUUM;")
+            print("SUCCESS: Database password successfully changed.")
+            return True
+        except Exception as e:
+            print(f"ERROR changing password: {e}")
+            return False
+
     def close(self):
         if self.conn:
             self.conn.close()

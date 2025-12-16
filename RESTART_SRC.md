@@ -164,7 +164,8 @@ def collect_all_trade_data(realized_gains: List[Dict[str, Any]],
     }
 
     ticker_summary = calculate_ticker_summary(flat_records)
-    return sheets_collection, ticker_summary```
+    return sheets_collection, ticker_summary
+```
 
 # --- FILE: src/db_connector.py ---
 ```python
@@ -304,7 +305,8 @@ class DBConnector:
             data['qty'], data['price'], data['currency'], 
             data['amount'], data['fee'], data['desc']
         ))
-        self.conn.commit()```
+        self.conn.commit()
+```
 
 # --- FILE: src/excel_exporter.py ---
 ```python
@@ -370,7 +372,8 @@ def export_to_excel(sheets_data: Dict[str, pd.DataFrame],
         print(f"SUCCESS: Data exported to Excel at {file_path}")
 
     except Exception as e:
-        print(f"ERROR: Failed to export Excel file at {file_path}. Reason: {e}")```
+        print(f"ERROR: Failed to export Excel file at {file_path}. Reason: {e}")
+```
 
 # --- FILE: src/fifo.py ---
 ```python
@@ -542,7 +545,8 @@ class TradeMatcher:
                     'total_cost': float(batch['cost_pln']),
                     'currency': batch['currency']
                 })
-        return inventory_list```
+        return inventory_list
+```
 
 # --- FILE: src/nbp.py ---
 ```python
@@ -655,7 +659,8 @@ def get_nbp_rate(currency: str, date_str: str) -> Decimal:
 
 def get_rate_for_tax_date(currency, trade_date):
     """Алиас для совместимости"""
-    return get_nbp_rate(currency, trade_date)```
+    return get_nbp_rate(currency, trade_date)
+```
 
 # --- FILE: src/parser.py ---
 ```python
@@ -997,7 +1002,8 @@ if __name__ == '__main__':
         parsed = parse_csv(fp)
         for k in combined: combined[k].extend(parsed[k])
         
-    save_to_database(combined)```
+    save_to_database(combined)
+```
 
 # --- FILE: src/processing.py ---
 ```python
@@ -1129,7 +1135,8 @@ def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> T
     
     inventory = matcher.get_current_inventory()
     
-    return target_realized, dividends, inventory```
+    return target_realized, dividends, inventory
+```
 
 # --- FILE: src/report_pdf.py ---
 ```python
@@ -1473,7 +1480,8 @@ def generate_pdf(json_data, filename="report.pdf"):
     t_pit_div.setStyle(ts_pit_div)
     elements.append(t_pit_div)
 
-    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)```
+    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
+```
 
 # --- FILE: src/utils.py ---
 ```python
@@ -1484,5 +1492,63 @@ def money(value) -> Decimal:
     """Rounds a Decimal or float to 2 decimal places (financial standard)."""
     if not isinstance(value, Decimal):
         value = Decimal(str(value))
-    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)```
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+```
 
+# --- FILE: tools/change_key.py ---
+```python
+import sys
+import os
+
+# Add root directory to path to import src modules
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from src.db_connector import DBConnector
+
+def main():
+    print("--- DATABASE PASSWORD ROTATION (SQLCipher) ---")
+    
+    # 1. Get current password (from .env or input)
+    old_key = os.getenv("SQLCIPHER_KEY")
+    if not old_key:
+        old_key = input("Enter CURRENT password: ").strip()
+    else:
+        print("Current password found in SQLCIPHER_KEY env variable.")
+
+    # 2. Connect with old password
+    connector = DBConnector()
+    
+    try:
+        connector.connect()
+        # Verify connection integrity
+        connector.conn.execute("SELECT count(*) FROM sqlite_master;")
+    except Exception:
+        print("ERROR: Could not open database with the current password.")
+        return
+
+    # 3. Request new password
+    new_key = input("Enter NEW password: ").strip()
+    if not new_key:
+        print("Cancelled: Empty password.")
+        connector.close()
+        return
+        
+    confirm = input("Confirm NEW password: ").strip()
+    if new_key != confirm:
+        print("ERROR: Passwords do not match.")
+        connector.close()
+        return
+
+    # 4. Execute Rekey
+    success = connector.change_password(new_key)
+    connector.close()
+
+    if success:
+        print("\n!!! IMPORTANT !!!")
+        print(f"Please manually update your .env file now:")
+        print(f"SQLCIPHER_KEY={new_key}")
+        print("The old password will no longer work.")
+
+if __name__ == "__main__":
+    main()
+```
