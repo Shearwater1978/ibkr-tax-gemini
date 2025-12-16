@@ -116,9 +116,9 @@ def collect_all_trade_data(realized_gains: List[Dict[str, Any]],
             'Gross_PLN': gross,
             'Tax_PLN': tax,
             # Mapping for Unified Excel View:
-            'Proceeds_PLN': gross, # Выручка = Грязный дивиденд
-            'Cost_PLN': tax,       # Затраты = Уплаченный налог
-            'P&L_PLN': gross - tax, # Прибыль = Чистый дивиденд
+            'Proceeds_PLN': gross, # Revenue = Dirty Dividend
+            'Cost_PLN': tax,       # Cost = Tax Paid
+            'P&L_PLN': gross - tax, # Profit = Net dividend
             'Currency': d.get('currency'),
             'Rate': d.get('rate')
         })

@@ -10,8 +10,8 @@ from decimal import Decimal
 from typing import List, Dict, Optional
 from src.db_connector import DBConnector
 
-# --- КОНФИГУРАЦИЯ ---
-# Оставляем пустым, чтобы парсить всё. Дедупликация уберет лишнее.
+# --- CONFIGURATION ---
+# Leave it empty to parse everything. Deduplication will remove unnecessary things.
 FILE_DATE_LIMITS = {} 
 MANUAL_FIXES_FILE = "manual_fixes.csv"
 
@@ -31,7 +31,7 @@ def normalize_date(date_str: str) -> Optional[str]:
     return None
 
 def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
-    # 1. Списание (Qty < 0) -> Всегда верим колонке Symbol (списываем старую акцию)
+    # 1. Write-off (Qty < 0) -> Always trust the Symbol column (write off the old share)
     if quantity < 0:
         if symbol_col and symbol_col.strip():
             return symbol_col.strip()
@@ -39,7 +39,7 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
         if match_start:
             return match_start.group(1)
             
-    # 2. Зачисление (Qty > 0) -> Ищем новый тикер в описании (для спин-оффов и слияний)
+    # 2. Enrollment (Qty > 0) -> Looking for a new ticker in the description (for spin-offs and mergers)
     if quantity > 0:
         embedded_match = re.search(r'\(([A-Za-z0-9\.]+),\s+[^,]+,\s+[A-Za-z0-9]{9,}\)', description)
         if embedded_match:
@@ -121,7 +121,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                 def check_date_and_parse(row, idx_date_col):
                     d_str = normalize_date(row[idx_date_col])
                     if not d_str: return None
-                    # Мы убрали проверку даты, чтобы не терять сделки из "старых" файлов
+                    # We have removed the date check so as not to lose transactions from “old” files
                     return d_str
 
                 # --- TRADES ---
@@ -250,7 +250,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
     return data
 
 def save_to_database(all_data):
-    # Загружаем ручные правки
+    # Uploading manual edits
     manual_fixes = load_manual_fixes(MANUAL_FIXES_FILE)
     if manual_fixes:
         all_data['corp_actions'].extend(manual_fixes)
@@ -259,16 +259,16 @@ def save_to_database(all_data):
     unique_records = []
     duplicates_count = 0
     
-    # Универсальная обработка списков
+    # Universal List Processing
     def process_list(datalist, category):
         nonlocal duplicates_count
         for t in datalist:
-            # Используем .get(), чтобы избежать KeyError (у дивидендов нет qty)
+            # Use .get() to avoid KeyError (dividends don't have qty)
             qty_val = t.get('qty', 0)
             price_val = t.get('price', 0)
             amount_val = t.get('amount', 0)
             
-            # Формируем хеш-сигнатуру
+            # Generating a hash signature
             qty_sig = f"{qty_val:.6f}"
             price_sig = f"{price_val:.6f}"
             amt_sig = f"{amount_val:.6f}"
@@ -285,14 +285,14 @@ def save_to_database(all_data):
             current_file = t.get('source_file', 'UNKNOWN')
 
             if sig in seen_registry:
-                # Нашли дубликат - пропускаем
+                # Found a duplicate - skip it
                 duplicates_count += 1
                 continue
             
-            # Регистрируем новую уникальную запись
+            # Registering a new unique entry
             seen_registry[sig] = current_file
             
-            # Добавляем в список для БД
+            # Add to the list for the database
             if category == 'DIVIDEND':
                 unique_records.append((t['date'], 'DIVIDEND', t['ticker'], 0, 0, t['currency'], float(amount_val), 0, 'Dividend'))
             elif category == 'TAX':
@@ -304,7 +304,7 @@ def save_to_database(all_data):
                     float(qty_val * price_val), float(t['commission']), t['source']
                 ))
 
-    # Обрабатываем все списки через единую логику
+    # We process all lists through a single logic
     process_list(all_data['trades'], 'TRADE')
     process_list(all_data['corp_actions'], 'CORP')
     process_list(all_data['dividends'], 'DIVIDEND')

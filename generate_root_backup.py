@@ -2,15 +2,15 @@ import os
 
 OUTPUT_FILE = 'RESTART_PROMPT.md'
 
-# Файлы, которые лежат в корне и нужны для запуска
+# Files that are in the root and are needed to launch
 FILES_TO_INCLUDE = [
     'main.py',
     'requirements.txt',
     '.gitignore',
-    '.env.example' # Если есть
+    '.env.example' # If there is
 ]
 
-# Текст, который увидит модель в самом начале
+# The text that the model will see at the very beginning
 HEADER_TEXT = """# RESTART PROMPT (MASTER INDEX - v2.1.0)
 
 **Role:** Expert Python Developer (Finance/Tax domain).
@@ -40,7 +40,7 @@ def generate_root_backup():
                 
             print(f"Packing {filename}...")
             
-            # Определяем язык
+            # Determining the language
             if filename.endswith('.py'):
                 lang = 'python'
             elif filename == 'requirements.txt' or filename == '.gitignore':

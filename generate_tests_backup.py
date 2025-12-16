@@ -11,7 +11,7 @@ HEADER_TEXT = """# RESTART PROMPT: TESTS (v2.1.0)
 """
 
 def generate_tests_backup():
-    # Собираем py и json файлы
+    # Collecting py and json files
     files = glob.glob(os.path.join(SOURCE_DIR, '*.py')) + \
             glob.glob(os.path.join(SOURCE_DIR, '*.json'))
     files.sort()
@@ -23,7 +23,7 @@ def generate_tests_backup():
             filename = os.path.basename(filepath)
             print(f"Packing {filename}...")
             
-            # Определяем подсветку синтаксиса
+            # Defining syntax highlighting
             lang = 'json' if filename.endswith('.json') else 'python'
 
             outfile.write(f"# --- FILE: tests/{filename} ---\n")

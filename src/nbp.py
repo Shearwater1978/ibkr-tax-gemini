@@ -15,26 +15,26 @@ def fetch_month_rates(currency: str, year: int, month: int) -> None:
     """
     cache_key = (currency, year, month)
     if cache_key in _MONTHLY_CACHE:
-        return  # Уже загружено
+        return  # Already uploaded
 
-    # Вычисляем первый и последний день месяца
+    # Calculate the first and last day of the month
     start_date = date(year, month, 1)
     last_day = calendar.monthrange(year, month)[1]
     end_date = date(year, month, last_day)
 
-    # Если запрашиваем будущий месяц, данных нет, кэшируем пустоту и выходим
+    # If we request the next month, there is no data, we cache the void and exit
     if start_date > date.today():
         _MONTHLY_CACHE[cache_key] = {}
         return
 
-    # Ограничиваем конец текущей датой (чтобы не просить курсы из будущего)
+    # We limit the end to the current date (so as not to ask for courses from the future)
     if end_date > date.today():
         end_date = date.today()
 
     fmt_start = start_date.strftime("%Y-%m-%d")
     fmt_end = end_date.strftime("%Y-%m-%d")
 
-    # Формируем запрос диапазона (Table A - средние курсы)
+    # We create a range request (Table A - average rates)
     url = f"http://api.nbp.pl/api/exchangerates/rates/a/{currency}/{fmt_start}/{fmt_end}/?format=json"
 
     try:
@@ -44,14 +44,14 @@ def fetch_month_rates(currency: str, year: int, month: int) -> None:
         rates_map = {}
         if response.status_code == 200:
             data = response.json()
-            # Разбираем ответ: [{'no': '...', 'effectiveDate': '2025-01-02', 'mid': 4.1012}, ...]
+            # Let's parse the response: [{'no': '...', 'effectiveDate': '2025-01-02', 'mid': 4.1012}, ...]
             for item in data.get('rates', []):
                 d_str = item['effectiveDate']
                 rate_val = Decimal(str(item['mid']))
                 rates_map[d_str] = rate_val
         elif response.status_code == 404:
-            # 404 для диапазона значит, что в этом диапазоне нет курсов (например, одни праздники или начало месяца)
-            # Это нормально, сохраняем пустой словарь
+            # 404 for a range means that there are no courses in this range (for example, only holidays or the beginning of the month)
+            # This is normal, save the empty dictionary
             pass
         else:
             print(f"⚠️ NBP API Warning: HTTP {response.status_code} for {url}")
@@ -60,8 +60,8 @@ def fetch_month_rates(currency: str, year: int, month: int) -> None:
 
     except Exception as e:
         print(f"❌ NBP Network Error for {fmt_start}: {e}")
-        # Не сохраняем в кэш, чтобы при следующем вызове попробовать снова? 
-        # Или сохраняем пустоту, чтобы не ддосить? Лучше не сохранять, вдруг сеть моргнула.
+        # Don’t save it to the cache so that we can try again the next time we call?
+        # Or do we keep it empty so as not to overdo it? It’s better not to save, in case the network blinked.
         pass
 
 def get_nbp_rate(currency: str, date_str: str) -> Decimal:
@@ -79,27 +79,27 @@ def get_nbp_rate(currency: str, date_str: str) -> Decimal:
         print(f"⚠️ NBP: Invalid date format {date_str}, using 1.0")
         return Decimal('1.0')
 
-    # Начинаем поиск с T-1
+    # We start the search with T-1
     target_date = event_date - timedelta(days=1)
 
-    # Пытаемся найти курс, отматывая назад до 10 дней
-    # (обычно достаточно 3-4 дней для длинных выходных)
+    # We are trying to find a course by rewinding back to 10 days
+    # (usually 3-4 days is enough for a long weekend)
     for _ in range(10):
         t_year = target_date.year
         t_month = target_date.month
         t_str = target_date.strftime("%Y-%m-%d")
 
-        # 1. Проверяем, загружен ли этот месяц
+        # 1. Check if this month is loaded
         if (currency, t_year, t_month) not in _MONTHLY_CACHE:
             fetch_month_rates(currency, t_year, t_month)
 
-        # 2. Ищем дату в кэше
+        # 2. Looking for the date in the cache
         month_data = _MONTHLY_CACHE.get((currency, t_year, t_month), {})
         
         if t_str in month_data:
             return month_data[t_str]
 
-        # Если не нашли, идем на день назад (и на следующей итерации проверим кэш)
+        # If you haven’t found it, go back a day (and check the cache at the next iteration)
         target_date -= timedelta(days=1)
 
     print(f"❌ NBP FATAL: Could not find rate for {currency} around {date_str}. Using 1.0 fallback.")
