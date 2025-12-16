@@ -1,11 +1,11 @@
 import os
 import glob
 
-# Конфигурация
+# Configuration
 SOURCE_DIR = 'src'
 OUTPUT_FILE = 'RESTART_SRC.md'
 
-# Заголовок, который объясняет модели, что это за файл
+# A header that tells the model what the file is
 HEADER_TEXT = """# RESTART PROMPT: SOURCE CODE (v2.1.0)
 
 **Context:** Part 2 of 3. Contains application source code.
@@ -13,9 +13,9 @@ HEADER_TEXT = """# RESTART PROMPT: SOURCE CODE (v2.1.0)
 """
 
 def generate_src_backup():
-    # Ищем все .py файлы в папке src
+    # We are looking for all .py files in the src folder
     files = glob.glob(os.path.join(SOURCE_DIR, '*.py'))
-    files.sort()  # Сортируем для порядка
+    files.sort()  # Sort for order
 
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as outfile:
         outfile.write(HEADER_TEXT + "\n")
@@ -23,16 +23,16 @@ def generate_src_backup():
         for filepath in files:
             filename = os.path.basename(filepath)
             
-            # Пропускаем пустые __init__.py, если они не нужны, или оставляем
+            # Skip empty __init__.py if they are not needed, or leave
             # if filename == '__init__.py' and os.path.getsize(filepath) == 0: continue
 
             print(f"Packing {filename}...")
             
-            # Формат заголовка файла
+            # File header format
             outfile.write(f"# --- FILE: src/{filename} ---\n")
             outfile.write("```python\n")
             
-            # Построчное чтение и запись
+            # Line by line read and write
             try:
                 with open(filepath, 'r', encoding='utf-8') as infile:
                     for line in infile:

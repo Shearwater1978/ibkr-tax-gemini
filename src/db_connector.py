@@ -3,23 +3,23 @@ import sqlite3
 import os
 import sys
 
-# Попытка импорта dotenv для чтения .env файла
+# Trying to import dotenv to read .env file
 try:
     from dotenv import load_dotenv
-    load_dotenv()  # Загружаем переменные из .env
+    load_dotenv()  # Loading variables from .env
 except ImportError:
-    # Если библиотеки нет, скрипт продолжит работу, но переменные окружения должны быть заданы иначе
+    # If there is no library, the script will continue to run, but the environment variables must be set differently
     pass
 
-# --- КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ ---
-# Читаем путь и ключ из .env.
-# Если переменные не заданы в .env, используются значения по умолчанию (или None).
+# --- DATABASE CONFIGURATION ---
+# We read the path and key from .env.
+# If no variables are specified in .env, the default values ​​(or None) are used.
 DB_PATH = os.getenv("DATABASE_PATH", "db/ibkr_history.db.enc")
 DB_KEY = os.getenv("SQLCIPHER_KEY")
 
 class DBConnector:
     def __init__(self, db_path=None):
-        # Если путь передан явно при инициализации - используем его, иначе берем из констант/.env
+        # If the path is passed explicitly during initialization, we use it, otherwise we take it from constants/.env
         self.db_path = db_path if db_path else DB_PATH
         self.conn = None
 
@@ -31,26 +31,26 @@ class DBConnector:
         self.close()
 
     def connect(self):
-        # Создаем папку для БД, если её нет
+        # Create a folder for the database if it doesn’t exist
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         
         try:
             self.conn = sqlite3.connect(self.db_path)
             
-            # --- ЛОГИКА SQLCIPHER ---
+            # --- SQLCIPHER LOGIC ---
             if DB_KEY:
-                # Если ключ есть в переменных окружения, применяем его.
+                # If the key is in the environment variables, use it.
                 self.conn.execute(f"PRAGMA key = '{DB_KEY}';")
                 
-                # Проверка ключа: пробуем выполнить легкую команду.
-                # Если ключ неверный, здесь вылетит исключение.
+                # Checking the key: trying to execute a light command.
+                # If the key is invalid, an exception will be thrown here.
                 try:
                     self.conn.execute("SELECT count(*) FROM sqlite_master;")
                 except sqlite3.DatabaseError:
                     print("ОШИБКА: Неверный ключ шифрования или база данных повреждена.")
                     sys.exit(1)
             
-            # Используем sqlite3.Row, чтобы обращаться к колонкам по имени
+            # Using sqlite3.Row to access columns by name
             self.conn.row_factory = sqlite3.Row
             
         except Exception as e:
@@ -83,7 +83,7 @@ class DBConnector:
 
     def initialize_schema(self):
         """Создает таблицу транзакций, если она не существует."""
-        # Колонки именуются в PascalCase (Date, EventType...) как в исторической схеме
+        # Columns are named in PascalCase (Date, EventType...) as in the historical schema
         query = """
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,12 +124,12 @@ class DBConnector:
         """
         params = []
 
-        # Фильтр по тикеру
+        # Filter by ticker
         if ticker:
             query += " AND Ticker = ?"
             params.append(ticker)
 
-        # Фильтр по дате: всё ДО конца целевого года включительно
+        # Filter by date: everything up to and including the end of the target year
         if target_year:
             end_date = f"{target_year}-12-31"
             query += " AND Date <= ?"
@@ -140,7 +140,7 @@ class DBConnector:
         cursor = self.conn.execute(query, params)
         rows = cursor.fetchall()
         
-        # Конвертируем sqlite3.Row в обычные словари
+        # Converting sqlite3.Row to regular dictionaries
         return [dict(row) for row in rows]
 
     def save_transaction(self, data):
