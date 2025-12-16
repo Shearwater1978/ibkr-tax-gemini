@@ -164,11 +164,11 @@ def collect_all_trade_data(realized_gains: List[Dict[str, Any]],
     }
 
     ticker_summary = calculate_ticker_summary(flat_records)
-    return sheets_collection, ticker_summary
-```
+    return sheets_collection, ticker_summary```
 
 # --- FILE: src/db_connector.py ---
 ```python
+# src/db_connector.py
 import sqlite3
 import os
 import sys
@@ -226,6 +226,26 @@ class DBConnector:
         except Exception as e:
             print(f"FATAL ERROR: Could not connect to database. {e}")
             sys.exit(1)
+
+    def change_password(self, new_password: str) -> bool:
+        """
+        Changes the encryption key of the current database (Rekey).
+        The database must already be open with the old password.
+        """
+        if not self.conn:
+            print("ERROR: Database not connected. Run connect() first.")
+            return False
+
+        try:
+            # SQLCipher command to change the key
+            self.conn.execute(f"PRAGMA rekey = '{new_password}';")
+            # Vacuum to force rewrite of all pages with the new key
+            self.conn.execute("VACUUM;")
+            print("SUCCESS: Database password successfully changed.")
+            return True
+        except Exception as e:
+            print(f"ERROR changing password: {e}")
+            return False
 
     def close(self):
         if self.conn:
@@ -372,8 +392,7 @@ def export_to_excel(sheets_data: Dict[str, pd.DataFrame],
         print(f"SUCCESS: Data exported to Excel at {file_path}")
 
     except Exception as e:
-        print(f"ERROR: Failed to export Excel file at {file_path}. Reason: {e}")
-```
+        print(f"ERROR: Failed to export Excel file at {file_path}. Reason: {e}")```
 
 # --- FILE: src/fifo.py ---
 ```python
@@ -392,25 +411,17 @@ class TradeMatcher:
         self.inventory = {} 
         self.realized_pnl = []
 
-    def save_state(self, filepath: str, cutoff_date: str):
-        # ... (Save code same as before, omitted for brevity) ...
-        pass # Implement/Copy from previous if needed, but core logic is below
-
-    def load_state(self, filepath: str) -> str:
-        # ... (Load code same as before) ...
-        return "1900-01-01"
-
     def process_trades(self, trades_list: List[Dict[str, Any]]):
-        # Priority: Adjustments (Splits/Mergers) -> Buys -> Sells
+        # Priority: SPLIT (process first if same day to adjust holdings) -> BUY -> SELL
         type_priority = {
-            'STOCK_DIV': 0, 'MERGER': 0, 'SPLIT_ADD': 0, 
-            'BUY': 1, 'TRANSFER': 1, 
-            'SELL': 2
+            'SPLIT': 0, 'STOCK_DIV': 1, 'MERGER': 1, 'SPLIT_ADD': 1, 
+            'BUY': 2, 'TRANSFER': 2, 
+            'SELL': 3
         }
         
         sorted_trades = sorted(
             trades_list, 
-            key=lambda x: (x['date'], type_priority.get(x['type'], 3))
+            key=lambda x: (x['date'], type_priority.get(x['type'], 99))
         )
 
         for trade in sorted_trades:
@@ -419,7 +430,12 @@ class TradeMatcher:
                 self.inventory[ticker] = deque()
 
             t_type = trade['type']
-            qty = trade['qty']
+            qty = trade.get('qty', Decimal(0))
+
+            # --- SPECIAL HANDLING FOR SPLITS ---
+            if t_type == 'SPLIT':
+                self._process_split(trade)
+                continue
 
             # --- 1. POSITIVE QUANTITY (ADD TO INVENTORY) ---
             if qty > 0:
@@ -439,8 +455,32 @@ class TradeMatcher:
                     self._process_sell(trade)
                 else:
                     # Corporate Action Removals (Non-Taxable Transfer Out)
-                    # We remove the shares but DO NOT record a Capital Gain/Loss for tax report
                     self._process_transfer_out(trade)
+
+    def _process_split(self, trade):
+        ticker = trade['ticker']
+        ratio = trade.get('ratio', Decimal(1))
+        
+        if ticker not in self.inventory or not self.inventory[ticker]:
+            return
+
+        # Apply split to all existing batches in inventory
+        # New Qty = Old Qty * Ratio
+        # New Price = Old Price / Ratio (Cost basis per batch stays same)
+        new_deque = deque()
+        while self.inventory[ticker]:
+            batch = self.inventory[ticker].popleft()
+            
+            # Adjust Quantity
+            batch['qty'] = batch['qty'] * ratio
+            
+            # Adjust Unit Price (Total Cost remains unchanged)
+            if ratio != 0:
+                batch['price'] = batch['price'] / ratio
+            
+            new_deque.append(batch)
+        
+        self.inventory[ticker] = new_deque
 
     def _process_buy(self, trade):
         if 'rate' in trade and trade['rate']:
@@ -450,6 +490,7 @@ class TradeMatcher:
             
         price = trade.get('price', Decimal(0))
         comm = trade.get('commission', Decimal(0))
+        # Cost is calculated here
         cost_pln = money((price * trade['qty'] * rate) + (abs(comm) * rate))
         
         self.inventory[trade['ticker']].append({
@@ -486,17 +527,23 @@ class TradeMatcher:
         matched_buys = []
 
         while qty_to_sell > 0:
-            if not self.inventory[ticker]: 
+            if not self.inventory.get(ticker): 
                 break 
 
             buy_batch = self.inventory[ticker][0]
             
-            if buy_batch['qty'] <= qty_to_sell:
+            # Avoid precision issues with tiny leftovers
+            if buy_batch['qty'] <= qty_to_sell + Decimal("0.00000001"):
+                # Take whole batch
                 cost_basis_pln += buy_batch['cost_pln']
-                qty_to_sell -= buy_batch['qty']
+                taken_qty = buy_batch['qty']
+                
                 matched_buys.append(buy_batch.copy())
                 self.inventory[ticker].popleft()
+                
+                qty_to_sell -= taken_qty
             else:
+                # Take partial batch
                 ratio = qty_to_sell / buy_batch['qty']
                 part_cost = money(buy_batch['cost_pln'] * ratio)
                 
@@ -659,8 +706,7 @@ def get_nbp_rate(currency: str, date_str: str) -> Decimal:
 
 def get_rate_for_tax_date(currency, trade_date):
     """Алиас для совместимости"""
-    return get_nbp_rate(currency, trade_date)
-```
+    return get_nbp_rate(currency, trade_date)```
 
 # --- FILE: src/parser.py ---
 ```python
@@ -1002,8 +1048,7 @@ if __name__ == '__main__':
         parsed = parse_csv(fp)
         for k in combined: combined[k].extend(parsed[k])
         
-    save_to_database(combined)
-```
+    save_to_database(combined)```
 
 # --- FILE: src/processing.py ---
 ```python
@@ -1135,8 +1180,7 @@ def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> T
     
     inventory = matcher.get_current_inventory()
     
-    return target_realized, dividends, inventory
-```
+    return target_realized, dividends, inventory```
 
 # --- FILE: src/report_pdf.py ---
 ```python
@@ -1480,8 +1524,7 @@ def generate_pdf(json_data, filename="report.pdf"):
     t_pit_div.setStyle(ts_pit_div)
     elements.append(t_pit_div)
 
-    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
-```
+    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)```
 
 # --- FILE: src/utils.py ---
 ```python
@@ -1492,63 +1535,5 @@ def money(value) -> Decimal:
     """Rounds a Decimal or float to 2 decimal places (financial standard)."""
     if not isinstance(value, Decimal):
         value = Decimal(str(value))
-    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-```
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)```
 
-# --- FILE: tools/change_key.py ---
-```python
-import sys
-import os
-
-# Add root directory to path to import src modules
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-from src.db_connector import DBConnector
-
-def main():
-    print("--- DATABASE PASSWORD ROTATION (SQLCipher) ---")
-    
-    # 1. Get current password (from .env or input)
-    old_key = os.getenv("SQLCIPHER_KEY")
-    if not old_key:
-        old_key = input("Enter CURRENT password: ").strip()
-    else:
-        print("Current password found in SQLCIPHER_KEY env variable.")
-
-    # 2. Connect with old password
-    connector = DBConnector()
-    
-    try:
-        connector.connect()
-        # Verify connection integrity
-        connector.conn.execute("SELECT count(*) FROM sqlite_master;")
-    except Exception:
-        print("ERROR: Could not open database with the current password.")
-        return
-
-    # 3. Request new password
-    new_key = input("Enter NEW password: ").strip()
-    if not new_key:
-        print("Cancelled: Empty password.")
-        connector.close()
-        return
-        
-    confirm = input("Confirm NEW password: ").strip()
-    if new_key != confirm:
-        print("ERROR: Passwords do not match.")
-        connector.close()
-        return
-
-    # 4. Execute Rekey
-    success = connector.change_password(new_key)
-    connector.close()
-
-    if success:
-        print("\n!!! IMPORTANT !!!")
-        print(f"Please manually update your .env file now:")
-        print(f"SQLCIPHER_KEY={new_key}")
-        print("The old password will no longer work.")
-
-if __name__ == "__main__":
-    main()
-```
