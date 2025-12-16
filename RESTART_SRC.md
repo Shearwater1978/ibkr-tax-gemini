@@ -1,1199 +1,10 @@
 # RESTART PROMPT: SOURCE CODE (v2.1.0)
 
-**Context:** Part 1 of 2. Contains application source code.
+**Context:** Part 2 of 3. Contains application source code.
 **Instructions:** Restore these files to `src/` directory.
 
-# --- FILE: src/db_connector.py ---
+# --- FILE: src/__init__.py ---
 ```python
-# src/db_connector.py
-
-import sqlite3
-from typing import List, Dict, Any, Optional
-from decouple import config
-
-class DBConnector:
-    """
-    Manages the connection to the SQLCipher encrypted SQLite database.
-    Handles connection setup, key management, and data retrieval with filtering.
-    """
-    def __init__(self):
-        # Configuration is loaded from .env via python-decouple
-        self.db_path = config('DATABASE_PATH', default='data/ibkr_history.db')
-        self.db_key = config('SQLCIPHER_KEY', default='')
-        self.conn: Optional[sqlite3.Connection] = None
-
-        if not self.db_key:
-            raise ValueError("SQLCIPHER_KEY is not set in the .env file. Cannot connect to encrypted database.")
-
-    def __enter__(self):
-        """Opens the encrypted database connection."""
-        try:
-            # NOTE: We use the standard sqlite3 interface, assuming the underlying
-            # environment (like pysqlcipher3) handles the encryption settings via PRAGMA.
-            self.conn = sqlite3.connect(self.db_path)
-            self.conn.row_factory = sqlite3.Row  # Allows accessing columns by name
-            
-            # Execute PRAGMA key to set the decryption key for SQLCipher
-            self.conn.execute(f"PRAGMA key='{self.db_key}';")
-            
-            print(f"INFO: Successfully connected to encrypted DB: {self.db_path}")
-            return self
-
-        except Exception as e:
-            print(f"ERROR: Failed to open SQLCipher connection. Check key and path. {e}")
-            self.conn = None
-            raise
-
-    def initialize_schema(self):
-        """Creates the necessary database tables if they do not exist (e.g., 'transactions')."""
-        if not self.conn:
-            raise ConnectionError("Database connection is not open. Cannot initialize schema.")
-            
-        # Define the schema for the consolidated transactions table
-        create_table_query = """
-        CREATE TABLE IF NOT EXISTS transactions (
-            TradeId INTEGER PRIMARY KEY,
-            Date TEXT NOT NULL,
-            EventType TEXT NOT NULL, -- e.g., 'BUY', 'SELL', 'DIVIDEND', 'MANUAL_ADJUST'
-            Ticker TEXT NOT NULL,
-            Quantity REAL,
-            Price REAL,
-            Currency TEXT,
-            Amount REAL,
-            Fee REAL,
-            Description TEXT,
-            -- Add an index for faster filtering and sorting
-            INDEX_YEAR_TICKER INTEGER
-        );
-        """
-        try:
-            self.conn.execute(create_table_query)
-            self.conn.commit()
-            print("INFO: Database schema (transactions table) initialized successfully.")
-        except Exception as e:
-            print(f"ERROR: Failed to initialize schema. {e}")
-            raise
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Closes the database connection."""
-        if self.conn:
-            self.conn.close()
-
-    def get_trades_for_calculation(self, target_year: int, ticker: Optional[str]) -> List[Dict[str, Any]]:
-        """
-        Retrieves all trades (buys, sales, dividends) relevant to the calculation.
-        Filters data based on the target year and optional ticker.
-        
-        Args:
-            target_year: The year used to determine which sales and dividends to include.
-            ticker: Optional ticker to filter trades.
-
-        Returns:
-            A list of trade records as dictionaries.
-        """
-        if not self.conn:
-            return []
-
-        # We assume the database has a consolidated 'transactions' table
-        query_parts = ["SELECT * FROM transactions WHERE 1=1"]
-        params = {}
-        
-        # 1. Filter by Target Year (Sales/Dividends that occurred in that year)
-        # We need all prior BUYS too, so we only filter the event date for non-BUYs.
-        
-        start_date = f"{target_year}-01-01"
-        end_date = f"{target_year}-12-31"
-        
-        # NOTE: This query includes all Buys (Type='BUY') and all other events 
-        # (Sales, Divs) that fall within the target year.
-        query_parts.append(
-            f"AND (EventType='BUY' OR Date BETWEEN :start_date AND :end_date)"
-        )
-        params['start_date'] = start_date
-        params['end_date'] = end_date
-
-        # 2. Filter by Ticker (if specified)
-        if ticker:
-            query_parts.append("AND Ticker = :ticker")
-            params['ticker'] = ticker
-
-        query = " ".join(query_parts) + " ORDER BY Date ASC, TradeId ASC;"
-        
-        cursor = self.conn.execute(query, params)
-        
-        # Convert sqlite3.Row objects to standard dictionaries for processing
-        return [dict(row) for row in cursor.fetchall()]
-
-# Example usage (simulated)
-# if __name__ == "__main__":
-#     try:
-#         with DBConnector() as db:
-#             trades = db.get_trades_for_calculation(target_year=2024, ticker='AAPL')
-#             print(f"Loaded {len(trades)} records.")
-#     except Exception:
-#         print("Connection failed.")
-```
-
-# --- FILE: src/nbp.py ---
-```python
-# src/nbp.py
-
-import requests
-import calendar
-from datetime import datetime, timedelta, date
-from decimal import Decimal
-from typing import Dict, Optional
-
-# Глобальный кэш: {(currency, year, month): {date_str: rate_decimal}}
-_MONTHLY_CACHE: Dict[tuple, Dict[str, Decimal]] = {}
-
-def fetch_month_rates(currency: str, year: int, month: int) -> None:
-    """
-    Загружает курсы валют за ВЕСЬ месяц одним запросом и сохраняет в глобальный кэш.
-    """
-    cache_key = (currency, year, month)
-    if cache_key in _MONTHLY_CACHE:
-        return  # Уже загружено
-
-    # Вычисляем первый и последний день месяца
-    start_date = date(year, month, 1)
-    last_day = calendar.monthrange(year, month)[1]
-    end_date = date(year, month, last_day)
-
-    # Если запрашиваем будущий месяц, данных нет, кэшируем пустоту и выходим
-    if start_date > date.today():
-        _MONTHLY_CACHE[cache_key] = {}
-        return
-
-    # Ограничиваем конец текущей датой (чтобы не просить курсы из будущего)
-    if end_date > date.today():
-        end_date = date.today()
-
-    fmt_start = start_date.strftime("%Y-%m-%d")
-    fmt_end = end_date.strftime("%Y-%m-%d")
-
-    # Формируем запрос диапазона (Table A - средние курсы)
-    url = f"http://api.nbp.pl/api/exchangerates/rates/a/{currency}/{fmt_start}/{fmt_end}/?format=json"
-
-    try:
-        # print(f"🌐 NBP API Fetch: {currency} for {fmt_start}..{fmt_end}")
-        response = requests.get(url, timeout=10)
-        
-        rates_map = {}
-        if response.status_code == 200:
-            data = response.json()
-            # Разбираем ответ: [{'no': '...', 'effectiveDate': '2025-01-02', 'mid': 4.1012}, ...]
-            for item in data.get('rates', []):
-                d_str = item['effectiveDate']
-                rate_val = Decimal(str(item['mid']))
-                rates_map[d_str] = rate_val
-        elif response.status_code == 404:
-            # 404 для диапазона значит, что в этом диапазоне нет курсов (например, одни праздники или начало месяца)
-            # Это нормально, сохраняем пустой словарь
-            pass
-        else:
-            print(f"⚠️ NBP API Warning: HTTP {response.status_code} for {url}")
-
-        _MONTHLY_CACHE[cache_key] = rates_map
-
-    except Exception as e:
-        print(f"❌ NBP Network Error for {fmt_start}: {e}")
-        # Не сохраняем в кэш, чтобы при следующем вызове попробовать снова? 
-        # Или сохраняем пустоту, чтобы не ддосить? Лучше не сохранять, вдруг сеть моргнула.
-        pass
-
-def get_nbp_rate(currency: str, date_str: str) -> Decimal:
-    """
-    Возвращает курс NBP (средний) для указанной валюты на день, 
-    ПРЕДШЕСТВУЮЩИЙ указанной дате (правило T-1).
-    Использует кэширование по месяцам.
-    """
-    if currency == 'PLN':
-        return Decimal('1.0')
-
-    try:
-        event_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except ValueError:
-        print(f"⚠️ NBP: Invalid date format {date_str}, using 1.0")
-        return Decimal('1.0')
-
-    # Начинаем поиск с T-1
-    target_date = event_date - timedelta(days=1)
-
-    # Пытаемся найти курс, отматывая назад до 10 дней
-    # (обычно достаточно 3-4 дней для длинных выходных)
-    for _ in range(10):
-        t_year = target_date.year
-        t_month = target_date.month
-        t_str = target_date.strftime("%Y-%m-%d")
-
-        # 1. Проверяем, загружен ли этот месяц
-        if (currency, t_year, t_month) not in _MONTHLY_CACHE:
-            fetch_month_rates(currency, t_year, t_month)
-
-        # 2. Ищем дату в кэше
-        month_data = _MONTHLY_CACHE.get((currency, t_year, t_month), {})
-        
-        if t_str in month_data:
-            return month_data[t_str]
-
-        # Если не нашли, идем на день назад (и на следующей итерации проверим кэш)
-        target_date -= timedelta(days=1)
-
-    print(f"❌ NBP FATAL: Could not find rate for {currency} around {date_str}. Using 1.0 fallback.")
-    return Decimal('1.0')
-
-def get_rate_for_tax_date(currency, trade_date):
-    """Алиас для совместимости"""
-    return get_nbp_rate(currency, trade_date)
-```
-
-# --- FILE: src/parser.py ---
-```python
-# src/parser.py
-
-import csv
-import re
-import glob
-import argparse
-import os
-from datetime import datetime
-from decimal import Decimal
-from typing import List, Dict, Any, Optional
-from src.db_connector import DBConnector
-
-def parse_decimal(value: str) -> Decimal:
-    """Убирает запятые и пробелы, парсит число."""
-    if not value: return Decimal(0)
-    clean = value.replace(',', '').replace('"', '').strip()
-    try:
-        return Decimal(clean)
-    except:
-        return Decimal(0)
-
-def normalize_date(date_str: str) -> Optional[str]:
-    """Приводит дату к формату YYYY-MM-DD. Возвращает None, если дата пустая."""
-    if not date_str: return None
-    
-    # Отрезаем время, если есть
-    clean = date_str.split(',')[0].strip().split(' ')[0]
-    
-    formats = ["%Y-%m-%d", "%Y%m%d", "%m/%d/%Y", "%d/%m/%Y", "%d-%b-%y"]
-    for fmt in formats:
-        try:
-            return datetime.strptime(clean, fmt).strftime("%Y-%m-%d")
-        except ValueError:
-            continue
-    return None
-
-def extract_ticker(description: str, symbol_col: str) -> str:
-    if symbol_col and symbol_col.strip(): return symbol_col.strip()
-    if not description: return "UNKNOWN"
-    match = re.search(r'^([A-Za-z0-9\.]+)\(', description)
-    if match: return match.group(1)
-    parts = description.split()
-    if parts and parts[0].isupper() and len(parts[0]) < 6:
-        return parts[0].split('(')[0]
-    return "UNKNOWN"
-
-def classify_trade_type(description: str, quantity: Decimal) -> str:
-    """Определяет тип сделки: BUY, SELL или TRANSFER."""
-    desc_upper = description.upper()
-    # Ключевые слова для трансферов (ввод/вывод активов без продажи)
-    transfer_keywords = ["ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM", "RECEIVE DELIVER"]
-    
-    if any(k in desc_upper for k in transfer_keywords):
-        return "TRANSFER"
-    if quantity > 0: return "BUY"
-    if quantity < 0: return "SELL"
-    return "UNKNOWN"
-
-def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[int]:
-    for name in possible_names:
-        if name in headers: return headers[name]
-    return None
-
-def parse_csv(filepath: str) -> Dict[str, List]:
-    data = {'trades': [], 'dividends': [], 'taxes': []}
-    section_headers = {}
-    print(f"\n📂 Parsing file: {os.path.basename(filepath)}")
-    
-    with open(filepath, 'r', encoding='utf-8-sig') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if len(row) < 2: continue
-            section, row_type = row[0], row[1]
-            
-            if row_type == 'Header':
-                header_map = {name.strip(): idx for idx, name in enumerate(row)}
-                section_headers[section] = header_map
-                continue
-
-            if row_type != 'Data': continue
-            if section not in section_headers: continue
-            
-            headers = section_headers[section]
-
-            # --- DIVIDENDS ---
-            if section == 'Dividends':
-                idx_cur  = get_col_idx(headers, ['Currency'])
-                idx_date = get_col_idx(headers, ['Date', 'PayDate'])
-                idx_desc = get_col_idx(headers, ['Description', 'Label'])
-                idx_amt  = get_col_idx(headers, ['Amount', 'Gross Rate', 'Gross Amount'])
-
-                if any(x is None for x in [idx_cur, idx_date, idx_desc, idx_amt]): continue
-
-                desc = row[idx_desc]
-                if "Total" in desc or "Total" in row[idx_cur]: continue
-
-                date_norm = normalize_date(row[idx_date])
-                if not date_norm: continue 
-
-                ticker = extract_ticker(desc, "")
-                amount = parse_decimal(row[idx_amt])
-                
-                print(f"   💰 Found DIVIDEND: {date_norm} | {ticker} | {amount} {row[idx_cur]}")
-                
-                data['dividends'].append({
-                    'ticker': ticker,
-                    'currency': row[idx_cur],
-                    'date': date_norm,
-                    'amount': amount
-                })
-
-            # --- TAXES ---
-            elif section == 'Withholding Tax':
-                idx_cur  = get_col_idx(headers, ['Currency'])
-                idx_date = get_col_idx(headers, ['Date'])
-                idx_desc = get_col_idx(headers, ['Description', 'Label'])
-                idx_amt  = get_col_idx(headers, ['Amount'])
-
-                if any(x is None for x in [idx_cur, idx_date, idx_desc, idx_amt]): continue
-                
-                desc = row[idx_desc]
-                if "Total" in desc or "Total" in row[idx_cur]: continue
-
-                date_norm = normalize_date(row[idx_date])
-                if not date_norm: continue 
-
-                print(f"   💸 Found TAX: {date_norm} | {extract_ticker(desc, '')} | {row[idx_amt]}")
-
-                data['taxes'].append({
-                    'ticker': extract_ticker(desc, ""),
-                    'currency': row[idx_cur],
-                    'date': date_norm,
-                    'amount': parse_decimal(row[idx_amt])
-                })
-            
-            # --- TRADES ---
-            elif section == 'Trades':
-                col_asset = get_col_idx(headers, ['Asset Category', 'Asset Class'])
-                if col_asset and row[col_asset] not in ['Stocks', 'Equity']: continue
-                
-                col_disc = get_col_idx(headers, ['DataDiscriminator', 'Header'])
-                if col_disc and row[col_disc] not in ['Order', 'Trade']: continue
-
-                idx_cur   = get_col_idx(headers, ['Currency'])
-                idx_sym   = get_col_idx(headers, ['Symbol', 'Ticker'])
-                idx_date  = get_col_idx(headers, ['Date/Time', 'Date', 'TradeDate'])
-                idx_qty   = get_col_idx(headers, ['Quantity'])
-                idx_price = get_col_idx(headers, ['T. Price', 'TradePrice', 'Price'])
-                idx_comm  = get_col_idx(headers, ['Comm/Fee', 'IBCommission', 'Commission'])
-                idx_desc  = get_col_idx(headers, ['Description'])
-
-                if any(x is None for x in [idx_cur, idx_date, idx_qty, idx_price]): continue
-                if idx_desc and "Total" in row[idx_desc]: continue
-
-                date_norm = normalize_date(row[idx_date])
-                if not date_norm: continue
-
-                qty = parse_decimal(row[idx_qty])
-                desc = row[idx_desc] if idx_desc else ""
-                
-                # Использование восстановленной функции
-                trade_type = classify_trade_type(desc, qty)
-
-                data['trades'].append({
-                    'ticker': extract_ticker(desc, row[idx_sym] if idx_sym else ""),
-                    'currency': row[idx_cur],
-                    'date': date_norm,
-                    'qty': qty,
-                    'price': parse_decimal(row[idx_price]),
-                    'commission': parse_decimal(row[idx_comm]) if idx_comm else Decimal(0),
-                    'type': trade_type,
-                    'source': 'IBKR'
-                })
-
-    return data
-
-def save_to_database(all_data):
-    db_records = []
-    for t in all_data.get('trades', []):
-        db_records.append((t['date'], t['type'], t['ticker'], float(t['qty']), float(t['price']), t['currency'], float(t['qty']*t['price']), float(t['commission']), t['source']))
-    for d in all_data.get('dividends', []):
-        db_records.append((d['date'], 'DIVIDEND', d['ticker'], 0, 0, d['currency'], float(d['amount']), 0, 'Dividend'))
-    for x in all_data.get('taxes', []):
-        db_records.append((x['date'], 'TAX', x['ticker'], 0, 0, x['currency'], float(x['amount']), 0, 'Tax'))
-
-    if not db_records:
-        print("⚠️  No records parsed!")
-        return
-
-    with DBConnector() as db:
-        db.initialize_schema()
-        print("🧹 Cleaning DB before import...")
-        db.conn.execute("DELETE FROM transactions")
-        print(f"📥 Inserting {len(db_records)} records...")
-        db.conn.executemany('INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) VALUES (?,?,?,?,?,?,?,?,?)', db_records)
-        db.conn.commit()
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--files', required=True)
-    args = parser.parse_args()
-    combined = {'trades': [], 'dividends': [], 'taxes': []}
-    
-    files = glob.glob(args.files)
-    if not files:
-        print("No files found.")
-        exit(1)
-
-    for fp in files:
-        parsed = parse_csv(fp)
-        for k in combined: combined[k].extend(parsed[k])
-    
-    save_to_database(combined)
-```
-
-# --- FILE: src/fifo.py ---
-```python
-# src/fifo.py
-
-import json
-from decimal import Decimal
-from collections import deque
-from typing import List, Dict, Any
-
-# Импортируем функции. Убедитесь, что src/utils.py существует.
-from .nbp import get_rate_for_tax_date
-from .utils import money
-
-class TradeMatcher:
-    def __init__(self):
-        self.inventory = {} 
-        self.realized_pnl = []
-
-    def save_state(self, filepath: str, cutoff_date: str):
-        serializable_inv = {}
-        for ticker, queue in self.inventory.items():
-            batches = []
-            for batch in queue:
-                b_copy = batch.copy()
-                b_copy['qty'] = str(b_copy['qty'])
-                b_copy['price'] = str(b_copy['price'])
-                b_copy['cost_pln'] = str(b_copy['cost_pln'])
-                if 'rate' in b_copy:
-                    b_copy['rate'] = float(b_copy['rate'])
-                batches.append(b_copy)
-            if batches:
-                serializable_inv[ticker] = batches
-        
-        data = {
-            "cutoff_date": cutoff_date,
-            "inventory": serializable_inv
-        }
-        
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2)
-            print(f"💾 Snapshot saved to {filepath} (Cutoff: {cutoff_date})")
-        except Exception as e:
-            print(f"WARNING: Failed to save snapshot: {e}")
-
-    def load_state(self, filepath: str) -> str:
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except FileNotFoundError:
-            return "1900-01-01"
-        
-        cutoff = data.get("cutoff_date", "1900-01-01")
-        loaded_inv = data.get("inventory", {})
-        
-        self.inventory = {}
-        count_positions = 0
-        
-        for ticker, batches in loaded_inv.items():
-            self.inventory[ticker] = deque()
-            for b in batches:
-                b['qty'] = Decimal(b['qty'])
-                b['price'] = Decimal(b['price'])
-                b['cost_pln'] = Decimal(b['cost_pln'])
-                self.inventory[ticker].append(b)
-            count_positions += 1
-            
-        print(f"📂 Snapshot loaded: {count_positions} positions restored (Cutoff: {cutoff}).")
-        return cutoff
-
-    def process_trades(self, trades_list: List[Dict[str, Any]]):
-        # Order matters for correct FIFO/Tax calculations
-        type_priority = {'SPLIT': 0, 'TRANSFER': 1, 'BUY': 1, 'SELL': 2}
-        
-        sorted_trades = sorted(
-            trades_list, 
-            key=lambda x: (x['date'], type_priority.get(x['type'], 3))
-        )
-
-        for trade in sorted_trades:
-            ticker = trade['ticker']
-            if ticker not in self.inventory:
-                self.inventory[ticker] = deque()
-
-            if trade['type'] == 'BUY':
-                self._process_buy(trade)
-            elif trade['type'] == 'SELL':
-                self._process_sell(trade)
-            elif trade['type'] == 'SPLIT':
-                self._process_split(trade)
-            elif trade['type'] == 'TRANSFER':
-                if trade['qty'] > 0:
-                    self._process_buy(trade)
-                else:
-                    self._process_transfer_out(trade)
-
-    def _process_buy(self, trade):
-        # OPTIMIZATION: Use injected rate if available to avoid DB/API call
-        if 'rate' in trade and trade['rate']:
-            rate = trade['rate']
-        else:
-            rate = get_rate_for_tax_date(trade['currency'], trade['date'])
-            
-        price = trade.get('price', Decimal(0))
-        comm = trade.get('commission', Decimal(0))
-        
-        # Calculate Cost in PLN
-        cost_pln = money((price * trade['qty'] * rate) + (abs(comm) * rate))
-        
-        self.inventory[trade['ticker']].append({
-            "date": trade['date'],
-            "qty": trade['qty'],
-            "price": price,
-            "rate": rate,
-            "cost_pln": cost_pln,
-            "currency": trade['currency'],
-            "source": trade.get('source', 'UNKNOWN')
-        })
-
-    def _process_sell(self, trade):
-        self._consume_inventory(trade, is_taxable=True)
-
-    def _process_transfer_out(self, trade):
-        self._consume_inventory(trade, is_taxable=False)
-
-    def _consume_inventory(self, trade, is_taxable):
-        ticker = trade['ticker']
-        qty_to_sell = abs(trade['qty'])
-        
-        # OPTIMIZATION: Use injected rate
-        if 'rate' in trade and trade['rate']:
-            sell_rate = trade['rate']
-        else:
-            sell_rate = get_rate_for_tax_date(trade['currency'], trade['date'])
-            
-        price = trade.get('price', Decimal(0))
-        comm = trade.get('commission', Decimal(0))
-        
-        sell_revenue_pln = money(price * qty_to_sell * sell_rate)
-        
-        cost_basis_pln = Decimal("0.00")
-        matched_buys = []
-
-        while qty_to_sell > 0:
-            if not self.inventory[ticker]: 
-                # Handling empty inventory (e.g. data missing or short sell)
-                # We log it and break to avoid infinite loops or crashes
-                print(f"WARNING: Insufficient inventory for {ticker} sell on {trade['date']}. Missing {qty_to_sell}")
-                break 
-
-            buy_batch = self.inventory[ticker][0]
-            
-            if buy_batch['qty'] <= qty_to_sell:
-                cost_basis_pln += buy_batch['cost_pln']
-                qty_to_sell -= buy_batch['qty']
-                matched_buys.append(buy_batch.copy())
-                self.inventory[ticker].popleft()
-            else:
-                ratio = qty_to_sell / buy_batch['qty']
-                part_cost = money(buy_batch['cost_pln'] * ratio)
-                
-                partial_record = buy_batch.copy()
-                partial_record['qty'] = qty_to_sell
-                partial_record['cost_pln'] = part_cost
-                matched_buys.append(partial_record)
-
-                cost_basis_pln += part_cost
-                
-                buy_batch['qty'] -= qty_to_sell
-                buy_batch['cost_pln'] -= part_cost
-                qty_to_sell = 0
-
-        if is_taxable:
-            sell_comm_pln = money(abs(comm) * sell_rate)
-            total_cost = cost_basis_pln + sell_comm_pln
-            profit_pln = sell_revenue_pln - total_cost
-            
-            self.realized_pnl.append({
-                "ticker": ticker,
-                "sale_date": trade['date'], # Renamed to match data_collector expectation
-                "date_sell": trade['date'],
-                "quantity": float(abs(trade['qty'])),
-                "sale_price": float(price),
-                "sale_rate": float(sell_rate),
-                "sale_amount": float(sell_revenue_pln), # Revenue
-                "cost_basis": float(total_cost),        # Cost
-                "profit_loss": float(profit_pln),       # P&L
-                "currency": trade['currency'],
-                "matched_buys": matched_buys
-            })
-
-    def _process_split(self, trade):
-        ticker = trade['ticker']
-        ratio = trade.get('ratio', Decimal("1"))
-        if ticker not in self.inventory: return
-
-        new_deque = deque()
-        while self.inventory[ticker]:
-            batch = self.inventory[ticker].popleft()
-            new_qty = batch['qty'] * ratio
-            
-            # Avoid division by zero if ratio is weird, though usually valid
-            if ratio != 0:
-                new_price = batch['price'] / ratio
-            else:
-                new_price = batch['price']
-
-            batch['qty'] = new_qty
-            batch['price'] = new_price
-            # cost_pln remains the same for the batch in a split
-            new_deque.append(batch)
-        self.inventory[ticker] = new_deque
-
-    def get_realized_gains(self):
-        """Adapter method for new architecture"""
-        return self.realized_pnl
-
-    def get_current_inventory(self):
-        """
-        Returns inventory in a format suitable for the Excel exporter.
-        Flattens the deque queues into a list of dictionaries.
-        """
-        inventory_list = []
-        for ticker, batches in self.inventory.items():
-            for batch in batches:
-                inventory_list.append({
-                    'ticker': ticker,
-                    'buy_date': batch['date'],
-                    'quantity': float(batch['qty']),
-                    'cost_per_share': float(batch['price']),
-                    'total_cost': float(batch['cost_pln']),
-                    'currency': batch['currency']
-                })
-        return inventory_list
-```
-
-# --- FILE: src/processing.py ---
-```python
-# src/processing.py
-
-from typing import List, Dict, Any, Tuple
-from decimal import Decimal
-from collections import defaultdict
-import logging
-
-# Project imports
-from src.nbp import get_nbp_rate
-from src.fifo import TradeMatcher 
-
-def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> Tuple[List[Dict], List[Dict], List[Dict]]:
-    """
-    Orchestrates the processing of raw database records into calculated tax reports.
-    Adapts SQLCipher data to the TradeMatcher input format.
-    Matches Withholding Taxes to Dividends.
-    """
-    
-    matcher = TradeMatcher()
-    
-    dividends = []
-    fifo_input_list = []
-    
-    print(f"INFO: Processing {len(raw_trades)} trades via FIFO engine...")
-
-    # --- 0. Pre-process Taxes (Link TAX rows to Dividends) ---
-    # IBKR reports store Withholding Tax as separate rows.
-    # We map (Date, Ticker) -> Total Tax Amount (absolute value)
-    tax_map = defaultdict(Decimal)
-    
-    for t in raw_trades:
-        if t['EventType'] == 'TAX':
-            # Tax amount is usually negative in DB, we need positive magnitude
-            amt = Decimal(str(t['Amount'])) if t['Amount'] else Decimal(0)
-            key = (t['Date'], t['Ticker'])
-            tax_map[key] += abs(amt)
-
-    # Sort trades by date and ID
-    sorted_trades = sorted(raw_trades, key=lambda x: (x['Date'], x['TradeId']))
-
-    for trade in sorted_trades:
-        # Extract basic fields from DB
-        date_str = trade['Date']
-        ticker = trade['Ticker']
-        event_type = trade['EventType'] # BUY, SELL, DIVIDEND, SPLIT, TAX
-        currency = trade['Currency']
-        
-        # Convert DB types to Decimal
-        quantity = Decimal(str(trade['Quantity'])) if trade['Quantity'] else Decimal(0)
-        price = Decimal(str(trade['Price'])) if trade['Price'] else Decimal(0)
-        amount_currency = Decimal(str(trade['Amount'])) if trade['Amount'] else Decimal(0)
-        fee = Decimal(str(trade['Fee'])) if trade['Fee'] else Decimal(0)
-        
-        description = trade.get('Description', '')
-
-        # --- 1. Get NBP Rate ---
-        rate = Decimal("1.0")
-        if currency != 'PLN':
-            try:
-                rate = get_nbp_rate(currency, date_str)
-            except Exception as e:
-                print(f"WARNING: Could not fetch NBP rate for {currency} on {date_str}. Using 1.0. Error: {e}")
-                rate = Decimal("1.0")
-
-        # --- 2. Build Logic ---
-        
-        if event_type == 'DIVIDEND':
-            # Calculate Dividend in PLN
-            gross_pln = amount_currency * rate
-            
-            # Look up the tax for this specific dividend (Same Date, Same Ticker)
-            tax_in_original_currency = tax_map.get((date_str, ticker), Decimal(0))
-            tax_pln = tax_in_original_currency * rate
-            
-            div_record = {
-                'ex_date': date_str,
-                'ticker': ticker,
-                'gross_amount_pln': float(gross_pln),
-                'tax_withheld_pln': float(tax_pln), # <--- NOW FILLED
-                'currency': currency,
-                'rate': float(rate)
-            }
-            if date_str.startswith(str(target_year)):
-                dividends.append(div_record)
-        
-        elif event_type == 'TAX':
-            # Skip processing TAX rows here, as they are handled via tax_map above
-            pass
-            
-        else:
-            # Handle Trades (BUY, SELL, SPLIT, TRANSFER)
-            matcher_type = event_type
-            
-            trade_record = {
-                'type': matcher_type,
-                'date': date_str,
-                'ticker': ticker,
-                'qty': quantity,
-                'price': price,
-                'commission': fee,
-                'currency': currency,
-                'rate': rate,
-                'source': 'DB'
-            }
-            
-            if matcher_type == 'SPLIT':
-                trade_record['ratio'] = Decimal("1") 
-
-            fifo_input_list.append(trade_record)
-
-    # --- 3. Execute FIFO Logic ---
-    matcher.process_trades(fifo_input_list)
-
-    # --- 4. Extract Results ---
-    all_realized = matcher.get_realized_gains()
-    
-    target_realized = [
-        r for r in all_realized 
-        if r['sale_date'].startswith(str(target_year))
-    ]
-    
-    inventory = matcher.get_current_inventory()
-    
-    return target_realized, dividends, inventory
-```
-
-# --- FILE: src/report_pdf.py ---
-```python
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from reportlab.lib.units import mm
-import itertools
-
-APP_NAME = "IBKR Tax Assistant"
-APP_VERSION = "v1.1.0"
-
-def get_zebra_style(row_count, header_color=colors.HexColor('#D0D0D0')):
-    cmds = [
-        ('BACKGROUND', (0,0), (-1,0), header_color),
-        ('GRID', (0,0), (-1,-1), 1, colors.black),
-        ('ALIGN', (0,0), (-1,0), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 9),
-    ]
-    for i in range(1, row_count):
-        if i % 2 == 0:
-            cmds.append(('BACKGROUND', (0,i), (-1,i), colors.HexColor('#F0F0F0')))
-    return TableStyle(cmds)
-
-def add_footer(canvas, doc):
-    canvas.saveState()
-    canvas.setFont('Helvetica', 8)
-    canvas.setFillColor(colors.grey)
-    footer_text = f"Generated by {APP_NAME} {APP_VERSION}"
-    canvas.drawString(10 * mm, 10 * mm, footer_text)
-    page_num = f"Page {doc.page}"
-    canvas.drawRightString(A4[0] - 10 * mm, 10 * mm, page_num)
-    canvas.setStrokeColor(colors.lightgrey)
-    canvas.line(10 * mm, 14 * mm, A4[0] - 10 * mm, 14 * mm)
-    canvas.restoreState()
-
-def generate_pdf(json_data, filename="report.pdf"):
-    doc = SimpleDocTemplate(filename, pagesize=A4, bottomMargin=20*mm, topMargin=20*mm)
-    elements = []
-    styles = getSampleStyleSheet()
-    
-    year = json_data['year']
-    data = json_data['data']
-
-    title_style = ParagraphStyle('ReportTitle', parent=styles['Title'], fontSize=28, spaceAfter=30, alignment=TA_CENTER)
-    subtitle_style = ParagraphStyle('ReportSubtitle', parent=styles['Normal'], fontSize=14, alignment=TA_CENTER)
-    h2_style = ParagraphStyle('H2Centered', parent=styles['Heading2'], alignment=TA_CENTER, spaceAfter=15, spaceBefore=20)
-    h3_style = ParagraphStyle('H3Centered', parent=styles['Heading3'], alignment=TA_CENTER, spaceAfter=10, spaceBefore=5)
-    normal_style = styles['Normal']
-    italic_small = ParagraphStyle('ItalicSmall', parent=styles['Italic'], fontSize=8, alignment=TA_LEFT)
-    
-    # PAGE 1
-    elements.append(Spacer(1, 100))
-    elements.append(Paragraph(f"Tax report — {year}", title_style))
-    elements.append(Spacer(1, 10))
-    elements.append(Paragraph(f"Report period: 01-01-{year} - 31-12-{year}", subtitle_style))
-    elements.append(PageBreak())
-
-    # PAGE 2: PORTFOLIO (WITH FIFO CHECK)
-    elements.append(Paragraph(f"Portfolio Composition (as of Dec 31, {year})", h2_style))
-    if data['holdings']:
-        holdings_data = [["Ticker", "Quantity", "FIFO Check"]]
-        restricted_indices = []
-        has_restricted = False
-        
-        row_idx = 1
-        for h in data['holdings']:
-            display_ticker = h['ticker']
-            if h.get('is_restricted', False):
-                display_ticker += " *"
-                has_restricted = True
-                restricted_indices.append(row_idx)
-            
-            check_mark = "OK" if h.get('fifo_match', False) else "MISMATCH!"
-            holdings_data.append([display_ticker, f"{h['qty']:.3f}", check_mark])
-            row_idx += 1
-            
-        t_holdings = Table(holdings_data, colWidths=[180, 100, 100], repeatRows=1)
-        ts = get_zebra_style(len(holdings_data))
-        
-        # --- STYLING ---
-        ts.add('ALIGN', (1,1), (1,-1), 'RIGHT')  # Qty -> Right
-        ts.add('ALIGN', (2,1), (2,-1), 'CENTER') # FIFO Check -> Center (FIXED)
-        
-        # Color coding for Mismatches
-        for i, row in enumerate(holdings_data[1:], start=1):
-            if row[2] != "OK":
-                ts.add('TEXTCOLOR', (2, i), (2, i), colors.red)
-        
-        # Red Highlight for Restricted
-        for r_idx in restricted_indices:
-            ts.add('BACKGROUND', (0, r_idx), (-1, r_idx), colors.HexColor('#FFCCCC'))
-            
-        t_holdings.setStyle(ts)
-        elements.append(t_holdings)
-        
-        if has_restricted:
-            elements.append(Spacer(1, 10))
-            elements.append(Paragraph("* Assets held in special escrow accounts / sanctioned (RUB)", italic_small))
-    else:
-        elements.append(Paragraph("No open positions found at end of year.", normal_style))
-    elements.append(PageBreak())
-
-    # PAGE 3: TRADES HISTORY
-    elements.append(Paragraph(f"Trades History ({year})", h2_style))
-    if data['trades_history']:
-        trades_header = [["Date", "Ticker", "Type", "Qty", "Price", "Comm", "Curr"]]
-        trades_rows = []
-        for t in data['trades_history']:
-            t_type = t.get('type', 'UNKNOWN')
-            row = [
-                t['date'],
-                t['ticker'],
-                t_type,
-                f"{abs(t['qty']):.3f}",
-                f"{t['price']:.2f}",
-                f"{t['commission']:.2f}",
-                t['currency']
-            ]
-            trades_rows.append(row)
-        full_table_data = trades_header + trades_rows
-        col_widths = [65, 55, 55, 55, 55, 55, 45]
-        t_trades = Table(full_table_data, colWidths=col_widths, repeatRows=1)
-        ts_trades = get_zebra_style(len(full_table_data))
-        ts_trades.add('ALIGN', (3,1), (-1,-1), 'RIGHT') 
-        ts_trades.add('FONTSIZE', (0,0), (-1,-1), 8)    
-        t_trades.setStyle(ts_trades)
-        elements.append(t_trades)
-    else:
-        elements.append(Paragraph("No trades executed this year.", normal_style))
-    
-    # PAGE: CORPORATE ACTIONS
-    if data['corp_actions']:
-        elements.append(PageBreak())
-        elements.append(Paragraph(f"Corporate Actions & Splits ({year})", h2_style))
-        corp_header = [["Date", "Ticker", "Type", "Details"]]
-        corp_rows = []
-        for act in data['corp_actions']:
-            details = ""
-            if act['type'] == 'SPLIT':
-                ratio = act.get('ratio', 1)
-                details = f"Split Ratio: {ratio:.4f}"
-            elif act['type'] == 'BUY' and act.get('source') == 'IBKR_CORP_ACTION':
-                 details = f"Stock Div: +{act['qty']:.4f} shares"
-            elif act['type'] == 'TRANSFER' and act.get('source') == 'IBKR_CORP_ACTION':
-                 details = f"Adjustment: {act['qty']:.4f}"
-            else:
-                 details = "Other Adjustment"
-            corp_rows.append([act['date'], act['ticker'], act['type'], details])
-        full_corp_data = corp_header + corp_rows
-        t_corp = Table(full_corp_data, colWidths=[100, 80, 80, 200], repeatRows=1)
-        t_corp.setStyle(get_zebra_style(len(full_corp_data)))
-        elements.append(t_corp)
-
-    elements.append(PageBreak())
-
-    # PAGE 4: MONTHLY DIVIDENDS SUMMARY
-    elements.append(Paragraph(f"Monthly Dividends Summary ({year})", h2_style))
-    month_names = { "01": "January", "02": "February", "03": "March", "04": "April", "05": "May", "06": "June", "07": "July", "08": "August", "09": "September", "10": "October", "11": "November", "12": "December" }
-    
-    if data['monthly_dividends']:
-        m_data = [["Month", "Gross (PLN)", "Tax Paid (PLN)", "Net (PLN)"]]
-        sorted_months = sorted(data['monthly_dividends'].keys())
-        total_gross, total_tax = 0, 0
-        for m in sorted_months:
-            vals = data['monthly_dividends'][m]
-            m_data.append([
-                month_names.get(m, m),
-                f"{vals['gross_pln']:,.2f}",
-                f"{vals['tax_pln']:,.2f}",
-                f"{vals['net_pln']:,.2f}"
-            ])
-            total_gross += vals['gross_pln']
-            total_tax += vals['tax_pln']
-        m_data.append(["TOTAL", f"{total_gross:,.2f}", f"{total_tax:,.2f}", f"{total_gross - total_tax:,.2f}"])
-        t_months = Table(m_data, colWidths=[110, 110, 110, 110], repeatRows=1)
-        ts = get_zebra_style(len(m_data))
-        ts.add('FONT-WEIGHT', (0,-1), (-1,-1), 'BOLD')
-        ts.add('BACKGROUND', (0,-1), (-1,-1), colors.lightgrey)
-        ts.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
-        t_months.setStyle(ts)
-        elements.append(t_months)
-        
-        # --- DETAILED DIVIDENDS ---
-        elements.append(PageBreak()) 
-        elements.append(Paragraph(f"Dividend Details (Chronological)", h2_style))
-        elements.append(Paragraph("Detailed breakdown of every dividend payment received.", normal_style))
-        elements.append(Spacer(1, 10))
-        
-        sorted_divs = sorted(data['dividends'], key=lambda x: x['date'])
-        
-        is_first_month = True
-        for month_key, group in itertools.groupby(sorted_divs, key=lambda x: x['date'][:7]):
-            if not is_first_month:
-                elements.append(PageBreak())
-            is_first_month = False
-            
-            y, m = month_key.split('-')
-            m_name = month_names.get(m, m)
-            elements.append(Paragraph(f"{m_name} {y}", h2_style))
-            
-            det_header = [["Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]]
-            det_rows = []
-            for d in group:
-                det_rows.append([
-                    d['date'],
-                    d['ticker'],
-                    f"{d['amount']:.2f} {d['currency']}",
-                    f"{d['rate']:.4f}",
-                    f"{d['amount_pln']:.2f}",
-                    f"{d['tax_paid_pln']:.2f}"
-                ])
-            full_det_data = det_header + det_rows
-            t_det = Table(full_det_data, colWidths=[70, 50, 90, 50, 70, 70], repeatRows=1)
-            ts_det = get_zebra_style(len(full_det_data))
-            ts_det.add('ALIGN', (2,1), (-1,-1), 'RIGHT')
-            ts_det.add('FONTSIZE', (0,0), (-1,-1), 8)
-            t_det.setStyle(ts_det)
-            elements.append(t_det)
-        
-    else:
-        elements.append(Paragraph("No dividends received this year.", normal_style))
-    
-    elements.append(PageBreak())
-
-    # PAGE: YEARLY SUMMARY
-    elements.append(Paragraph(f"Yearly Summary", h2_style))
-    div_gross = sum(x['amount_pln'] for x in data['dividends'])
-    div_tax = sum(x['tax_paid_pln'] for x in data['dividends'])
-    polish_tax_due = max(0, (div_gross * 0.19) - div_tax)
-    final_net = div_gross - div_tax - polish_tax_due
-    
-    summary_data = [
-        ["Metric", "Amount (PLN)"],
-        ["Total Dividends", f"{div_gross:,.2f}"],
-        ["Withheld Tax (sum)", f"-{div_tax:,.2f}"],
-        ["Additional Tax (PL, ~diff)", f"{polish_tax_due:,.2f}"],
-        ["Final Net (after full 19%)", f"{final_net:,.2f}"]
-    ]
-    t_summary = Table(summary_data, colWidths=[250, 150])
-    ts_sum = get_zebra_style(len(summary_data))
-    ts_sum.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
-    t_summary.setStyle(ts_sum)
-    elements.append(t_summary)
-    
-    elements.append(Spacer(1, 20))
-    elements.append(Paragraph("Diagnostics", h2_style))
-    diag = data['diagnostics']
-    diag_data = [
-        ["Indicator", "Value"],
-        ["Tickers (unique)", str(diag['tickers_count'])],
-        ["Dividend rows", str(diag['div_rows_count'])],
-        ["Tax rows", str(diag['tax_rows_count'])]
-    ]
-    t_diag = Table(diag_data, colWidths=[250, 150])
-    ts_diag = get_zebra_style(len(diag_data))
-    ts_diag.add('ALIGN', (1,1), (-1,-1), 'CENTER')
-    t_diag.setStyle(ts_diag)
-    elements.append(t_diag)
-    
-    elements.append(Spacer(1, 20))
-    elements.append(Paragraph("Per-currency totals (PLN)", h2_style))
-    curr_data = [["Currency", "PLN total"]]
-    for curr, val in data['per_currency'].items():
-        curr_data.append([curr, f"{val:,.2f}"])
-    t_curr = Table(curr_data, colWidths=[250, 150], repeatRows=1)
-    ts_curr = get_zebra_style(len(curr_data))
-    ts_curr.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
-    t_curr.setStyle(ts_curr)
-    elements.append(t_curr)
-    elements.append(PageBreak())
-
-    # PAGE: PIT-38
-    elements.append(Paragraph(f"PIT-38 Helper Data ({year})", h2_style))
-    elements.append(Spacer(1, 10))
-    elements.append(Paragraph("Section C (Stocks/Derivatives)", h3_style))
-    cap_rev = sum(x['revenue_pln'] for x in data['capital_gains'])
-    cap_cost = sum(x['cost_pln'] for x in data['capital_gains'])
-    pit_c_data = [
-        ["Field in PIT-38", "Value (PLN)"],
-        ["Przychód (Revenue) [Pos 20]", f"{cap_rev:,.2f}"],
-        ["Koszty (Costs) [Pos 21]", f"{cap_cost:,.2f}"],
-        ["Dochód/Strata", f"{cap_rev - cap_cost:,.2f}"]
-    ]
-    t_pit_c = Table(pit_c_data, colWidths=[250, 150])
-    ts_pit = get_zebra_style(len(pit_c_data))
-    ts_pit.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
-    t_pit_c.setStyle(ts_pit)
-    elements.append(t_pit_c)
-    elements.append(Spacer(1, 5))
-    elements.append(Paragraph("<i>* Note: 'Koszty' includes purchase price + buy/sell commissions.</i>", styles['Italic']))
-    elements.append(Spacer(1, 20))
-
-    elements.append(Paragraph("Dividends (Foreign Tax)", h3_style))
-    pit_div_data = [
-        ["Description", "Value (PLN)"],
-        ["Gross Income", f"{div_gross:,.2f}"],
-        ["Tax Paid Abroad (Max deductible)", f"{div_tax:,.2f}"],
-        ["TO PAY (Difference) [Pos 45]", f"{polish_tax_due:,.2f}"] 
-    ]
-    t_pit_div = Table(pit_div_data, colWidths=[250, 150])
-    ts_pit_div = get_zebra_style(len(pit_div_data))
-    ts_pit_div.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
-    ts_pit_div.add('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold') 
-    t_pit_div.setStyle(ts_pit_div)
-    elements.append(t_pit_div)
-
-    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
-```
-
-# --- FILE: src/excel_exporter.py ---
-```python
-# src/excel_exporter.py
-
-import pandas as pd
-from typing import Dict, Any
-
-def export_to_excel(sheets_data: Dict[str, pd.DataFrame], 
-                    file_path: str, 
-                    summary_data: Dict[str, Any], 
-                    ticker_summary: Dict[str, Dict[str, str]]):
-    """
-    Exports data to a formatted Excel file with multiple tabs.
-
-    Args:
-        sheets_data: Dictionary where Key = Sheet Name, Value = DataFrame.
-        file_path: The full path to save the .xlsx file.
-        summary_data: Dictionary containing project summary metrics.
-        ticker_summary: Dictionary containing P&L breakdown aggregated by ticker.
-    """
-    
-    try:
-        writer = pd.ExcelWriter(file_path, engine='openpyxl')
-
-        # 1. Write General Summary Sheet (First Tab)
-        summary_df = pd.DataFrame(list(summary_data.items()), columns=['Metric', 'Value'])
-        summary_df.to_excel(writer, sheet_name='Summary', index=False)
-
-        # 2. Write Ticker Summary Sheet
-        if ticker_summary:
-            df_ticker_summary = pd.DataFrame.from_dict(ticker_summary, orient='index').reset_index()
-            df_ticker_summary = df_ticker_summary.rename(columns={'index': 'Ticker'})
-            
-            if not df_ticker_summary.empty:
-                cols = ['Ticker', 'Total_P&L_PLN', 'Total_Proceeds_PLN', 'Total_Cost_PLN']
-                df_ticker_summary = df_ticker_summary.reindex(columns=cols)
-            
-            df_ticker_summary.to_excel(writer, sheet_name='Ticker Summary', index=False)
-
-        # 3. Write Separate Data Sheets (Sales, Dividends, Inventory)
-        for sheet_name, df in sheets_data.items():
-            if not df.empty:
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-                print(f"INFO: Added sheet '{sheet_name}' with {len(df)} rows.")
-            else:
-                print(f"INFO: Skipping empty sheet '{sheet_name}'.")
-
-        writer.close()
-        print(f"SUCCESS: Data exported to Excel at {file_path}")
-
-    except Exception as e:
-        print(f"ERROR: Failed to export Excel file at {file_path}. Reason: {e}")
 ```
 
 # --- FILE: src/data_collector.py ---
@@ -1356,6 +167,1322 @@ def collect_all_trade_data(realized_gains: List[Dict[str, Any]],
     return sheets_collection, ticker_summary
 ```
 
+# --- FILE: src/db_connector.py ---
+```python
+import sqlite3
+import os
+import sys
+
+# Попытка импорта dotenv для чтения .env файла
+try:
+    from dotenv import load_dotenv
+    load_dotenv()  # Загружаем переменные из .env
+except ImportError:
+    # Если библиотеки нет, скрипт продолжит работу, но переменные окружения должны быть заданы иначе
+    pass
+
+# --- КОНФИГУРАЦИЯ БАЗЫ ДАННЫХ ---
+# Читаем путь и ключ из .env.
+# Если переменные не заданы в .env, используются значения по умолчанию (или None).
+DB_PATH = os.getenv("DATABASE_PATH", "db/ibkr_history.db.enc")
+DB_KEY = os.getenv("SQLCIPHER_KEY")
+
+class DBConnector:
+    def __init__(self, db_path=None):
+        # Если путь передан явно при инициализации - используем его, иначе берем из констант/.env
+        self.db_path = db_path if db_path else DB_PATH
+        self.conn = None
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def connect(self):
+        # Создаем папку для БД, если её нет
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        
+        try:
+            self.conn = sqlite3.connect(self.db_path)
+            
+            # --- ЛОГИКА SQLCIPHER ---
+            if DB_KEY:
+                # Если ключ есть в переменных окружения, применяем его.
+                self.conn.execute(f"PRAGMA key = '{DB_KEY}';")
+                
+                # Проверка ключа: пробуем выполнить легкую команду.
+                # Если ключ неверный, здесь вылетит исключение.
+                try:
+                    self.conn.execute("SELECT count(*) FROM sqlite_master;")
+                except sqlite3.DatabaseError:
+                    print("ОШИБКА: Неверный ключ шифрования или база данных повреждена.")
+                    sys.exit(1)
+            
+            # Используем sqlite3.Row, чтобы обращаться к колонкам по имени
+            self.conn.row_factory = sqlite3.Row
+            
+        except Exception as e:
+            print(f"FATAL ERROR: Could not connect to database. {e}")
+            sys.exit(1)
+
+    def close(self):
+        if self.conn:
+            self.conn.close()
+
+    def initialize_schema(self):
+        """Создает таблицу транзакций, если она не существует."""
+        # Колонки именуются в PascalCase (Date, EventType...) как в исторической схеме
+        query = """
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Date TEXT,
+            EventType TEXT,
+            Ticker TEXT,
+            Quantity REAL,
+            Price REAL,
+            Currency TEXT,
+            Amount REAL,
+            Fee REAL,
+            Description TEXT
+        );
+        """
+        self.conn.execute(query)
+        self.conn.commit()
+
+    def get_trades_for_calculation(self, target_year=None, ticker=None):
+        """
+        Загружает сделки для FIFO.
+        Использует rowid как TradeId, чтобы гарантировать наличие ID даже в старых БД.
+        Возвращает имена колонок как есть (PascalCase), чтобы удовлетворить processing.py.
+        """
+        query = """
+            SELECT 
+                rowid as TradeId,
+                Date, 
+                EventType, 
+                Ticker, 
+                Quantity, 
+                Price, 
+                Currency, 
+                Amount, 
+                Fee, 
+                Description 
+            FROM transactions 
+            WHERE 1=1
+        """
+        params = []
+
+        # Фильтр по тикеру
+        if ticker:
+            query += " AND Ticker = ?"
+            params.append(ticker)
+
+        # Фильтр по дате: всё ДО конца целевого года включительно
+        if target_year:
+            end_date = f"{target_year}-12-31"
+            query += " AND Date <= ?"
+            params.append(end_date)
+
+        query += " ORDER BY Date ASC"
+
+        cursor = self.conn.execute(query, params)
+        rows = cursor.fetchall()
+        
+        # Конвертируем sqlite3.Row в обычные словари
+        return [dict(row) for row in rows]
+
+    def save_transaction(self, data):
+        """Вспомогательный метод для ручного сохранения транзакции."""
+        query = """
+            INSERT INTO transactions 
+            (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        self.conn.execute(query, (
+            data['date'], data['type'], data['ticker'], 
+            data['qty'], data['price'], data['currency'], 
+            data['amount'], data['fee'], data['desc']
+        ))
+        self.conn.commit()
+```
+
+# --- FILE: src/excel_exporter.py ---
+```python
+# src/excel_exporter.py
+
+import pandas as pd
+from typing import Dict, Any
+
+def export_to_excel(sheets_data: Dict[str, pd.DataFrame], 
+                    file_path: str, 
+                    summary_data: Dict[str, Any], 
+                    ticker_summary: Dict[str, Dict[str, str]]):
+    """
+    Exports data to a formatted Excel file with multiple tabs.
+    Adds a 'No.' column to all data sheets for easier reference.
+
+    Args:
+        sheets_data: Dictionary where Key = Sheet Name, Value = DataFrame.
+        file_path: The full path to save the .xlsx file.
+        summary_data: Dictionary containing project summary metrics.
+        ticker_summary: Dictionary containing P&L breakdown aggregated by ticker.
+    """
+    
+    try:
+        writer = pd.ExcelWriter(file_path, engine='openpyxl')
+
+        # 1. Write General Summary Sheet (First Tab)
+        summary_df = pd.DataFrame(list(summary_data.items()), columns=['Metric', 'Value'])
+        summary_df.to_excel(writer, sheet_name='Summary', index=False)
+
+        # 2. Write Ticker Summary Sheet
+        if ticker_summary:
+            df_ticker_summary = pd.DataFrame.from_dict(ticker_summary, orient='index').reset_index()
+            df_ticker_summary = df_ticker_summary.rename(columns={'index': 'Ticker'})
+            
+            if not df_ticker_summary.empty:
+                # Add Row Numbering
+                df_ticker_summary.insert(0, 'No.', range(1, len(df_ticker_summary) + 1))
+
+                # Reorder columns (ensure No. is first, then Ticker, then data)
+                base_cols = ['No.', 'Ticker', 'Total_P&L_PLN', 'Total_Proceeds_PLN', 'Total_Cost_PLN']
+                # Filter strictly for columns that exist to avoid KeyErrors if data is sparse
+                existing_cols = [c for c in base_cols if c in df_ticker_summary.columns]
+                df_ticker_summary = df_ticker_summary.reindex(columns=existing_cols)
+            
+            df_ticker_summary.to_excel(writer, sheet_name='Ticker Summary', index=False)
+
+        # 3. Write Separate Data Sheets (Sales, Dividends, Inventory)
+        for sheet_name, df in sheets_data.items():
+            if not df.empty:
+                # Create a copy to modify without affecting the original dataframe
+                df_export = df.copy()
+                
+                # Insert 'No.' column at position 0
+                df_export.insert(0, 'No.', range(1, len(df_export) + 1))
+                
+                df_export.to_excel(writer, sheet_name=sheet_name, index=False)
+                print(f"INFO: Added sheet '{sheet_name}' with {len(df)} rows.")
+            else:
+                print(f"INFO: Skipping empty sheet '{sheet_name}'.")
+
+        writer.close()
+        print(f"SUCCESS: Data exported to Excel at {file_path}")
+
+    except Exception as e:
+        print(f"ERROR: Failed to export Excel file at {file_path}. Reason: {e}")
+```
+
+# --- FILE: src/fifo.py ---
+```python
+# src/fifo.py
+
+import json
+from decimal import Decimal
+from collections import deque
+from typing import List, Dict, Any
+
+from .nbp import get_rate_for_tax_date
+from .utils import money
+
+class TradeMatcher:
+    def __init__(self):
+        self.inventory = {} 
+        self.realized_pnl = []
+
+    def save_state(self, filepath: str, cutoff_date: str):
+        # ... (Save code same as before, omitted for brevity) ...
+        pass # Implement/Copy from previous if needed, but core logic is below
+
+    def load_state(self, filepath: str) -> str:
+        # ... (Load code same as before) ...
+        return "1900-01-01"
+
+    def process_trades(self, trades_list: List[Dict[str, Any]]):
+        # Priority: Adjustments (Splits/Mergers) -> Buys -> Sells
+        type_priority = {
+            'STOCK_DIV': 0, 'MERGER': 0, 'SPLIT_ADD': 0, 
+            'BUY': 1, 'TRANSFER': 1, 
+            'SELL': 2
+        }
+        
+        sorted_trades = sorted(
+            trades_list, 
+            key=lambda x: (x['date'], type_priority.get(x['type'], 3))
+        )
+
+        for trade in sorted_trades:
+            ticker = trade['ticker']
+            if ticker not in self.inventory:
+                self.inventory[ticker] = deque()
+
+            t_type = trade['type']
+            qty = trade['qty']
+
+            # --- 1. POSITIVE QUANTITY (ADD TO INVENTORY) ---
+            if qty > 0:
+                # Includes: BUY, STOCK_DIV (Split add), MERGER (New shares), SPINOFF
+                if t_type == 'BUY' or t_type == 'TRANSFER':
+                    self._process_buy(trade)
+                else:
+                    # Corporate Action Additions (Zero Cost usually)
+                    # Force price to 0 if it's a Corp Action to avoid messing up cost basis
+                    trade['price'] = Decimal(0)
+                    self._process_buy(trade)
+
+            # --- 2. NEGATIVE QUANTITY (REMOVE FROM INVENTORY) ---
+            elif qty < 0:
+                # Includes: SELL, MERGER (Old shares removal), LIQUIDATION
+                if t_type == 'SELL':
+                    self._process_sell(trade)
+                else:
+                    # Corporate Action Removals (Non-Taxable Transfer Out)
+                    # We remove the shares but DO NOT record a Capital Gain/Loss for tax report
+                    self._process_transfer_out(trade)
+
+    def _process_buy(self, trade):
+        if 'rate' in trade and trade['rate']:
+            rate = trade['rate']
+        else:
+            rate = get_rate_for_tax_date(trade['currency'], trade['date'])
+            
+        price = trade.get('price', Decimal(0))
+        comm = trade.get('commission', Decimal(0))
+        cost_pln = money((price * trade['qty'] * rate) + (abs(comm) * rate))
+        
+        self.inventory[trade['ticker']].append({
+            "date": trade['date'],
+            "qty": trade['qty'],
+            "price": price,
+            "rate": rate,
+            "cost_pln": cost_pln,
+            "currency": trade['currency'],
+            "source": trade.get('source', 'UNKNOWN')
+        })
+
+    def _process_sell(self, trade):
+        self._consume_inventory(trade, is_taxable=True)
+
+    def _process_transfer_out(self, trade):
+        self._consume_inventory(trade, is_taxable=False)
+
+    def _consume_inventory(self, trade, is_taxable):
+        ticker = trade['ticker']
+        qty_to_sell = abs(trade['qty'])
+        
+        if 'rate' in trade and trade['rate']:
+            sell_rate = trade['rate']
+        else:
+            sell_rate = get_rate_for_tax_date(trade['currency'], trade['date'])
+            
+        price = trade.get('price', Decimal(0))
+        comm = trade.get('commission', Decimal(0))
+        
+        sell_revenue_pln = money(price * qty_to_sell * sell_rate)
+        
+        cost_basis_pln = Decimal("0.00")
+        matched_buys = []
+
+        while qty_to_sell > 0:
+            if not self.inventory[ticker]: 
+                break 
+
+            buy_batch = self.inventory[ticker][0]
+            
+            if buy_batch['qty'] <= qty_to_sell:
+                cost_basis_pln += buy_batch['cost_pln']
+                qty_to_sell -= buy_batch['qty']
+                matched_buys.append(buy_batch.copy())
+                self.inventory[ticker].popleft()
+            else:
+                ratio = qty_to_sell / buy_batch['qty']
+                part_cost = money(buy_batch['cost_pln'] * ratio)
+                
+                partial_record = buy_batch.copy()
+                partial_record['qty'] = qty_to_sell
+                partial_record['cost_pln'] = part_cost
+                matched_buys.append(partial_record)
+
+                cost_basis_pln += part_cost
+                
+                buy_batch['qty'] -= qty_to_sell
+                buy_batch['cost_pln'] -= part_cost
+                qty_to_sell = 0
+
+        if is_taxable:
+            sell_comm_pln = money(abs(comm) * sell_rate)
+            total_cost = cost_basis_pln + sell_comm_pln
+            profit_pln = sell_revenue_pln - total_cost
+            
+            self.realized_pnl.append({
+                "ticker": ticker,
+                "sale_date": trade['date'],
+                "date_sell": trade['date'],
+                "quantity": float(abs(trade['qty'])),
+                "sale_price": float(price),
+                "sale_rate": float(sell_rate),
+                "sale_amount": float(sell_revenue_pln), 
+                "cost_basis": float(total_cost),        
+                "profit_loss": float(profit_pln),       
+                "currency": trade['currency'],
+                "matched_buys": matched_buys
+            })
+
+    def get_realized_gains(self):
+        return self.realized_pnl
+
+    def get_current_inventory(self):
+        inventory_list = []
+        for ticker, batches in self.inventory.items():
+            for batch in batches:
+                inventory_list.append({
+                    'ticker': ticker,
+                    'buy_date': batch['date'],
+                    'quantity': float(batch['qty']),
+                    'cost_per_share': float(batch['price']),
+                    'total_cost': float(batch['cost_pln']),
+                    'currency': batch['currency']
+                })
+        return inventory_list
+```
+
+# --- FILE: src/nbp.py ---
+```python
+# src/nbp.py
+
+import requests
+import calendar
+from datetime import datetime, timedelta, date
+from decimal import Decimal
+from typing import Dict, Optional
+
+# Глобальный кэш: {(currency, year, month): {date_str: rate_decimal}}
+_MONTHLY_CACHE: Dict[tuple, Dict[str, Decimal]] = {}
+
+def fetch_month_rates(currency: str, year: int, month: int) -> None:
+    """
+    Загружает курсы валют за ВЕСЬ месяц одним запросом и сохраняет в глобальный кэш.
+    """
+    cache_key = (currency, year, month)
+    if cache_key in _MONTHLY_CACHE:
+        return  # Уже загружено
+
+    # Вычисляем первый и последний день месяца
+    start_date = date(year, month, 1)
+    last_day = calendar.monthrange(year, month)[1]
+    end_date = date(year, month, last_day)
+
+    # Если запрашиваем будущий месяц, данных нет, кэшируем пустоту и выходим
+    if start_date > date.today():
+        _MONTHLY_CACHE[cache_key] = {}
+        return
+
+    # Ограничиваем конец текущей датой (чтобы не просить курсы из будущего)
+    if end_date > date.today():
+        end_date = date.today()
+
+    fmt_start = start_date.strftime("%Y-%m-%d")
+    fmt_end = end_date.strftime("%Y-%m-%d")
+
+    # Формируем запрос диапазона (Table A - средние курсы)
+    url = f"http://api.nbp.pl/api/exchangerates/rates/a/{currency}/{fmt_start}/{fmt_end}/?format=json"
+
+    try:
+        # print(f"🌐 NBP API Fetch: {currency} for {fmt_start}..{fmt_end}")
+        response = requests.get(url, timeout=10)
+        
+        rates_map = {}
+        if response.status_code == 200:
+            data = response.json()
+            # Разбираем ответ: [{'no': '...', 'effectiveDate': '2025-01-02', 'mid': 4.1012}, ...]
+            for item in data.get('rates', []):
+                d_str = item['effectiveDate']
+                rate_val = Decimal(str(item['mid']))
+                rates_map[d_str] = rate_val
+        elif response.status_code == 404:
+            # 404 для диапазона значит, что в этом диапазоне нет курсов (например, одни праздники или начало месяца)
+            # Это нормально, сохраняем пустой словарь
+            pass
+        else:
+            print(f"⚠️ NBP API Warning: HTTP {response.status_code} for {url}")
+
+        _MONTHLY_CACHE[cache_key] = rates_map
+
+    except Exception as e:
+        print(f"❌ NBP Network Error for {fmt_start}: {e}")
+        # Не сохраняем в кэш, чтобы при следующем вызове попробовать снова? 
+        # Или сохраняем пустоту, чтобы не ддосить? Лучше не сохранять, вдруг сеть моргнула.
+        pass
+
+def get_nbp_rate(currency: str, date_str: str) -> Decimal:
+    """
+    Возвращает курс NBP (средний) для указанной валюты на день, 
+    ПРЕДШЕСТВУЮЩИЙ указанной дате (правило T-1).
+    Использует кэширование по месяцам.
+    """
+    if currency == 'PLN':
+        return Decimal('1.0')
+
+    try:
+        event_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        print(f"⚠️ NBP: Invalid date format {date_str}, using 1.0")
+        return Decimal('1.0')
+
+    # Начинаем поиск с T-1
+    target_date = event_date - timedelta(days=1)
+
+    # Пытаемся найти курс, отматывая назад до 10 дней
+    # (обычно достаточно 3-4 дней для длинных выходных)
+    for _ in range(10):
+        t_year = target_date.year
+        t_month = target_date.month
+        t_str = target_date.strftime("%Y-%m-%d")
+
+        # 1. Проверяем, загружен ли этот месяц
+        if (currency, t_year, t_month) not in _MONTHLY_CACHE:
+            fetch_month_rates(currency, t_year, t_month)
+
+        # 2. Ищем дату в кэше
+        month_data = _MONTHLY_CACHE.get((currency, t_year, t_month), {})
+        
+        if t_str in month_data:
+            return month_data[t_str]
+
+        # Если не нашли, идем на день назад (и на следующей итерации проверим кэш)
+        target_date -= timedelta(days=1)
+
+    print(f"❌ NBP FATAL: Could not find rate for {currency} around {date_str}. Using 1.0 fallback.")
+    return Decimal('1.0')
+
+def get_rate_for_tax_date(currency, trade_date):
+    """Алиас для совместимости"""
+    return get_nbp_rate(currency, trade_date)
+```
+
+# --- FILE: src/parser.py ---
+```python
+# src/parser.py
+
+import csv
+import re
+import glob
+import argparse
+import os
+from datetime import datetime
+from decimal import Decimal
+from typing import List, Dict, Optional
+from src.db_connector import DBConnector
+
+# --- КОНФИГУРАЦИЯ ---
+# Оставляем пустым, чтобы парсить всё. Дедупликация уберет лишнее.
+FILE_DATE_LIMITS = {} 
+MANUAL_FIXES_FILE = "manual_fixes.csv"
+
+def parse_decimal(value: str) -> Decimal:
+    if not value: return Decimal(0)
+    clean = value.replace(',', '').replace('"', '').strip()
+    try: return Decimal(clean)
+    except: return Decimal(0)
+
+def normalize_date(date_str: str) -> Optional[str]:
+    if not date_str: return None
+    clean = date_str.split(',')[0].strip().split(' ')[0]
+    formats = ["%Y-%m-%d", "%Y%m%d", "%m/%d/%Y", "%d/%m/%Y", "%d-%b-%y"]
+    for fmt in formats:
+        try: return datetime.strptime(clean, fmt).strftime("%Y-%m-%d")
+        except ValueError: continue
+    return None
+
+def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
+    # 1. Списание (Qty < 0) -> Всегда верим колонке Symbol (списываем старую акцию)
+    if quantity < 0:
+        if symbol_col and symbol_col.strip():
+            return symbol_col.strip()
+        match_start = re.search(r'^([A-Za-z0-9\.]+)\(', description)
+        if match_start:
+            return match_start.group(1)
+            
+    # 2. Зачисление (Qty > 0) -> Ищем новый тикер в описании (для спин-оффов и слияний)
+    if quantity > 0:
+        embedded_match = re.search(r'\(([A-Za-z0-9\.]+),\s+[^,]+,\s+[A-Za-z0-9]{9,}\)', description)
+        if embedded_match:
+            return embedded_match.group(1)
+
+    # Fallback
+    if symbol_col and symbol_col.strip(): 
+        return symbol_col.strip()
+        
+    match_start = re.search(r'^([A-Za-z0-9\.]+)\(', description)
+    return match_start.group(1) if match_start else "UNKNOWN"
+
+def classify_trade_type(description: str, quantity: Decimal) -> str:
+    desc_upper = description.upper()
+    transfer_keywords = ["ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM", "RECEIVE DELIVER", "CASH IN LIEU"]
+    if any(k in desc_upper for k in transfer_keywords): return "TRANSFER"
+    if quantity > 0: return "BUY"
+    if quantity < 0: return "SELL"
+    return "UNKNOWN"
+
+def classify_corp_action(description: str, quantity: Decimal) -> str:
+    if quantity > 0: return "STOCK_DIV" 
+    if quantity < 0: return "MERGER" 
+    return "CORP_ACTION_INFO"
+
+def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[int]:
+    for name in possible_names:
+        if name in headers: return headers[name]
+    return None
+
+def load_manual_fixes(filepath: str) -> List[Dict]:
+    fixes = []
+    if not os.path.exists(filepath):
+        return fixes
+
+    print(f"🔧 Loading manual fixes from {filepath}...")
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if not row['Date'] or not row['Ticker']: continue
+                
+                fixes.append({
+                    'ticker': row['Ticker'].strip(),
+                    'currency': row['Currency'].strip() if row['Currency'] else 'USD',
+                    'date': row['Date'].strip(),
+                    'qty': parse_decimal(row['Quantity']),
+                    'price': parse_decimal(row['Price']),
+                    'commission': Decimal(0),
+                    'type': row['Type'].strip(),
+                    'source': 'MANUAL_FIX',
+                    'source_file': 'manual_fixes.csv' 
+                })
+    except Exception as e:
+        print(f"❌ Error loading manual fixes: {e}")
+    
+    return fixes
+
+def parse_csv(filepath: str) -> Dict[str, List]:
+    data = {'trades': [], 'dividends': [], 'taxes': [], 'corp_actions': []}
+    section_headers = {}
+    filename = os.path.basename(filepath)
+    print(f"📂 Parsing file: {filename}")
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) < 2: continue
+                section, row_type = row[0], row[1]
+                
+                if row_type == 'Header':
+                    section_headers[section] = {n.strip(): i for i, n in enumerate(row)}
+                    continue
+                
+                if row_type != 'Data' or section not in section_headers: continue
+                headers = section_headers[section]
+
+                def check_date_and_parse(row, idx_date_col):
+                    d_str = normalize_date(row[idx_date_col])
+                    if not d_str: return None
+                    # Мы убрали проверку даты, чтобы не терять сделки из "старых" файлов
+                    return d_str
+
+                # --- TRADES ---
+                if section == 'Trades':
+                    col_asset = get_col_idx(headers, ['Asset Category', 'Asset Class'])
+                    if col_asset and row[col_asset] not in ['Stocks', 'Equity']: continue
+                    
+                    idx_date = get_col_idx(headers, ['Date/Time', 'Date', 'TradeDate'])
+                    idx_cur = get_col_idx(headers, ['Currency'])
+                    idx_sym = get_col_idx(headers, ['Symbol', 'Ticker'])
+                    idx_qty = get_col_idx(headers, ['Quantity'])
+                    idx_price = get_col_idx(headers, ['T. Price', 'TradePrice', 'Price'])
+                    idx_comm = get_col_idx(headers, ['Comm/Fee', 'IBCommission', 'Commission'])
+                    idx_desc = get_col_idx(headers, ['Description'])
+
+                    if any(x is None for x in [idx_date, idx_qty, idx_price]): continue
+                    if idx_desc and "Total" in row[idx_desc]: continue
+
+                    date_norm = check_date_and_parse(row, idx_date)
+                    if not date_norm: continue
+
+                    qty = parse_decimal(row[idx_qty])
+                    if qty == 0: continue
+                    
+                    sym_raw = row[idx_sym] if idx_sym else ""
+                    desc_raw = row[idx_desc] if idx_desc else ""
+                    ticker = extract_ticker(desc_raw, sym_raw, qty)
+
+                    data['trades'].append({
+                        'ticker': ticker,
+                        'currency': row[idx_cur],
+                        'date': date_norm,
+                        'qty': qty,
+                        'price': parse_decimal(row[idx_price]),
+                        'commission': parse_decimal(row[idx_comm]) if idx_comm else Decimal(0),
+                        'type': classify_trade_type(desc_raw, qty),
+                        'source': 'IBKR',
+                        'source_file': filename 
+                    })
+
+                # --- CORPORATE ACTIONS ---
+                elif section == 'Corporate Actions':
+                    col_asset = get_col_idx(headers, ['Asset Category'])
+                    if col_asset and row[col_asset] not in ['Stocks', 'Equity']: continue
+
+                    idx_date = get_col_idx(headers, ['Date/Time', 'Report Date'])
+                    idx_desc = get_col_idx(headers, ['Description'])
+                    idx_qty = get_col_idx(headers, ['Quantity'])
+                    idx_sym = get_col_idx(headers, ['Symbol', 'Ticker']) 
+
+                    if any(x is None for x in [idx_date, idx_desc, idx_qty]): continue
+                    if "Total" in row[idx_desc]: continue
+
+                    date_norm = check_date_and_parse(row, idx_date)
+                    if not date_norm: continue
+
+                    qty = parse_decimal(row[idx_qty])
+                    desc = row[idx_desc]
+                    sym_val = row[idx_sym] if idx_sym else ""
+                    
+                    action_type = classify_corp_action(desc, qty)
+
+                    if action_type in ['STOCK_DIV', 'MERGER']:
+                        real_ticker = extract_ticker(desc, sym_val, qty)
+                        data['corp_actions'].append({
+                            'ticker': real_ticker,
+                            'currency': 'USD', 
+                            'date': date_norm,
+                            'qty': qty,
+                            'price': Decimal(0), 
+                            'commission': Decimal(0),
+                            'type': action_type,
+                            'source': 'IBKR_CORP',
+                            'source_file': filename
+                        })
+
+                # --- DIVIDENDS ---
+                elif section == 'Dividends':
+                    idx_date = get_col_idx(headers, ['Date', 'PayDate'])
+                    idx_cur = get_col_idx(headers, ['Currency'])
+                    idx_desc = get_col_idx(headers, ['Description', 'Label'])
+                    idx_amt = get_col_idx(headers, ['Amount', 'Gross Rate', 'Gross Amount'])
+                    
+                    if any(x is None for x in [idx_date, idx_desc, idx_amt]): continue
+                    if "Total" in row[idx_desc]: continue
+
+                    date_norm = check_date_and_parse(row, idx_date)
+                    if not date_norm: continue
+                    
+                    ticker = extract_ticker(row[idx_desc], "", Decimal(0))
+
+                    data['dividends'].append({
+                        'ticker': ticker,
+                        'currency': row[idx_cur],
+                        'date': date_norm,
+                        'amount': parse_decimal(row[idx_amt]),
+                        'source_file': filename
+                    })
+                
+                # --- TAXES ---
+                elif section == 'Withholding Tax':
+                    idx_date = get_col_idx(headers, ['Date'])
+                    idx_cur = get_col_idx(headers, ['Currency'])
+                    idx_desc = get_col_idx(headers, ['Description', 'Label'])
+                    idx_amt = get_col_idx(headers, ['Amount'])
+                    
+                    if any(x is None for x in [idx_date, idx_amt]): continue
+                    if idx_desc and "Total" in row[idx_desc]: continue
+
+                    date_norm = check_date_and_parse(row, idx_date)
+                    if not date_norm: continue
+                    
+                    ticker = extract_ticker(row[idx_desc] if idx_desc else "", "", Decimal(0))
+
+                    data['taxes'].append({
+                        'ticker': ticker,
+                        'currency': row[idx_cur],
+                        'date': date_norm,
+                        'amount': parse_decimal(row[idx_amt]),
+                        'source_file': filename
+                    })
+
+    except Exception as e:
+        print(f"❌ Error parsing {filename}: {e}")
+        
+    return data
+
+def save_to_database(all_data):
+    # Загружаем ручные правки
+    manual_fixes = load_manual_fixes(MANUAL_FIXES_FILE)
+    if manual_fixes:
+        all_data['corp_actions'].extend(manual_fixes)
+
+    seen_registry = {} 
+    unique_records = []
+    duplicates_count = 0
+    
+    # Универсальная обработка списков
+    def process_list(datalist, category):
+        nonlocal duplicates_count
+        for t in datalist:
+            # Используем .get(), чтобы избежать KeyError (у дивидендов нет qty)
+            qty_val = t.get('qty', 0)
+            price_val = t.get('price', 0)
+            amount_val = t.get('amount', 0)
+            
+            # Формируем хеш-сигнатуру
+            qty_sig = f"{qty_val:.6f}"
+            price_sig = f"{price_val:.6f}"
+            amt_sig = f"{amount_val:.6f}"
+            
+            sig = (
+                t['date'], 
+                t['ticker'], 
+                qty_sig, 
+                price_sig, 
+                amt_sig,
+                t.get('type', category)
+            )
+            
+            current_file = t.get('source_file', 'UNKNOWN')
+
+            if sig in seen_registry:
+                # Нашли дубликат - пропускаем
+                duplicates_count += 1
+                continue
+            
+            # Регистрируем новую уникальную запись
+            seen_registry[sig] = current_file
+            
+            # Добавляем в список для БД
+            if category == 'DIVIDEND':
+                unique_records.append((t['date'], 'DIVIDEND', t['ticker'], 0, 0, t['currency'], float(amount_val), 0, 'Dividend'))
+            elif category == 'TAX':
+                unique_records.append((t['date'], 'TAX', t['ticker'], 0, 0, t['currency'], float(amount_val), 0, 'Tax'))
+            else:
+                 unique_records.append((
+                    t['date'], t['type'], t['ticker'], 
+                    float(qty_val), float(price_val), t['currency'], 
+                    float(qty_val * price_val), float(t['commission']), t['source']
+                ))
+
+    # Обрабатываем все списки через единую логику
+    process_list(all_data['trades'], 'TRADE')
+    process_list(all_data['corp_actions'], 'CORP')
+    process_list(all_data['dividends'], 'DIVIDEND')
+    process_list(all_data['taxes'], 'TAX')
+
+    if duplicates_count > 0:
+        print(f"🧹 Deduplication: Skipped {duplicates_count} duplicate records found across overlapping files.")
+
+    if not unique_records:
+        print("WARNING: No valid records to save.")
+        return
+
+    with DBConnector() as db:
+        db.initialize_schema()
+        db.conn.execute("DELETE FROM transactions")
+        db.conn.executemany('INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) VALUES (?,?,?,?,?,?,?,?,?)', unique_records)
+        db.conn.commit()
+    print(f"✅ Imported {len(unique_records)} unique records.")
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--files', required=True)
+    args = parser.parse_args()
+    
+    combined = {'trades': [], 'dividends': [], 'taxes': [], 'corp_actions': []}
+    files = sorted(glob.glob(args.files))
+    
+    for fp in files:
+        parsed = parse_csv(fp)
+        for k in combined: combined[k].extend(parsed[k])
+        
+    save_to_database(combined)
+```
+
+# --- FILE: src/processing.py ---
+```python
+# src/processing.py
+
+from typing import List, Dict, Any, Tuple
+from decimal import Decimal
+from collections import defaultdict
+import logging
+
+# Project imports
+from src.nbp import get_nbp_rate
+from src.fifo import TradeMatcher 
+
+def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+    """
+    Main Processing Pipeline:
+    1. Fetches raw data from DB.
+    2. Maps Withholding Taxes to Dividends.
+    3. Feeds all events (Trades, Corp Actions, Dividends) into the FIFO engine.
+    4. Returns calculated Realized Gains, Dividends, and Inventory.
+    """
+    
+    matcher = TradeMatcher()
+    
+    dividends = []
+    fifo_input_list = []
+    
+    print(f"INFO: Processing {len(raw_trades)} trades via FIFO engine...")
+
+    # --- 1. Pre-process Taxes ---
+    # IBKR stores Withholding Tax as separate rows.
+    # We aggregate them into a map: (Date, Ticker) -> Total Tax Amount
+    tax_map = defaultdict(Decimal)
+    
+    for t in raw_trades:
+        if t['EventType'] == 'TAX':
+            # Tax amount in DB is usually negative. We store the absolute magnitude.
+            amt = Decimal(str(t['Amount'])) if t['Amount'] else Decimal(0)
+            key = (t['Date'], t['Ticker'])
+            tax_map[key] += abs(amt)
+
+    # Sort trades chronologically to ensure correct processing order
+    sorted_trades = sorted(raw_trades, key=lambda x: (x['Date'], x['TradeId']))
+
+    for trade in sorted_trades:
+        # Extract fields
+        date_str = trade['Date']
+        ticker = trade['Ticker']
+        event_type = trade['EventType'] # BUY, SELL, SPLIT, DIVIDEND, STOCK_DIV, MERGER, etc.
+        currency = trade['Currency']
+        
+        # Convert to Decimal for precision
+        quantity = Decimal(str(trade['Quantity'])) if trade['Quantity'] else Decimal(0)
+        price = Decimal(str(trade['Price'])) if trade['Price'] else Decimal(0)
+        amount_currency = Decimal(str(trade['Amount'])) if trade['Amount'] else Decimal(0)
+        fee = Decimal(str(trade['Fee'])) if trade['Fee'] else Decimal(0)
+        
+        description = trade.get('Description', '')
+
+        # --- 2. Get Exchange Rate (NBP) ---
+        rate = Decimal("1.0")
+        if currency != 'PLN':
+            try:
+                rate = get_nbp_rate(currency, date_str)
+            except Exception as e:
+                print(f"WARNING: Could not fetch NBP rate for {currency} on {date_str}. Using 1.0. Error: {e}")
+                rate = Decimal("1.0")
+
+        # --- 3. Event Routing ---
+        
+        if event_type == 'DIVIDEND':
+            # --- Handle Cash Dividends ---
+            gross_pln = amount_currency * rate
+            
+            # Find matching tax
+            tax_in_original_currency = tax_map.get((date_str, ticker), Decimal(0))
+            tax_pln = tax_in_original_currency * rate
+            
+            div_record = {
+                'ex_date': date_str,
+                'ticker': ticker,
+                'gross_amount_pln': float(gross_pln),
+                'tax_withheld_pln': float(tax_pln),
+                'currency': currency,
+                'rate': float(rate)
+            }
+            # Only include dividends from the target year in the report
+            if date_str.startswith(str(target_year)):
+                dividends.append(div_record)
+        
+        elif event_type == 'TAX':
+            # Already handled in Pre-process step
+            pass
+            
+        else:
+            # --- Handle FIFO Events (Trades & Corp Actions) ---
+            # BUY, SELL, SPLIT, TRANSFER, STOCK_DIV, MERGER, SPINOFF
+            matcher_type = event_type
+            
+            trade_record = {
+                'type': matcher_type,
+                'date': date_str,
+                'ticker': ticker,
+                'qty': quantity,
+                'price': price,
+                'commission': fee,
+                'currency': currency,
+                'rate': rate,
+                'source': 'DB'
+            }
+            
+            if matcher_type == 'SPLIT':
+                trade_record['ratio'] = Decimal("1") 
+
+            fifo_input_list.append(trade_record)
+
+    # --- 4. Execute FIFO Engine ---
+    matcher.process_trades(fifo_input_list)
+
+    # --- 5. Extract Final Results ---
+    all_realized = matcher.get_realized_gains()
+    
+    # Filter P&L for the requested tax year
+    target_realized = [
+        r for r in all_realized 
+        if r['sale_date'].startswith(str(target_year))
+    ]
+    
+    inventory = matcher.get_current_inventory()
+    
+    return target_realized, dividends, inventory
+```
+
+# --- FILE: src/report_pdf.py ---
+```python
+# src/report_pdf.py
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.units import mm
+import itertools
+
+APP_NAME = "IBKR Tax Assistant"
+APP_VERSION = "v1.2.0"
+
+def get_zebra_style(row_count, header_color=colors.HexColor('#D0D0D0')):
+    cmds = [
+        ('BACKGROUND', (0,0), (-1,0), header_color),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('ALIGN', (0,0), (-1,0), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8), # Slightly smaller font to fit extra column
+        ('ALIGN', (0,1), (0,-1), 'CENTER'), # Center the Numbering column
+    ]
+    for i in range(1, row_count):
+        if i % 2 == 0:
+            cmds.append(('BACKGROUND', (0,i), (-1,i), colors.HexColor('#F0F0F0')))
+    return TableStyle(cmds)
+
+def add_footer(canvas, doc):
+    canvas.saveState()
+    canvas.setFont('Helvetica', 8)
+    canvas.setFillColor(colors.grey)
+    footer_text = f"Generated by {APP_NAME} {APP_VERSION}"
+    canvas.drawString(10 * mm, 10 * mm, footer_text)
+    page_num = f"Page {doc.page}"
+    canvas.drawRightString(A4[0] - 10 * mm, 10 * mm, page_num)
+    canvas.setStrokeColor(colors.lightgrey)
+    canvas.line(10 * mm, 14 * mm, A4[0] - 10 * mm, 14 * mm)
+    canvas.restoreState()
+
+def generate_pdf(json_data, filename="report.pdf"):
+    doc = SimpleDocTemplate(filename, pagesize=A4, bottomMargin=20*mm, topMargin=20*mm,
+                            leftMargin=10*mm, rightMargin=10*mm) # Slightly wider margins for tables
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    year = json_data['year']
+    data = json_data['data']
+
+    title_style = ParagraphStyle('ReportTitle', parent=styles['Title'], fontSize=24, spaceAfter=20, alignment=TA_CENTER)
+    subtitle_style = ParagraphStyle('ReportSubtitle', parent=styles['Normal'], fontSize=12, alignment=TA_CENTER)
+    h2_style = ParagraphStyle('H2Centered', parent=styles['Heading2'], alignment=TA_CENTER, spaceAfter=12, spaceBefore=18)
+    h3_style = ParagraphStyle('H3Centered', parent=styles['Heading3'], alignment=TA_CENTER, spaceAfter=8, spaceBefore=4)
+    normal_style = styles['Normal']
+    italic_small = ParagraphStyle('ItalicSmall', parent=styles['Italic'], fontSize=8, alignment=TA_LEFT)
+    
+    # PAGE 1
+    elements.append(Spacer(1, 50))
+    elements.append(Paragraph(f"Tax report — {year}", title_style))
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(f"Report period: 01-01-{year} - 31-12-{year}", subtitle_style))
+    elements.append(PageBreak())
+
+    # PAGE 2: PORTFOLIO (WITH FIFO CHECK)
+    elements.append(Paragraph(f"Portfolio Composition (as of Dec 31, {year})", h2_style))
+    if data['holdings']:
+        # Header with Numbering column
+        holdings_data = [["#", "Ticker", "Quantity", "FIFO Check"]]
+        restricted_indices = []
+        has_restricted = False
+        
+        row_idx = 1
+        for h in data['holdings']:
+            display_ticker = h['ticker']
+            if h.get('is_restricted', False):
+                display_ticker += " *"
+                has_restricted = True
+                restricted_indices.append(row_idx)
+            
+            check_mark = "OK" if h.get('fifo_match', False) else "MISMATCH!"
+            
+            holdings_data.append([
+                str(row_idx), 
+                display_ticker, 
+                f"{h['qty']:.4f}", 
+                check_mark
+            ])
+            row_idx += 1
+            
+        # Adjusted widths for 4 columns
+        t_holdings = Table(holdings_data, colWidths=[30, 180, 100, 100], repeatRows=1)
+        ts = get_zebra_style(len(holdings_data))
+        
+        # --- STYLING ---
+        # Note: Indices shifted by +1 because of the new "#" column at index 0
+        ts.add('ALIGN', (2,1), (2,-1), 'RIGHT')  # Qty -> Right (Index 2)
+        ts.add('ALIGN', (3,1), (3,-1), 'CENTER') # FIFO Check -> Center (Index 3)
+        
+        # Color coding for Mismatches
+        for i, row in enumerate(holdings_data[1:], start=1):
+            if row[3] != "OK": # Index 3 is Check
+                ts.add('TEXTCOLOR', (3, i), (3, i), colors.red)
+        
+        # Red Highlight for Restricted
+        for r_idx in restricted_indices:
+            ts.add('BACKGROUND', (0, r_idx), (-1, r_idx), colors.HexColor('#FFCCCC'))
+            
+        t_holdings.setStyle(ts)
+        elements.append(t_holdings)
+        
+        if has_restricted:
+            elements.append(Spacer(1, 10))
+            elements.append(Paragraph("* Assets held in special escrow accounts / sanctioned (RUB)", italic_small))
+    else:
+        elements.append(Paragraph("No open positions found at end of year.", normal_style))
+    elements.append(PageBreak())
+
+    # PAGE 3: TRADES HISTORY
+    elements.append(Paragraph(f"Trades History ({year})", h2_style))
+    if data['trades_history']:
+        # Header with Numbering
+        trades_header = [["#", "Date", "Ticker", "Type", "Qty", "Price", "Comm", "Curr"]]
+        trades_rows = []
+        
+        for i, t in enumerate(data['trades_history'], 1):
+            t_type = t.get('type', 'UNKNOWN')
+            row = [
+                str(i),
+                t['date'],
+                t['ticker'],
+                t_type,
+                f"{abs(t['qty']):.4f}",
+                f"{t['price']:.2f}",
+                f"{t['commission']:.2f}",
+                t['currency']
+            ]
+            trades_rows.append(row)
+            
+        full_table_data = trades_header + trades_rows
+        # Adjusted widths
+        col_widths = [25, 60, 50, 50, 50, 50, 50, 40]
+        t_trades = Table(full_table_data, colWidths=col_widths, repeatRows=1)
+        ts_trades = get_zebra_style(len(full_table_data))
+        ts_trades.add('ALIGN', (4,1), (-1,-1), 'RIGHT') # Qty right align
+        t_trades.setStyle(ts_trades)
+        elements.append(t_trades)
+    else:
+        elements.append(Paragraph("No trades executed this year.", normal_style))
+    
+    # PAGE: CORPORATE ACTIONS
+    if data['corp_actions']:
+        elements.append(PageBreak())
+        elements.append(Paragraph(f"Corporate Actions & Splits ({year})", h2_style))
+        corp_header = [["#", "Date", "Ticker", "Type", "Details"]]
+        corp_rows = []
+        
+        for i, act in enumerate(data['corp_actions'], 1):
+            details = ""
+            if act['type'] == 'SPLIT':
+                ratio = act.get('ratio', 1)
+                details = f"Split Ratio: {ratio:.4f}"
+            elif act['type'] == 'STOCK_DIV' or (act['type'] == 'BUY' and act.get('source') == 'IBKR_CORP_ACTION'):
+                 details = f"Stock Div: +{act['qty']:.4f}"
+            elif act['type'] == 'MERGER' or (act['type'] == 'SELL' and act.get('source') == 'IBKR_CORP_ACTION'):
+                 details = f"Merger/Liq: {act['qty']:.4f}"
+            elif act['type'] == 'TRANSFER':
+                 details = f"Adjustment: {act['qty']:.4f}"
+            else:
+                 details = "Other Adjustment"
+            
+            corp_rows.append([str(i), act['date'], act['ticker'], act['type'], details])
+            
+        full_corp_data = corp_header + corp_rows
+        t_corp = Table(full_corp_data, colWidths=[25, 75, 60, 70, 200], repeatRows=1)
+        t_corp.setStyle(get_zebra_style(len(full_corp_data)))
+        elements.append(t_corp)
+
+    elements.append(PageBreak())
+
+    # PAGE 4: MONTHLY DIVIDENDS SUMMARY
+    elements.append(Paragraph(f"Monthly Dividends Summary ({year})", h2_style))
+    month_names = { "01": "January", "02": "February", "03": "March", "04": "April", "05": "May", "06": "June", "07": "July", "08": "August", "09": "September", "10": "October", "11": "November", "12": "December" }
+    
+    if data['monthly_dividends']:
+        # Note: Summary tables usually don't need row numbers, but added for consistency if requested.
+        m_data = [["#", "Month", "Gross (PLN)", "Tax Paid (PLN)", "Net (PLN)"]]
+        sorted_months = sorted(data['monthly_dividends'].keys())
+        total_gross, total_tax = 0, 0
+        
+        for i, m in enumerate(sorted_months, 1):
+            vals = data['monthly_dividends'][m]
+            m_data.append([
+                str(i),
+                month_names.get(m, m),
+                f"{vals['gross_pln']:,.2f}",
+                f"{vals['tax_pln']:,.2f}",
+                f"{vals['net_pln']:,.2f}"
+            ])
+            total_gross += vals['gross_pln']
+            total_tax += vals['tax_pln']
+            
+        m_data.append(["", "TOTAL", f"{total_gross:,.2f}", f"{total_tax:,.2f}", f"{total_gross - total_tax:,.2f}"])
+        
+        t_months = Table(m_data, colWidths=[25, 90, 100, 100, 100], repeatRows=1)
+        ts = get_zebra_style(len(m_data))
+        ts.add('FONT-WEIGHT', (1,-1), (-1,-1), 'BOLD') # Bold Total Row
+        ts.add('BACKGROUND', (0,-1), (-1,-1), colors.lightgrey)
+        ts.add('ALIGN', (2,1), (-1,-1), 'RIGHT') # Numbers right align
+        t_months.setStyle(ts)
+        elements.append(t_months)
+        
+        # --- DETAILED DIVIDENDS ---
+        elements.append(PageBreak()) 
+        elements.append(Paragraph(f"Dividend Details (Chronological)", h2_style))
+        elements.append(Paragraph("Detailed breakdown of every dividend payment received.", normal_style))
+        elements.append(Spacer(1, 10))
+        
+        sorted_divs = sorted(data['dividends'], key=lambda x: x['date'])
+        
+        is_first_month = True
+        global_div_idx = 1
+        
+        for month_key, group in itertools.groupby(sorted_divs, key=lambda x: x['date'][:7]):
+            if not is_first_month:
+                elements.append(PageBreak())
+            is_first_month = False
+            
+            y, m = month_key.split('-')
+            m_name = month_names.get(m, m)
+            elements.append(Paragraph(f"{m_name} {y}", h2_style))
+            
+            det_header = [["#", "Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]]
+            det_rows = []
+            
+            for d in group:
+                det_rows.append([
+                    str(global_div_idx),
+                    d['date'],
+                    d['ticker'],
+                    f"{d['amount']:.2f} {d['currency']}",
+                    f"{d['rate']:.4f}",
+                    f"{d['amount_pln']:.2f}",
+                    f"{d['tax_paid_pln']:.2f}"
+                ])
+                global_div_idx += 1
+                
+            full_det_data = det_header + det_rows
+            t_det = Table(full_det_data, colWidths=[25, 60, 45, 80, 45, 65, 65], repeatRows=1)
+            ts_det = get_zebra_style(len(full_det_data))
+            ts_det.add('ALIGN', (3,1), (-1,-1), 'RIGHT')
+            t_det.setStyle(ts_det)
+            elements.append(t_det)
+        
+    else:
+        elements.append(Paragraph("No dividends received this year.", normal_style))
+    
+    elements.append(PageBreak())
+
+    # PAGE: YEARLY SUMMARY
+    elements.append(Paragraph(f"Yearly Summary", h2_style))
+    div_gross = sum(x['amount_pln'] for x in data['dividends'])
+    div_tax = sum(x['tax_paid_pln'] for x in data['dividends'])
+    polish_tax_due = max(0, (div_gross * 0.19) - div_tax)
+    final_net = div_gross - div_tax - polish_tax_due
+    
+    summary_data = [
+        ["Metric", "Amount (PLN)"],
+        ["Total Dividends", f"{div_gross:,.2f}"],
+        ["Withheld Tax (sum)", f"-{div_tax:,.2f}"],
+        ["Additional Tax (PL, ~diff)", f"{polish_tax_due:,.2f}"],
+        ["Final Net (after full 19%)", f"{final_net:,.2f}"]
+    ]
+    t_summary = Table(summary_data, colWidths=[250, 150])
+    ts_sum = get_zebra_style(len(summary_data))
+    ts_sum.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
+    t_summary.setStyle(ts_sum)
+    elements.append(t_summary)
+    
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph("Diagnostics", h2_style))
+    diag = data['diagnostics']
+    diag_data = [
+        ["Indicator", "Value"],
+        ["Tickers (unique)", str(diag['tickers_count'])],
+        ["Dividend rows", str(diag['div_rows_count'])],
+        ["Tax rows", str(diag['tax_rows_count'])]
+    ]
+    t_diag = Table(diag_data, colWidths=[250, 150])
+    ts_diag = get_zebra_style(len(diag_data))
+    ts_diag.add('ALIGN', (1,1), (-1,-1), 'CENTER')
+    t_diag.setStyle(ts_diag)
+    elements.append(t_diag)
+    
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph("Per-currency totals (PLN)", h2_style))
+    curr_data = [["Currency", "PLN total"]]
+    for curr, val in data['per_currency'].items():
+        curr_data.append([curr, f"{val:,.2f}"])
+    t_curr = Table(curr_data, colWidths=[250, 150], repeatRows=1)
+    ts_curr = get_zebra_style(len(curr_data))
+    ts_curr.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
+    t_curr.setStyle(ts_curr)
+    elements.append(t_curr)
+    elements.append(PageBreak())
+
+    # PAGE: PIT-38
+    elements.append(Paragraph(f"PIT-38 Helper Data ({year})", h2_style))
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph("Section C (Stocks/Derivatives)", h3_style))
+    cap_rev = sum(x['revenue_pln'] for x in data['capital_gains'])
+    cap_cost = sum(x['cost_pln'] for x in data['capital_gains'])
+    pit_c_data = [
+        ["Field in PIT-38", "Value (PLN)"],
+        ["Przychód (Revenue) [Pos 20]", f"{cap_rev:,.2f}"],
+        ["Koszty (Costs) [Pos 21]", f"{cap_cost:,.2f}"],
+        ["Dochód/Strata", f"{cap_rev - cap_cost:,.2f}"]
+    ]
+    t_pit_c = Table(pit_c_data, colWidths=[250, 150])
+    ts_pit = get_zebra_style(len(pit_c_data))
+    ts_pit.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
+    t_pit_c.setStyle(ts_pit)
+    elements.append(t_pit_c)
+    elements.append(Spacer(1, 5))
+    elements.append(Paragraph("<i>* Note: 'Koszty' includes purchase price + buy/sell commissions.</i>", styles['Italic']))
+    elements.append(Spacer(1, 20))
+
+    elements.append(Paragraph("Dividends (Foreign Tax)", h3_style))
+    pit_div_data = [
+        ["Description", "Value (PLN)"],
+        ["Gross Income", f"{div_gross:,.2f}"],
+        ["Tax Paid Abroad (Max deductible)", f"{div_tax:,.2f}"],
+        ["TO PAY (Difference) [Pos 45]", f"{polish_tax_due:,.2f}"] 
+    ]
+    t_pit_div = Table(pit_div_data, colWidths=[250, 150])
+    ts_pit_div = get_zebra_style(len(pit_div_data))
+    ts_pit_div.add('ALIGN', (1,1), (-1,-1), 'RIGHT')
+    ts_pit_div.add('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold') 
+    t_pit_div.setStyle(ts_pit_div)
+    elements.append(t_pit_div)
+
+    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
+```
+
 # --- FILE: src/utils.py ---
 ```python
 # src/utils.py
@@ -1368,6 +1495,60 @@ def money(value) -> Decimal:
     return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 ```
 
-# --- FILE: src/__init__.py ---
+# --- FILE: tools/change_key.py ---
 ```python
+import sys
+import os
+
+# Add root directory to path to import src modules
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from src.db_connector import DBConnector
+
+def main():
+    print("--- DATABASE PASSWORD ROTATION (SQLCipher) ---")
+    
+    # 1. Get current password (from .env or input)
+    old_key = os.getenv("SQLCIPHER_KEY")
+    if not old_key:
+        old_key = input("Enter CURRENT password: ").strip()
+    else:
+        print("Current password found in SQLCIPHER_KEY env variable.")
+
+    # 2. Connect with old password
+    connector = DBConnector()
+    
+    try:
+        connector.connect()
+        # Verify connection integrity
+        connector.conn.execute("SELECT count(*) FROM sqlite_master;")
+    except Exception:
+        print("ERROR: Could not open database with the current password.")
+        return
+
+    # 3. Request new password
+    new_key = input("Enter NEW password: ").strip()
+    if not new_key:
+        print("Cancelled: Empty password.")
+        connector.close()
+        return
+        
+    confirm = input("Confirm NEW password: ").strip()
+    if new_key != confirm:
+        print("ERROR: Passwords do not match.")
+        connector.close()
+        return
+
+    # 4. Execute Rekey
+    success = connector.change_password(new_key)
+    connector.close()
+
+    if success:
+        print("\n!!! IMPORTANT !!!")
+        print(f"Please manually update your .env file now:")
+        print(f"SQLCIPHER_KEY={new_key}")
+        print("The old password will no longer work.")
+
+if __name__ == "__main__":
+    main()
 ```

@@ -4,9 +4,11 @@ data/*
 !data/.gitkeep
 snapshot_*.json
 db/*
+*.csv
 
 # Ignore manual history override (contains personal trades)
 manual_history.csv
+manual_fixes.csv
 
 # --- Output Reports ---
 # Ignore generated PDFs and JSONs
