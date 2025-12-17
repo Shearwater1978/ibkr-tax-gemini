@@ -746,13 +746,13 @@ def normalize_date(date_str: str) -> Optional[str]:
 
 def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
     """
-    Extracts ticker symbol. Handles cases with spaces like 'MGA (ISIN)'.
+    Extracts ticker symbol. Handles cases with spaces like 'MGA (ISIN)'
+    and simple cases like 'TSLA Cash Div'.
     """
     # 1. Deduction (Qty < 0) -> Always trust Symbol column (selling/removing old stock)
     if quantity < 0:
         if symbol_col and symbol_col.strip():
             return symbol_col.strip()
-        # FIXED: Added \s* to allow spaces before parenthesis (e.g., "MGA (CA...)")
         match_start = re.search(r'^([A-Za-z0-9\.]+)\s*\(', description)
         if match_start:
             return match_start.group(1).strip()
@@ -764,13 +764,25 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
         if embedded_match:
             return embedded_match.group(1).strip()
 
-    # Fallback logic
+    # 3. Fallback logic
     if symbol_col and symbol_col.strip(): 
         return symbol_col.strip()
         
-    # FIXED: Added \s* here as well
+    # Priority: Regex looking for Ticker(ISIN) or Ticker (ISIN)
     match_start = re.search(r'^([A-Za-z0-9\.]+)\s*\(', description)
-    return match_start.group(1).strip() if match_start else "UNKNOWN"
+    if match_start:
+        return match_start.group(1).strip()
+    
+    # 4. LAST RESORT: First word
+    # This fixes cases like "TSLA Cash Div" where there are no parentheses.
+    parts = description.split()
+    if parts:
+        candidate = parts[0]
+        # Basic validation: Uppercase and reasonable length
+        if candidate.isupper() and len(candidate) < 12:
+            return candidate
+
+    return "UNKNOWN"
 
 def classify_trade_type(description: str, quantity: Decimal) -> str:
     desc_upper = description.upper()
@@ -841,7 +853,6 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                 def check_date_and_parse(row, idx_date_col):
                     d_str = normalize_date(row[idx_date_col])
                     if not d_str: return None
-                    # We removed date validation to avoid losing trades from 'old' files
                     return d_str
 
                 # --- TRADES ---
