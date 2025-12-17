@@ -37,3 +37,6 @@ env/
 .DS_Store
 Thumbs.db
 .env
+
+# --- Node Modules ---
+**/node_modules

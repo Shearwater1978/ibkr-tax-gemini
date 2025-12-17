@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IBKR Tax Architect</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+        .metric { font-size: 24px; font-weight: bold; color: #2c3e50; }
+        .label { color: #7f8c8d; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <h1>🇵🇱 Tax Architect v2.1</h1>
+    
+    <div class="card">
+        <h3>Actions</h3>
+        <button class="btn" onclick="runImport()">📥 Import Data</button>
+        <button class="btn" onclick="calculate(2025)">🧮 Calculate 2025</button>
+        <p id="status">Ready.</p>
+    </div>
+
+    <div class="card" id="results" style="display:none">
+        <h3>Results 2025</h3>
+        <div style="display: flex; gap: 20px;">
+            <div>
+                <div class="label">Realized P&L</div>
+                <div class="metric" id="pl">0.00 PLN</div>
+            </div>
+            <div>
+                <div class="label">Dividends (Gross)</div>
+                <div class="metric" id="divs">0.00 PLN</div>
+            </div>
+             <div>
+                <div class="label">Open Lots</div>
+                <div class="metric" id="inv">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+
+        async function runImport() {
+            document.getElementById('status').innerText = "Importing...";
+            try {
+                const res = await fetch(`${API_URL}/import`, { method: 'POST' });
+                const data = await res.json();
+                document.getElementById('status').innerText = `Imported ${data.count} files!`;
+            } catch (e) {
+                document.getElementById('status').innerText = "Error: Backend offline?";
+            }
+        }
+
+        async function calculate(year) {
+            document.getElementById('status').innerText = "Calculating...";
+            try {
+                const res = await fetch(`${API_URL}/calculate/${year}`);
+                const data = await res.json();
+                
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                document.getElementById('pl').innerText = data.summary.pln_profit.toFixed(2) + " PLN";
+                document.getElementById('divs').innerText = data.summary.pln_dividend_gross.toFixed(2) + " PLN";
+                document.getElementById('inv').innerText = data.summary.open_positions_count;
+                
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('status').innerText = "Calculation done.";
+            } catch (e) {
+                console.error(e);
+                document.getElementById('status').innerText = "Calculation failed.";
+            }
+        }
+    </script>
+</body>
+</html>
