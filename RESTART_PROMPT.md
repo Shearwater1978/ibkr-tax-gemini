@@ -418,6 +418,8 @@ data/*
 snapshot_*.json
 db/*
 *.csv
+*.db
+*.db.*
 
 # Ignore manual history override (contains personal trades)
 manual_history.csv
