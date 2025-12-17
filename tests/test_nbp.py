@@ -6,12 +6,12 @@ from src.nbp import get_nbp_rate, _MONTHLY_CACHE
 
 @pytest.fixture(autouse=True)
 def clear_cache():
-    # Очищаем кэш перед каждым тестом
+    # Clear cache before every test to ensure isolation
     _MONTHLY_CACHE.clear()
 
 @patch('src.nbp.requests.get')
 def test_fetch_month_rates_success(mock_get):
-    # Симулируем ответ API за Январь 2025
+    # Simulate API response for January 2025
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
@@ -22,21 +22,21 @@ def test_fetch_month_rates_success(mock_get):
     }
     mock_get.return_value = mock_response
 
-    # Запрашиваем курс на 3 января (должен взять T-1 = 2 января)
+    # Request rate for Jan 3rd (T-1 rule implies finding rate for Jan 2nd)
     rate = get_nbp_rate("USD", "2025-01-03")
     
-    assert rate == Decimal("4.10") # Курс за 2-е число
-    assert mock_get.call_count == 1 # Был ровно 1 запрос в сеть
+    assert rate == Decimal("4.10") # Rate for Jan 2nd
+    assert mock_get.call_count == 1 # Exactly one API call made
     
-    # Запрашиваем курс на 4 января (T-1 = 3 января). 
-    # Запроса в сеть быть НЕ должно, данные уже в кэше.
+    # Request rate for Jan 4th (T-1 = Jan 3rd).
+    # Should NOT trigger a new API call because data is cached.
     rate2 = get_nbp_rate("USD", "2025-01-04")
     assert rate2 == Decimal("4.15")
-    assert mock_get.call_count == 1 # Счетчик запросов не изменился!
+    assert mock_get.call_count == 1 # Call count remains 1
 
 @patch('src.nbp.requests.get')
 def test_weekend_lookback(mock_get):
-    # Тест на выходные: Пн 6.01, берем курс за Пт 3.01 (T-1=5(вс), T-2=4(сб), T-3=3(пт))
+    # Weekend Test: Mon 6.01 -> should take Fri 3.01 (T-1=Sun, T-2=Sat, T-3=Fri)
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {

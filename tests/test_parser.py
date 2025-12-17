@@ -1,33 +1,56 @@
+# tests/test_parser.py
+
 import pytest
 from decimal import Decimal
 from src.parser import normalize_date, extract_ticker, parse_decimal, classify_trade_type
 
-def test_normalize_date():
-    assert normalize_date("20250102") == "2025-01-02"
-    assert normalize_date("01/02/2025") == "2025-01-02"
-    assert normalize_date("2025-01-02, 15:00:00") == "2025-01-02"
-    assert normalize_date("") is None
-    assert normalize_date(None) is None
+# --- DATE TESTS ---
+@pytest.mark.parametrize("input_date, expected", [
+    ("20250102", "2025-01-02"),
+    ("01/02/2025", "2025-01-02"),
+    ("2025-01-02, 15:00:00", "2025-01-02"),
+    ("", None),
+    (None, None),
+])
+def test_normalize_date(input_date, expected):
+    assert normalize_date(input_date) == expected
 
-def test_extract_ticker():
-    # Case 1: Standard case with ISIN in parens
-    # Regex requires: Ticker followed by '('
-    assert extract_ticker("AGR(US05351W1036) Cash Dividend", "", Decimal(0)) == "AGR"
+# --- TICKER EXTRACTION TESTS ---
+@pytest.mark.parametrize("desc, symbol_col, qty, expected", [
+    # 1. Standard case: Ticker immediately followed by ISIN
+    ("AGR(US05351W1036) Cash Dividend", "", 0, "AGR"),
     
-    # Case 2: Fallback logic check
-    # Original test used "TEST Cash Div", but strict regex r'^([A-Za-z0-9\.]+)\(' fails on that.
-    # Updating test to match the strict parser logic:
-    assert extract_ticker("TEST(US123456) Cash Div", "", Decimal(0)) == "TEST"
+    # 2. THE FIX: Ticker separated by space from ISIN (e.g. MGA)
+    ("MGA (CA5592224011) Cash Dividend", "", 0, "MGA"),
     
-    # Case 3: Symbol column priority (should override regex)
-    assert extract_ticker("Unknown Desc", "AAPL", Decimal(0)) == "AAPL" 
+    # 3. Fallback: Symbol column has priority if valid
+    ("Unknown Description", "AAPL", 0, "AAPL"),
+    
+    # 4. Fallback: Simple description, first word is uppercase
+    ("TSLA Cash Div", "", 0, "TSLA"),
+])
+def test_extract_ticker(desc, symbol_col, qty, expected):
+    result = extract_ticker(desc, symbol_col, Decimal(qty))
+    assert result == expected
 
-def test_parse_decimal():
-    assert parse_decimal("1,000.50") == Decimal("1000.50")
-    assert parse_decimal("-500") == Decimal("-500")
-    assert parse_decimal("") == Decimal("0")
+# --- DECIMAL PARSING TESTS ---
+@pytest.mark.parametrize("input_str, expected", [
+    ("1,000.50", Decimal("1000.50")),
+    ("\"1,234.56\"", Decimal("1234.56")), # Quotes handling
+    ("-500", Decimal("-500")),
+    ("", Decimal("0")),
+    (None, Decimal("0")),
+])
+def test_parse_decimal(input_str, expected):
+    assert parse_decimal(input_str) == expected
 
-def test_classify_trade():
-    assert classify_trade_type("ACATS Transfer", Decimal(10)) == "TRANSFER"
-    assert classify_trade_type("Buy Order", Decimal(10)) == "BUY"
-    assert classify_trade_type("Sell", Decimal(-5)) == "SELL"
+# --- TRADE CLASSIFICATION TESTS ---
+@pytest.mark.parametrize("desc, qty, expected", [
+    ("ACATS Transfer", 10, "TRANSFER"),
+    ("Internal Transfer", 10, "TRANSFER"),
+    ("Buy Order", 10, "BUY"),
+    ("Sell Order", -5, "SELL"),
+    ("Random Text", 0, "UNKNOWN"),
+])
+def test_classify_trade_type(desc, qty, expected):
+    assert classify_trade_type(desc, Decimal(qty)) == expected

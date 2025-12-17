@@ -50,6 +50,8 @@
 
 # --- FILE: tests/test_calculation_logic.py ---
 ```python
+# tests/test_calculation_logic.py
+
 import pytest
 from decimal import Decimal
 from unittest.mock import patch
@@ -84,6 +86,8 @@ def test_process_yearly_data_fifo_logic(mock_get_rate, mock_raw_trades):
 
 # --- FILE: tests/test_db_connector.py ---
 ```python
+# tests/test_db_connector.py
+
 import pytest
 import sqlite3
 import os
@@ -141,23 +145,26 @@ def test_fifo_sorting_priority():
     """Ensure trades are processed in correct order: SPLIT -> BUY -> SELL within same day."""
     matcher = TradeMatcher()
     
-    # Unsorted input: Sell comes before Buy in list, but same date
+    # Unsorted input: Sell comes before Buy in the list, but they share the same date.
+    # The logic must reorder them to avoid 'Short Sale' errors or negative inventory.
     trades = [
-        # FIX: SELL quantity must be negative
-        {'type': 'SELL', 'date': '2024-01-01', 'ticker': 'A', 'qty': Decimal(-10), 'price': 10, 'commission': 0, 'currency': 'USD', 'rate': 1},
-        {'type': 'BUY', 'date': '2024-01-01', 'ticker': 'A', 'qty': Decimal(10), 'price': 5, 'commission': 0, 'currency': 'USD', 'rate': 1},
+        # NOTE: Sell quantity must be negative
+        {'type': 'SELL', 'date': '2024-01-01', 'ticker': 'A', 'qty': Decimal("-10"), 'price': 10, 'commission': 0, 'currency': 'USD', 'rate': 1},
+        {'type': 'BUY', 'date': '2024-01-01', 'ticker': 'A', 'qty': Decimal("10"), 'price': 5, 'commission': 0, 'currency': 'USD', 'rate': 1},
     ]
     
     matcher.process_trades(trades)
     results = matcher.get_realized_gains()
     
     assert len(results) == 1
-    # Cost 50 (10*5), Rev 100 (10*10) -> Profit 50
+    # Logic: Cost 50 (10*5), Revenue 100 (10*10) -> Profit 50
     assert results[0]['profit_loss'] == 50.0
 ```
 
 # --- FILE: tests/test_fifo.py ---
 ```python
+# tests/test_fifo.py
+
 import pytest
 from decimal import Decimal
 from src.fifo import TradeMatcher
@@ -223,12 +230,12 @@ from src.nbp import get_nbp_rate, _MONTHLY_CACHE
 
 @pytest.fixture(autouse=True)
 def clear_cache():
-    # Очищаем кэш перед каждым тестом
+    # Clear cache before every test to ensure isolation
     _MONTHLY_CACHE.clear()
 
 @patch('src.nbp.requests.get')
 def test_fetch_month_rates_success(mock_get):
-    # Симулируем ответ API за Январь 2025
+    # Simulate API response for January 2025
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
@@ -239,21 +246,21 @@ def test_fetch_month_rates_success(mock_get):
     }
     mock_get.return_value = mock_response
 
-    # Запрашиваем курс на 3 января (должен взять T-1 = 2 января)
+    # Request rate for Jan 3rd (T-1 rule implies finding rate for Jan 2nd)
     rate = get_nbp_rate("USD", "2025-01-03")
     
-    assert rate == Decimal("4.10") # Курс за 2-е число
-    assert mock_get.call_count == 1 # Был ровно 1 запрос в сеть
+    assert rate == Decimal("4.10") # Rate for Jan 2nd
+    assert mock_get.call_count == 1 # Exactly one API call made
     
-    # Запрашиваем курс на 4 января (T-1 = 3 января). 
-    # Запроса в сеть быть НЕ должно, данные уже в кэше.
+    # Request rate for Jan 4th (T-1 = Jan 3rd).
+    # Should NOT trigger a new API call because data is cached.
     rate2 = get_nbp_rate("USD", "2025-01-04")
     assert rate2 == Decimal("4.15")
-    assert mock_get.call_count == 1 # Счетчик запросов не изменился!
+    assert mock_get.call_count == 1 # Call count remains 1
 
 @patch('src.nbp.requests.get')
 def test_weekend_lookback(mock_get):
-    # Тест на выходные: Пн 6.01, берем курс за Пт 3.01 (T-1=5(вс), T-2=4(сб), T-3=3(пт))
+    # Weekend Test: Mon 6.01 -> should take Fri 3.01 (T-1=Sun, T-2=Sat, T-3=Fri)
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
@@ -272,39 +279,62 @@ def test_pln_is_always_one():
 
 # --- FILE: tests/test_parser.py ---
 ```python
+# tests/test_parser.py
+
 import pytest
 from decimal import Decimal
 from src.parser import normalize_date, extract_ticker, parse_decimal, classify_trade_type
 
-def test_normalize_date():
-    assert normalize_date("20250102") == "2025-01-02"
-    assert normalize_date("01/02/2025") == "2025-01-02"
-    assert normalize_date("2025-01-02, 15:00:00") == "2025-01-02"
-    assert normalize_date("") is None
-    assert normalize_date(None) is None
+# --- DATE TESTS ---
+@pytest.mark.parametrize("input_date, expected", [
+    ("20250102", "2025-01-02"),
+    ("01/02/2025", "2025-01-02"),
+    ("2025-01-02, 15:00:00", "2025-01-02"),
+    ("", None),
+    (None, None),
+])
+def test_normalize_date(input_date, expected):
+    assert normalize_date(input_date) == expected
 
-def test_extract_ticker():
-    # Case 1: Standard case with ISIN in parens
-    # Regex requires: Ticker followed by '('
-    assert extract_ticker("AGR(US05351W1036) Cash Dividend", "", Decimal(0)) == "AGR"
+# --- TICKER EXTRACTION TESTS ---
+@pytest.mark.parametrize("desc, symbol_col, qty, expected", [
+    # 1. Standard case: Ticker immediately followed by ISIN
+    ("AGR(US05351W1036) Cash Dividend", "", 0, "AGR"),
     
-    # Case 2: Fallback logic check
-    # Original test used "TEST Cash Div", but strict regex r'^([A-Za-z0-9\.]+)\(' fails on that.
-    # Updating test to match the strict parser logic:
-    assert extract_ticker("TEST(US123456) Cash Div", "", Decimal(0)) == "TEST"
+    # 2. THE FIX: Ticker separated by space from ISIN (e.g. MGA)
+    ("MGA (CA5592224011) Cash Dividend", "", 0, "MGA"),
     
-    # Case 3: Symbol column priority (should override regex)
-    assert extract_ticker("Unknown Desc", "AAPL", Decimal(0)) == "AAPL" 
+    # 3. Fallback: Symbol column has priority if valid
+    ("Unknown Description", "AAPL", 0, "AAPL"),
+    
+    # 4. Fallback: Simple description, first word is uppercase
+    ("TSLA Cash Div", "", 0, "TSLA"),
+])
+def test_extract_ticker(desc, symbol_col, qty, expected):
+    result = extract_ticker(desc, symbol_col, Decimal(qty))
+    assert result == expected
 
-def test_parse_decimal():
-    assert parse_decimal("1,000.50") == Decimal("1000.50")
-    assert parse_decimal("-500") == Decimal("-500")
-    assert parse_decimal("") == Decimal("0")
+# --- DECIMAL PARSING TESTS ---
+@pytest.mark.parametrize("input_str, expected", [
+    ("1,000.50", Decimal("1000.50")),
+    ("\"1,234.56\"", Decimal("1234.56")), # Quotes handling
+    ("-500", Decimal("-500")),
+    ("", Decimal("0")),
+    (None, Decimal("0")),
+])
+def test_parse_decimal(input_str, expected):
+    assert parse_decimal(input_str) == expected
 
-def test_classify_trade():
-    assert classify_trade_type("ACATS Transfer", Decimal(10)) == "TRANSFER"
-    assert classify_trade_type("Buy Order", Decimal(10)) == "BUY"
-    assert classify_trade_type("Sell", Decimal(-5)) == "SELL"
+# --- TRADE CLASSIFICATION TESTS ---
+@pytest.mark.parametrize("desc, qty, expected", [
+    ("ACATS Transfer", 10, "TRANSFER"),
+    ("Internal Transfer", 10, "TRANSFER"),
+    ("Buy Order", 10, "BUY"),
+    ("Sell Order", -5, "SELL"),
+    ("Random Text", 0, "UNKNOWN"),
+])
+def test_classify_trade_type(desc, qty, expected):
+    assert classify_trade_type(desc, Decimal(qty)) == expected
 ```
 
 # --- FILE: tests/test_processing.py ---
@@ -316,23 +346,24 @@ from src.processing import process_yearly_data
 
 @pytest.fixture
 def mock_trades_db():
+    # Mock data structure mimicking SQLite rows (PascalCase keys)
     return [
-        # Дивиденд
+        # Dividend
         {'TradeId': 1, 'Date': '2025-01-02', 'EventType': 'DIVIDEND', 'Ticker': 'AAPL', 'Quantity': 0, 'Price': 0, 'Amount': 10.0, 'Fee': 0, 'Currency': 'USD'},
-        # Налог к нему
+        # Associated Tax
         {'TradeId': 2, 'Date': '2025-01-02', 'EventType': 'TAX', 'Ticker': 'AAPL', 'Quantity': 0, 'Price': 0, 'Amount': -1.5, 'Fee': 0, 'Currency': 'USD'},
-        # Сделка (покупка)
+        # Trade (Buy)
         {'TradeId': 3, 'Date': '2025-01-05', 'EventType': 'BUY', 'Ticker': 'AAPL', 'Quantity': 1, 'Price': 100, 'Amount': -100, 'Fee': -1, 'Currency': 'USD'}
     ]
 
 @patch('src.processing.get_nbp_rate')
 def test_processing_flow(mock_rate, mock_trades_db):
-    # Фиксируем курс, чтобы математика была предсказуемой
+    # Fix NBP rate to ensure predictable math
     mock_rate.return_value = Decimal('4.0')
     
     realized, dividends, inventory = process_yearly_data(mock_trades_db, 2025)
     
-    # Проверка дивидендов
+    # 1. Check Dividends
     assert len(dividends) == 1
     div = dividends[0]
     # Gross: 10 * 4.0 = 40.0
@@ -340,13 +371,15 @@ def test_processing_flow(mock_rate, mock_trades_db):
     # Tax: 1.5 * 4.0 = 6.0
     assert div['tax_withheld_pln'] == 6.0
     
-    # Проверка инвентаря
+    # 2. Check Inventory
     assert len(inventory) == 1
     assert inventory[0]['ticker'] == 'AAPL'
 ```
 
 # --- FILE: tests/test_splits.py ---
 ```python
+# tests/test_splits.py
+
 import pytest
 from decimal import Decimal
 from src.fifo import TradeMatcher
@@ -402,6 +435,8 @@ def test_reverse_split_1_to_10(matcher):
 
 # --- FILE: tests/test_utils.py ---
 ```python
+# tests/test_utils
+
 import pytest
 from decimal import Decimal
 from src.utils import money
