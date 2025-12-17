@@ -19,7 +19,7 @@
 
 1.  **Clone:**
     ```bash
-    git clone https://github.com/your-repo/ibkr-tax-gemini.git
+    git clone [https://github.com/your-repo/ibkr-tax-gemini.git](https://github.com/your-repo/ibkr-tax-gemini.git)
     cd ibkr-tax-gemini
     ```
 
@@ -37,11 +37,15 @@
 
 ## 🏃 Usage
 
+The `main.py` script is now the single entry point for all operations.
+
 ```bash
 # 1. Import Data
-python -m src.parser --files "data/*.csv"
+# Automatically scans the 'data/' folder for CSV files and updates the DB.
+python main.py --import-data
 
 # 2. Generate Report
+# Calculates taxes for the specific year using FIFO and NBP rates.
 python main.py --target-year 2024 --export-pdf --export-excel
 ```
 

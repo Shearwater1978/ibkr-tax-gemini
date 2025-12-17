@@ -12,6 +12,7 @@ It features **military-grade security** (SQLCipher encryption) and generates pro
 * **Full Encryption:** SQLCipher integration (AES-256).
 * **Universal Parser:** Added support for **Activity Statements** (CSV).
 * **Smart NBP:** Reduced API load by 95% via Batch Caching.
+* **Unified CLI:** `main.py` now handles both data import and reporting.
 
 ---
 
@@ -34,7 +35,7 @@ The tool:
 project-root
 │
 ├── .env                       # Stores SQLCIPHER_KEY and DB path (Private!)
-├── main.py                    # Entry point for reporting
+├── main.py                    # Entry point for Import and Reporting
 ├── requirements.txt           # Python dependencies
 │
 ├── data/                      # Data storage
@@ -82,14 +83,15 @@ Dividends,Data,USD,2024-03-01,AAPL Cash Div, 0.24, ...
 
 ## 🔄 Workflow
 
-The application works in two distinct steps: **Import** and **Report**.
+The application works in two distinct steps: **Import** and **Report**. Both are handled by `main.py`.
 
 ### Step 1: Import Data
-Parse raw CSV files into the secure database. You can run this multiple times; the system handles duplicates (mostly).
+Parse raw CSV files into the secure database. You can run this multiple times; the system handles duplicates.
+The script automatically looks for `.csv` files in the `data/` directory.
 
 ```bash
 # Import all CSVs from the data folder
-python -m src.parser --files "data/*.csv"
+python main.py --import-data
 ```
 
 ### Step 2: Generate Report
