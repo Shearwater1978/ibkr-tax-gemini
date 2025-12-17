@@ -6,6 +6,7 @@ import sys
 # Попытка импорта dotenv для чтения .env файла
 try:
     from dotenv import load_dotenv
+
     load_dotenv()  # Загружаем переменные из .env
 except ImportError:
     # Если библиотеки нет, скрипт продолжит работу, но переменные окружения должны быть заданы иначе
@@ -16,6 +17,7 @@ except ImportError:
 # Если переменные не заданы в .env, используются значения по умолчанию (или None).
 DB_PATH = os.getenv("DATABASE_PATH", "db/ibkr_history.db.enc")
 DB_KEY = os.getenv("SQLCIPHER_KEY")
+
 
 class DBConnector:
     def __init__(self, db_path=None):
@@ -33,26 +35,28 @@ class DBConnector:
     def connect(self):
         # Создаем папку для БД, если её нет
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        
+
         try:
             self.conn = sqlite3.connect(self.db_path)
-            
+
             # --- ЛОГИКА SQLCIPHER ---
             if DB_KEY:
                 # Если ключ есть в переменных окружения, применяем его.
                 self.conn.execute(f"PRAGMA key = '{DB_KEY}';")
-                
+
                 # Проверка ключа: пробуем выполнить легкую команду.
                 # Если ключ неверный, здесь вылетит исключение.
                 try:
                     self.conn.execute("SELECT count(*) FROM sqlite_master;")
                 except sqlite3.DatabaseError:
-                    print("ОШИБКА: Неверный ключ шифрования или база данных повреждена.")
+                    print(
+                        "ОШИБКА: Неверный ключ шифрования или база данных повреждена."
+                    )
                     sys.exit(1)
-            
+
             # Используем sqlite3.Row, чтобы обращаться к колонкам по имени
             self.conn.row_factory = sqlite3.Row
-            
+
         except Exception as e:
             print(f"FATAL ERROR: Could not connect to database. {e}")
             sys.exit(1)
@@ -139,7 +143,7 @@ class DBConnector:
 
         cursor = self.conn.execute(query, params)
         rows = cursor.fetchall()
-        
+
         # Конвертируем sqlite3.Row в обычные словари
         return [dict(row) for row in rows]
 
@@ -150,9 +154,18 @@ class DBConnector:
             (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        self.conn.execute(query, (
-            data['date'], data['type'], data['ticker'], 
-            data['qty'], data['price'], data['currency'], 
-            data['amount'], data['fee'], data['desc']
-        ))
+        self.conn.execute(
+            query,
+            (
+                data["date"],
+                data["type"],
+                data["ticker"],
+                data["qty"],
+                data["price"],
+                data["currency"],
+                data["amount"],
+                data["fee"],
+                data["desc"],
+            ),
+        )
         self.conn.commit()

@@ -4,13 +4,14 @@ import sys
 import os
 
 # Add root directory to path to import src modules
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from src.db_connector import DBConnector
 
+
 def main():
     print("--- DATABASE PASSWORD ROTATION (SQLCipher) ---")
-    
+
     # 1. Get current password (from .env or input)
     old_key = os.getenv("SQLCIPHER_KEY")
     if not old_key:
@@ -23,7 +24,7 @@ def main():
     # Note: DBConnector automatically tries to load SQLCIPHER_KEY from env
     # If it's not in env, we might need to set it manually or rely on input above,
     # but DBConnector design assumes env usage.
-    
+
     try:
         connector.connect()
         # Verify connection integrity
@@ -38,7 +39,7 @@ def main():
         print("Cancelled: Empty password.")
         connector.close()
         return
-        
+
     confirm = input("Confirm NEW password: ").strip()
     if new_key != confirm:
         print("ERROR: Passwords do not match.")
@@ -54,6 +55,7 @@ def main():
         print(f"Please manually update your .env file now:")
         print(f"SQLCIPHER_KEY={new_key}")
         print("The old password will no longer work.")
+
 
 if __name__ == "__main__":
     main()
