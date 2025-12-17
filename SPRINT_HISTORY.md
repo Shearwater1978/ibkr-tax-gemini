@@ -7,26 +7,27 @@
 
 ## Sprint 2: Architecture & CLI (Completed)
 * Refactoring into `src/` modules.
-* Added `tax_cli.py` (deprecated in v1.1, replaced by `main.py`).
-* Added `tests/`.
+* Unified CLI entry point.
+* Added `tests/` infrastructure.
 
-## Sprint 3: Security & Reporting (Completed - 2025-12-09)
-* **Database Migration:** Switched from H2/SQLite to **SQLCipher** (Encrypted SQLite).
-* **Refactoring:**
-    * Updated `src/db_connector.py` to handle encryption keys from `.env`.
-    * Updated `src/parser.py` to write directly to SQLCipher via transactions.
-    * Created `src/processing.py` as a bridge between DB and Logic.
-    * Updated `src/fifo.py` to support object-based matching and serialization.
-* **Reporting:**
-    * **Excel:** Added multi-sheet export (Sales, Dividends, Inventory).
-    * **PDF:** Restored and enhanced PDF generation.
-        * Added logic to aggregate Inventory by Ticker.
-        * Added highlighting for Restricted Assets (SBER, YNDX, etc.).
-        * Filtered "Trades History" to exclude Dividend/Tax rows.
-* **Fixes:**
-    * **Withholding Tax:** Implemented logic in `processing.py` to map TAX rows to DIVIDEND rows by date/ticker.
-    * **FIFO:** Fixed P&L calculation to include buy/sell commissions in Cost Basis.
+## Sprint 3: Security & Stability (Completed - v2.1.0)
+* **Security:** Implementation of **SQLCipher** (AES-256) for local DB encryption.
+* **Quality Assurance:** Migration to `pytest` framework with parametrized tests.
+* **Robust Parsing:** Fixed regex logic to handle ticker symbols with spaces (e.g., `MGA (ISIN)`).
+* **Architecture:** Unified `main.py` to handle both Import and Reporting (Single Entry Point).
+* **Documentation:** Created Master Restart Prompt for context preservation.
 
-## Upcoming Sprint 4
-* [ ] GUI Implementation (Tkinter/PyQt).
-* [ ] Advanced Corporate Action wizard.
+## Sprint 4: Modern UI (UPCOMING)
+**Goal:** Move from CLI to a user-friendly Desktop Application.
+**Stack:** Electron (Frontend) + FastAPI (Python Backend).
+**Target:** Cross-platform support (Windows 11 / macOS).
+
+* [ ] **Backend API:** Create FastAPI wrapper around `main.py`.
+* [ ] **Frontend Core:** Setup Electron with IPC bridge.
+* [ ] **Dashboard:** Visual summary of Portfolio, P&L, and Dividends.
+* [ ] **Packaging:** Build executables (.exe / .app).
+
+## Future Ideas (Backlog)
+* [ ] Cloud Sync (Optional).
+* [ ] Real-time stock prices integration.
+* [ ] Multi-user support.
