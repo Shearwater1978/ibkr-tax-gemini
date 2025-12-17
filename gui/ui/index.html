@@ -1,78 +1,204 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>IBKR Tax Architect</title>
+    <title>IBKR Tax Architect v2.1</title>
+    <meta charset="UTF-8">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-        .btn:hover { background: #0056b3; }
-        .metric { font-size: 24px; font-weight: bold; color: #2c3e50; }
-        .label { color: #7f8c8d; font-size: 14px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        h3 { margin-top: 0; color: #34495e; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        
+        /* Controls */
+        .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
+        select { padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; }
+        
+        /* Buttons */
+        .btn { padding: 10px 20px; border-radius: 6px; cursor: pointer; border: none; font-weight: 600; transition: background 0.2s; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-outline { background: transparent; border: 1px solid #007bff; color: #007bff; }
+        .btn-outline:hover { background: #e7f1ff; }
+        
+        /* Metrics Grid */
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .metric-box { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+        .metric-val { font-size: 24px; font-weight: bold; color: #2c3e50; }
+        .metric-label { font-size: 13px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* Status Bar */
+        #status { margin-top: 10px; font-size: 14px; color: #666; min-height: 20px; }
+        .status-success { color: green; }
+        .status-error { color: red; }
+        
+        /* Hidden sections */
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <h1>🇵🇱 Tax Architect v2.1</h1>
-    
-    <div class="card">
-        <h3>Actions</h3>
-        <button class="btn" onclick="runImport()">📥 Import Data</button>
-        <button class="btn" onclick="calculate(2025)">🧮 Calculate 2025</button>
-        <p id="status">Ready.</p>
-    </div>
+    <div class="container">
+        <h1>🇵🇱 Tax Architect</h1>
+        <p style="color:#666; margin-bottom: 20px">SQLCipher Secured • FIFO Engine • NBP Rates</p>
+        
+        
+        <div class="card">
+            <h3>📁 Data Management</h3>
+            <div class="controls">
+                <button class="btn btn-outline" onclick="runImport()">📥 Re-Import CSV Data</button>
+                <span id="import-status" style="font-size: 14px; color: #666;">Using existing DB</span>
+            </div>
+        </div>
 
-    <div class="card" id="results" style="display:none">
-        <h3>Results 2025</h3>
-        <div style="display: flex; gap: 20px;">
-            <div>
-                <div class="label">Realized P&L</div>
-                <div class="metric" id="pl">0.00 PLN</div>
+        
+        <div class="card">
+            <h3>🧮 Tax Calculation</h3>
+            <div class="controls">
+                <label>Select Year:</label>
+                <select id="yearSelect">
+                    <option value="" disabled selected>Loading...</option>
+                </select>
+                <button class="btn btn-primary" onclick="calculate()">Calculate Report</button>
             </div>
-            <div>
-                <div class="label">Dividends (Gross)</div>
-                <div class="metric" id="divs">0.00 PLN</div>
+            <div id="status"></div>
+        </div>
+
+        
+        <div class="card hidden" id="resultsCard">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>📊 Results</h3>
+                <div class="controls" style="margin-bottom:0">
+                    <button class="btn btn-success" onclick="exportData('excel')">Excel</button>
+                    <button class="btn btn-success" onclick="exportData('pdf')">PDF</button>
+                </div>
             </div>
-             <div>
-                <div class="label">Open Lots</div>
-                <div class="metric" id="inv">0</div>
+            
+            <br>
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <div class="metric-label">Realized P&L</div>
+                    <div class="metric-val" id="pl">0.00 PLN</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-label">Dividends (Gross)</div>
+                    <div class="metric-val" id="divs">0.00 PLN</div>
+                </div>
+                 <div class="metric-box">
+                    <div class="metric-label">Open Lots</div>
+                    <div class="metric-val" id="inv">0</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         const API_URL = 'http://127.0.0.1:8000';
+        const statusEl = document.getElementById('status');
+        const importStatusEl = document.getElementById('import-status');
 
-        async function runImport() {
-            document.getElementById('status').innerText = "Importing...";
+        // On Load: Fetch available years
+        window.onload = async () => {
+            loadYears();
+        };
+
+        async function loadYears() {
             try {
-                const res = await fetch(`${API_URL}/import`, { method: 'POST' });
+                const res = await fetch(`${API_URL}/years`);
                 const data = await res.json();
-                document.getElementById('status').innerText = `Imported ${data.count} files!`;
+                const select = document.getElementById('yearSelect');
+                select.innerHTML = '';
+                
+                if(data.years && data.years.length > 0) {
+                    data.years.forEach(y => {
+                        const opt = document.createElement('option');
+                        opt.value = y;
+                        opt.innerText = y;
+                        select.appendChild(opt);
+                    });
+                    // Select the first one (most recent usually)
+                    select.value = data.years[0];
+                } else {
+                    const opt = document.createElement('option');
+                    opt.innerText = "No Data found";
+                    select.appendChild(opt);
+                }
             } catch (e) {
-                document.getElementById('status').innerText = "Error: Backend offline?";
+                console.error(e);
+                statusEl.innerText = "Error connecting to Backend.";
+                statusEl.className = "status-error";
             }
         }
 
-        async function calculate(year) {
-            document.getElementById('status').innerText = "Calculating...";
+        async function runImport() {
+            importStatusEl.innerText = "Parsing CSVs... please wait.";
+            try {
+                const res = await fetch(`${API_URL}/import`, { method: 'POST' });
+                const data = await res.json();
+                importStatusEl.innerText = data.message + ` (${data.count} files)`;
+                loadYears(); // Reload years as new data might have appeared
+            } catch (e) {
+                importStatusEl.innerText = "Import Failed.";
+            }
+        }
+
+        async function calculate() {
+            const year = document.getElementById('yearSelect').value;
+            if(!year || year === "No Data found") {
+                alert("Please select a valid year.");
+                return;
+            }
+
+            statusEl.innerText = "Calculating FIFO & NBP Rates...";
+            statusEl.className = "";
+            document.getElementById('resultsCard').classList.add('hidden');
+
             try {
                 const res = await fetch(`${API_URL}/calculate/${year}`);
                 const data = await res.json();
                 
                 if (data.error) {
-                    alert(data.error);
+                    statusEl.innerText = data.error;
+                    statusEl.className = "status-error";
                     return;
                 }
 
+                // Update UI
                 document.getElementById('pl').innerText = data.summary.pln_profit.toFixed(2) + " PLN";
                 document.getElementById('divs').innerText = data.summary.pln_dividend_gross.toFixed(2) + " PLN";
                 document.getElementById('inv').innerText = data.summary.open_positions_count;
                 
-                document.getElementById('results').style.display = 'block';
-                document.getElementById('status').innerText = "Calculation done.";
+                document.getElementById('resultsCard').classList.remove('hidden');
+                statusEl.innerText = `Calculation for ${year} complete.`;
+                statusEl.className = "status-success";
             } catch (e) {
                 console.error(e);
-                document.getElementById('status').innerText = "Calculation failed.";
+                statusEl.innerText = "Calculation failed.";
+                statusEl.className = "status-error";
+            }
+        }
+        
+        async function exportData(type) {
+            const year = document.getElementById('yearSelect').value;
+            statusEl.innerText = `Generating ${type.toUpperCase()}...`;
+            
+            try {
+                const res = await fetch(`${API_URL}/export`, { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ year: parseInt(year), type: type })
+                });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    statusEl.innerText = `Saved: ${data.file}`;
+                    alert(`Success! File saved to:\n${data.file}`);
+                } else {
+                    statusEl.innerText = `Export error: ${data.detail}`;
+                }
+            } catch(e) {
+                statusEl.innerText = "Export request failed.";
             }
         }
     </script>
