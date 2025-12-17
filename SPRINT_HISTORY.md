@@ -22,7 +22,14 @@
 **Stack:** Electron (Frontend) + FastAPI (Python Backend).
 **Target:** Cross-platform support (Windows 11 / macOS).
 
-* [ ] **Backend API:** Create FastAPI wrapper around `main.py`.
+### Key Requirements (Updated):
+1.  **Single Source of Truth:** The UI must read/write to the EXISTING encrypted database (`ibkr_history.db.enc`).
+2.  **Dynamic Filtering:** Users can select a Tax Year based on actual data availability in the DB.
+3.  **Export Capability:** Buttons to generate PDF and Excel reports (saved to `output/`).
+4.  **Re-Import Workflow:** Trigger the CSV parsing routine from the UI, updating the existing DB seamlessly.
+
+### Implementation Tasks:
+* [ ] **Backend API:** Create FastAPI endpoints for `/years`, `/calculate`, `/export`, and `/import`.
 * [ ] **Frontend Core:** Setup Electron with IPC bridge.
 * [ ] **Dashboard:** Visual summary of Portfolio, P&L, and Dividends.
 * [ ] **Packaging:** Build executables (.exe / .app).
