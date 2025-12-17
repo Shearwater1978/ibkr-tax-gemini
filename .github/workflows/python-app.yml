@@ -1,48 +1,48 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
 name: Python application
 
 on:
-  push:
-    branches: [ "main", "master" ]
+  # Trigger only on Pull Requests (avoids duplicate runs on merge to main)
   pull_request:
     branches: [ "main", "master" ]
+  # Allow manual trigger via GitHub UI
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
     
     - name: Set up Python 3.12
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5  # Updated to v5 (recommended)
       with:
         python-version: "3.12"
+        cache: 'pip' # Bonus: Enable dependency caching for speed
         
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Install linters/formatters if not present in requirements.txt
+        pip install flake8 black pytest
 
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
-        # E9,F63,F7,F82 = critical syntax errors
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        # We check src/ and tests/ folders
+        # exit-zero treats all errors as warnings
         flake8 src tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Format code with black
+    - name: Check formatting with black
       run: |
-        black .
+        # IMPORTANT: Added --check flag.
+        # Without it, this step would just format files in the runner and exit silently.
+        # With --check, it fails the build if code is not formatted correctly.
+        black --check .
 
     - name: Test with pytest
       run: |

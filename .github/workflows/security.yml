@@ -1,10 +1,11 @@
 name: Security Scan
 
 on:
-  push:
-    branches: [ "main", "master" ]
+  # Trigger only on Pull Requests
   pull_request:
     branches: [ "main", "master" ]
+  # Allow manual trigger via GitHub UI
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,7 +18,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python 3.12
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5 # Updated to v5
       with:
         python-version: "3.12"
         
@@ -25,13 +26,11 @@ jobs:
       run: pip install bandit
       
     - name: Run Bandit Scan
-      # -r src/: recursive scan of source code only
-      # -ll: log level (report only severity Medium and High)
-      # -ii: confidence level (High confidence only)
       run: |
+        # Generate JSON report (won't break build due to --exit-zero, per configuration)
         bandit -r src/ -f json -o bandit-report.json --exit-zero
         
-        # Display report in console for quick check
+        # Console output for logs (remove --exit-zero to fail build on High severities)
         bandit -r src/ -ll
 
     - name: Upload Security Report
