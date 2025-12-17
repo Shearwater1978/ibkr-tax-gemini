@@ -9,7 +9,7 @@ db/*
 # Ignore manual history override (contains personal trades)
 manual_history.csv
 manual_fixes.csv
-ibkr_history.db.enc
+*.db.enc
 
 # --- Output Reports ---
 # Ignore generated PDFs and JSONs
