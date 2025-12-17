@@ -722,18 +722,20 @@ from decimal import Decimal
 from typing import List, Dict, Optional
 from src.db_connector import DBConnector
 
-# --- КОНФИГУРАЦИЯ ---
-# Оставляем пустым, чтобы парсить всё. Дедупликация уберет лишнее.
+# --- CONFIGURATION ---
+# Leave empty to parse everything. Deduplication will handle overlaps.
 FILE_DATE_LIMITS = {} 
 MANUAL_FIXES_FILE = "manual_fixes.csv"
 
 def parse_decimal(value: str) -> Decimal:
+    """Removes commas and quotes, parses number."""
     if not value: return Decimal(0)
     clean = value.replace(',', '').replace('"', '').strip()
     try: return Decimal(clean)
     except: return Decimal(0)
 
 def normalize_date(date_str: str) -> Optional[str]:
+    """Converts date to YYYY-MM-DD format."""
     if not date_str: return None
     clean = date_str.split(',')[0].strip().split(' ')[0]
     formats = ["%Y-%m-%d", "%Y%m%d", "%m/%d/%Y", "%d/%m/%Y", "%d-%b-%y"]
@@ -743,26 +745,32 @@ def normalize_date(date_str: str) -> Optional[str]:
     return None
 
 def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
-    # 1. Списание (Qty < 0) -> Всегда верим колонке Symbol (списываем старую акцию)
+    """
+    Extracts ticker symbol. Handles cases with spaces like 'MGA (ISIN)'.
+    """
+    # 1. Deduction (Qty < 0) -> Always trust Symbol column (selling/removing old stock)
     if quantity < 0:
         if symbol_col and symbol_col.strip():
             return symbol_col.strip()
-        match_start = re.search(r'^([A-Za-z0-9\.]+)\(', description)
+        # FIXED: Added \s* to allow spaces before parenthesis (e.g., "MGA (CA...)")
+        match_start = re.search(r'^([A-Za-z0-9\.]+)\s*\(', description)
         if match_start:
-            return match_start.group(1)
+            return match_start.group(1).strip()
             
-    # 2. Зачисление (Qty > 0) -> Ищем новый тикер в описании (для спин-оффов и слияний)
+    # 2. Addition (Qty > 0) -> Look for new ticker in description (for Spinoffs/Mergers)
     if quantity > 0:
+        # Regex for patterns like "(NEWTICKER, ISIN, ...)" inside description
         embedded_match = re.search(r'\(([A-Za-z0-9\.]+),\s+[^,]+,\s+[A-Za-z0-9]{9,}\)', description)
         if embedded_match:
-            return embedded_match.group(1)
+            return embedded_match.group(1).strip()
 
-    # Fallback
+    # Fallback logic
     if symbol_col and symbol_col.strip(): 
         return symbol_col.strip()
         
-    match_start = re.search(r'^([A-Za-z0-9\.]+)\(', description)
-    return match_start.group(1) if match_start else "UNKNOWN"
+    # FIXED: Added \s* here as well
+    match_start = re.search(r'^([A-Za-z0-9\.]+)\s*\(', description)
+    return match_start.group(1).strip() if match_start else "UNKNOWN"
 
 def classify_trade_type(description: str, quantity: Decimal) -> str:
     desc_upper = description.upper()
@@ -833,7 +841,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                 def check_date_and_parse(row, idx_date_col):
                     d_str = normalize_date(row[idx_date_col])
                     if not d_str: return None
-                    # Мы убрали проверку даты, чтобы не терять сделки из "старых" файлов
+                    # We removed date validation to avoid losing trades from 'old' files
                     return d_str
 
                 # --- TRADES ---
@@ -923,6 +931,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     date_norm = check_date_and_parse(row, idx_date)
                     if not date_norm: continue
                     
+                    # FIX: Pass empty string as symbol to force regex extraction from description
                     ticker = extract_ticker(row[idx_desc], "", Decimal(0))
 
                     data['dividends'].append({
@@ -962,7 +971,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
     return data
 
 def save_to_database(all_data):
-    # Загружаем ручные правки
+    # Load manual fixes
     manual_fixes = load_manual_fixes(MANUAL_FIXES_FILE)
     if manual_fixes:
         all_data['corp_actions'].extend(manual_fixes)
@@ -971,16 +980,16 @@ def save_to_database(all_data):
     unique_records = []
     duplicates_count = 0
     
-    # Универсальная обработка списков
+    # Universal list processing
     def process_list(datalist, category):
         nonlocal duplicates_count
         for t in datalist:
-            # Используем .get(), чтобы избежать KeyError (у дивидендов нет qty)
+            # Use .get() to avoid KeyError (dividends have no qty)
             qty_val = t.get('qty', 0)
             price_val = t.get('price', 0)
             amount_val = t.get('amount', 0)
             
-            # Формируем хеш-сигнатуру
+            # Create hash signature
             qty_sig = f"{qty_val:.6f}"
             price_sig = f"{price_val:.6f}"
             amt_sig = f"{amount_val:.6f}"
@@ -997,14 +1006,14 @@ def save_to_database(all_data):
             current_file = t.get('source_file', 'UNKNOWN')
 
             if sig in seen_registry:
-                # Нашли дубликат - пропускаем
+                # Duplicate found - skipping
                 duplicates_count += 1
                 continue
             
-            # Регистрируем новую уникальную запись
+            # Register new unique record
             seen_registry[sig] = current_file
             
-            # Добавляем в список для БД
+            # Add to DB list
             if category == 'DIVIDEND':
                 unique_records.append((t['date'], 'DIVIDEND', t['ticker'], 0, 0, t['currency'], float(amount_val), 0, 'Dividend'))
             elif category == 'TAX':
@@ -1016,7 +1025,7 @@ def save_to_database(all_data):
                     float(qty_val * price_val), float(t['commission']), t['source']
                 ))
 
-    # Обрабатываем все списки через единую логику
+    # Process all lists via unified logic
     process_list(all_data['trades'], 'TRADE')
     process_list(all_data['corp_actions'], 'CORP')
     process_list(all_data['dividends'], 'DIVIDEND')
@@ -1048,7 +1057,8 @@ if __name__ == '__main__':
         parsed = parse_csv(fp)
         for k in combined: combined[k].extend(parsed[k])
         
-    save_to_database(combined)```
+    save_to_database(combined)
+```
 
 # --- FILE: src/processing.py ---
 ```python
