@@ -27,6 +27,19 @@
     * **Withholding Tax:** Implemented logic in `processing.py` to map TAX rows to DIVIDEND rows by date/ticker.
     * **FIFO:** Fixed P&L calculation to include buy/sell commissions in Cost Basis.
 
-## Upcoming Sprint 4
-* [ ] GUI Implementation (Tkinter/PyQt).
+## Sprint 4: GUI Implementation & UX (Completed - 2025-12-18)
+* [x] **Architecture:** Implemented Electron + FastAPI (Uvicorn) bridge.
+* [x] **Database Integration:** Direct connection between Python Backend and SQLCipher (`transactions` table).
+* [x] **UI Development:**
+    * Developed interactive HTML/JS dashboard.
+    * Implemented asynchronous data loading (Years fetch, CSV Import).
+    * Added real-time metrics display (P&L, Dividends, Open Lots).
+* [x] **UX Enhancements:**
+    * Added loading spinners and button state management for long-running calculations.
+    * Implemented direct "Open File" system integration for Excel and PDF reports.
+* [x] **Stability:** Fixed Windows-specific encoding issues (UTF-8/Charmap) and socket port management.
+
+## Upcoming Sprint 5
 * [ ] Advanced Corporate Action wizard.
+* [ ] Multi-account support (filtering by IBKR Account ID).
+* [ ] Automatic NBP rate caching in a separate DB table.

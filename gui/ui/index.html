@@ -10,6 +10,40 @@
         h1 { color: #2c3e50; margin-bottom: 5px; }
         h3 { margin-top: 0; color: #34495e; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         
+        /* Spinner Styles */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: #007bff;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            background: #e7f1ff;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        /* Отключенная кнопка */
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         /* Controls */
         .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
         select { padding: 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; }
@@ -62,6 +96,10 @@
                 </select>
                 <button class="btn btn-primary" onclick="calculate()">Calculate Report</button>
             </div>
+            <div id="loader" class="loading-box hidden">
+                <div class="spinner"></div>
+                <span id="loader-text">Calculating FIFO & NBP Rates...</span>
+            </div>
             <div id="status"></div>
         </div>
 
@@ -70,8 +108,8 @@
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3>📊 Results</h3>
                 <div class="controls" style="margin-bottom:0">
-                    <button class="btn btn-success" onclick="exportData('excel')">Excel</button>
-                    <button class="btn btn-success" onclick="exportData('pdf')">PDF</button>
+                    <button id="btnExcel" class="btn btn-success hidden" onclick="openReport('excel')">📄 Open Excel</button>
+                    <button id="btnPdf" class="btn btn-success hidden" onclick="openReport('pdf')">📕 Open PDF</button>
                 </div>
             </div>
             
@@ -85,7 +123,7 @@
                     <div class="metric-label">Dividends (Gross)</div>
                     <div class="metric-val" id="divs">0.00 PLN</div>
                 </div>
-                 <div class="metric-box">
+                <div class="metric-box">
                     <div class="metric-label">Open Lots</div>
                     <div class="metric-val" id="inv">0</div>
                 </div>
@@ -98,7 +136,6 @@
         const statusEl = document.getElementById('status');
         const importStatusEl = document.getElementById('import-status');
 
-        // On Load: Fetch available years
         window.onload = async () => {
             loadYears();
         };
@@ -117,7 +154,6 @@
                         opt.innerText = y;
                         select.appendChild(opt);
                     });
-                    // Select the first one (most recent usually)
                     select.value = data.years[0];
                 } else {
                     const opt = document.createElement('option');
@@ -125,7 +161,6 @@
                     select.appendChild(opt);
                 }
             } catch (e) {
-                console.error(e);
                 statusEl.innerText = "Error connecting to Backend.";
                 statusEl.className = "status-error";
             }
@@ -136,69 +171,71 @@
             try {
                 const res = await fetch(`${API_URL}/import`, { method: 'POST' });
                 const data = await res.json();
-                importStatusEl.innerText = data.message + ` (${data.count} files)`;
-                loadYears(); // Reload years as new data might have appeared
+                importStatusEl.innerText = data.message + ` (${data.count} records)`;
+                loadYears(); 
             } catch (e) {
                 importStatusEl.innerText = "Import Failed.";
             }
         }
 
         async function calculate() {
-            const year = document.getElementById('yearSelect').value;
-            if(!year || year === "No Data found") {
-                alert("Please select a valid year.");
-                return;
-            }
+            const yearSelect = document.getElementById('yearSelect');
+            const year = yearSelect.value;
+            const calcBtn = document.querySelector('button[onclick="calculate()"]');
+            const loader = document.getElementById('loader');
+            const resultsCard = document.getElementById('resultsCard');
 
-            statusEl.innerText = "Calculating FIFO & NBP Rates...";
+            if(!year || year === "No Data found") return;
+
+            // 1. Подготовка UI
+            statusEl.innerText = "";
             statusEl.className = "";
-            document.getElementById('resultsCard').classList.add('hidden');
+            loader.classList.remove('hidden');    // Показываем спиннер
+            calcBtn.disabled = true;              // Блокируем кнопку
+            resultsCard.classList.add('hidden');  // Скрываем старые результаты
 
             try {
                 const res = await fetch(`${API_URL}/calculate/${year}`);
                 const data = await res.json();
                 
-                if (data.error) {
-                    statusEl.innerText = data.error;
+                if (res.status !== 200) {
+                    statusEl.innerText = data.detail || "Calculation Error";
                     statusEl.className = "status-error";
                     return;
                 }
 
-                // Update UI
+                // 2. Заполнение данных
                 document.getElementById('pl').innerText = data.summary.pln_profit.toFixed(2) + " PLN";
                 document.getElementById('divs').innerText = data.summary.pln_dividend_gross.toFixed(2) + " PLN";
                 document.getElementById('inv').innerText = data.summary.open_positions_count;
                 
-                document.getElementById('resultsCard').classList.remove('hidden');
-                statusEl.innerText = `Calculation for ${year} complete.`;
+                // Кнопки отчетов
+                document.getElementById('btnExcel').classList.toggle('hidden', !data.excel_available);
+                document.getElementById('btnPdf').classList.toggle('hidden', !data.pdf_available);
+
+                // 3. Показ результата
+                resultsCard.classList.remove('hidden');
+                statusEl.innerText = `Reports for ${year} are ready!`;
                 statusEl.className = "status-success";
+
             } catch (e) {
-                console.error(e);
-                statusEl.innerText = "Calculation failed.";
+                statusEl.innerText = "Connection lost. Check if Backend is running.";
                 statusEl.className = "status-error";
+            } finally {
+                // 4. Очистка (выполняется всегда)
+                loader.classList.add('hidden'); // Скрываем спиннер
+                calcBtn.disabled = false;       // Разблокируем кнопку
             }
         }
-        
-        async function exportData(type) {
+
+        // Новая функция для открытия файлов
+        async function openReport(type) {
             const year = document.getElementById('yearSelect').value;
-            statusEl.innerText = `Generating ${type.toUpperCase()}...`;
-            
             try {
-                const res = await fetch(`${API_URL}/export`, { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ year: parseInt(year), type: type })
-                });
-                const data = await res.json();
-                
-                if(data.status === 'success') {
-                    statusEl.innerText = `Saved: ${data.file}`;
-                    alert(`Success! File saved to:\n${data.file}`);
-                } else {
-                    statusEl.innerText = `Export error: ${data.detail}`;
-                }
-            } catch(e) {
-                statusEl.innerText = "Export request failed.";
+                // Вызываем бэкенд, чтобы он открыл файл в системе
+                await fetch(`${API_URL}/open/${type}/${year}`);
+            } catch (e) {
+                alert("Could not open file. Make sure it is not already open in another program.");
             }
         }
     </script>
