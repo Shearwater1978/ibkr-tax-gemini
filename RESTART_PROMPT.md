@@ -29,10 +29,24 @@ We have just completed **Sprint 3 (v2.1.0)**.
 * Comments: English-only policy maintained.
 
 ## Upcoming Sprint 4: Desktop UI (Current Goal)
-* [ ] Backend: FastAPI implementation for internal API.
-* [ ] Frontend: Electron Desktop shell integration.
-* [ ] UX: Dashboard with P&L metrics and tax summaries.
-* [ ] Environment Sync: Ensuring shared data paths between UI and CLI.
+* [ ] **Architecture:** Implemented Electron + FastAPI (Uvicorn) bridge.
+* [ ] **Database Integration:** Direct connection between Python Backend and SQLCipher (`transactions` table).
+* [ ] **UI Development:**
+    * Developed an interactive HTML/JS dashboard.
+    * Implemented asynchronous data loading (Years fetch, CSV Import).
+    * Added real-time metrics display (P&L, Dividends, Open Lots).
+* [ ] **UX Enhancements:**
+    * Added loading spinners and button state management for long-running calculations.
+    * Implemented direct "Open File" system integration for Excel and PDF reports.
+* [ ] **Stability:** Fixed Windows-specific encoding issues (UTF-8/Charmap) and socket port management.
+* [ ] **Environment Sync:** Ensuring shared data paths between UI and CLI.
+* [ ] **Single Source of Truth:** The UI must read/write to the EXISTING encrypted database (`ibkr_history.db.enc`).
+* [ ] **Single Source of Truth:** The UI must read/write to the EXISTING encrypted database (`ibkr_history.db.enc`).
+* [ ] **Implementation Tasks:**
+    * [ ] **Backend API:** Create FastAPI endpoints for `/years`, `/calculate`, `/export`, and `/import`.
+    * [ ] **Frontend Core:** Setup Electron with IPC bridge.
+    * [ ] **Dashboard:** Visual summary of Portfolio, P&L, and Dividends.
+    * [ ] **Packaging:** Build executables (.exe / .app).
 ---
 
 ## ⚠️ RESTORATION INSTRUCTIONS (READ FIRST)
