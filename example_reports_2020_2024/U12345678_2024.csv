@@ -161,175 +161,174 @@ Deposits & Withdrawals,Data,USD,2024-10-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,USD,2024-11-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,USD,2024-12-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,Total,,,6000.00
-Deposits & Withdrawals,Data,Total in USD,,,6000.00
-Dividends,Header,Currency,Date,Symbol,Description,Amount,Code
-Dividends,Data,USD,2024-02-15,ABBV,Cash Dividend USD 1.55 per Share,12.40,
-Dividends,Data,USD,2024-05-15,ABBV,Cash Dividend USD 1.55 per Share,12.40,
-Dividends,Data,USD,2024-08-15,ABBV,Cash Dividend USD 1.55 per Share,17.05,
-Dividends,Data,USD,2024-11-15,ABBV,Cash Dividend USD 1.55 per Share,20.15,
-Dividends,Data,USD,2024-03-01,ADM,Cash Dividend USD 0.50 per Share,6.00,
-Dividends,Data,USD,2024-06-07,ADM,Cash Dividend USD 0.50 per Share,6.00,
-Dividends,Data,USD,2024-09-06,ADM,Cash Dividend USD 0.50 per Share,6.00,
-Dividends,Data,USD,2024-12-07,ADM,Cash Dividend USD 0.50 per Share,6.00,
-Dividends,Data,USD,2024-03-01,AFL,Cash Dividend USD 0.50 per Share,9.50,
-Dividends,Data,USD,2024-06-01,AFL,Cash Dividend USD 0.50 per Share,9.50,
-Dividends,Data,USD,2024-09-01,AFL,Cash Dividend USD 0.50 per Share,13.00,
-Dividends,Data,USD,2024-12-01,AFL,Cash Dividend USD 0.50 per Share,15.50,
-Dividends,Data,USD,2024-03-29,BAC,Cash Dividend USD 0.24 per Share,9.60,
-Dividends,Data,USD,2024-06-28,BAC,Cash Dividend USD 0.24 per Share,13.20,
-Dividends,Data,USD,2024-09-27,BAC,Cash Dividend USD 0.26 per Share,14.30,
-Dividends,Data,USD,2024-12-27,BAC,Cash Dividend USD 0.26 per Share,14.30,
-Dividends,Data,USD,2024-04-11,BBY,Cash Dividend USD 0.94 per Share,12.22,
-Dividends,Data,USD,2024-07-09,BBY,Cash Dividend USD 0.94 per Share,12.22,
-Dividends,Data,USD,2024-10-08,BBY,Cash Dividend USD 0.94 per Share,12.22,
-Dividends,Data,USD,2024-01-12,BEN,Cash Dividend USD 0.31 per Share,12.40,
-Dividends,Data,USD,2024-04-12,BEN,Cash Dividend USD 0.31 per Share,12.40,
-Dividends,Data,USD,2024-07-12,BEN,Cash Dividend USD 0.31 per Share,12.40,
-Dividends,Data,USD,2024-10-11,BEN,Cash Dividend USD 0.31 per Share,12.40,
-Dividends,Data,USD,2024-01-26,BKE,Special Cash Dividend USD 2.50 per Share,70.00,
-Dividends,Data,USD,2024-01-26,BKE,Cash Dividend USD 0.35 per Share,9.80,
-Dividends,Data,USD,2024-04-26,BKE,Cash Dividend USD 0.35 per Share,9.80,
-Dividends,Data,USD,2024-01-24,CSCO,Cash Dividend USD 0.39 per Share,7.80,
-Dividends,Data,USD,2024-04-24,CSCO,Cash Dividend USD 0.40 per Share,8.00,
-Dividends,Data,USD,2024-07-24,CSCO,Cash Dividend USD 0.40 per Share,8.00,
-Dividends,Data,USD,2024-10-23,CSCO,Cash Dividend USD 0.40 per Share,12.00,
-Dividends,Data,USD,2024-03-11,CVX,Cash Dividend USD 1.63 per Share,4.89,
-Dividends,Data,USD,2024-06-10,CVX,Cash Dividend USD 1.63 per Share,4.89,
-Dividends,Data,USD,2024-09-10,CVX,Cash Dividend USD 1.63 per Share,4.89,
-Dividends,Data,USD,2024-12-10,CVX,Cash Dividend USD 1.63 per Share,4.89,
-Dividends,Data,USD,2024-03-28,DVN,Cash Dividend USD 0.44 per Share,33.00,
-Dividends,Data,USD,2024-03-15,ED,Cash Dividend USD 0.83 per Share,9.13,
-Dividends,Data,USD,2024-06-15,ED,Cash Dividend USD 0.83 per Share,9.13,
-Dividends,Data,USD,2024-09-15,ED,Cash Dividend USD 0.83 per Share,9.13,
-Dividends,Data,USD,2024-12-15,ED,Cash Dividend USD 0.83 per Share,9.13,
-Dividends,Data,USD,2024-01-31,EIX,Cash Dividend USD 0.78 per Share,7.02,
-Dividends,Data,USD,2024-04-30,EIX,Cash Dividend USD 0.78 per Share,7.02,
-Dividends,Data,USD,2024-07-31,EIX,Cash Dividend USD 0.78 per Share,7.02,
-Dividends,Data,USD,2024-10-31,EIX,Cash Dividend USD 0.78 per Share,7.02,
-Dividends,Data,USD,2024-03-11,EMR,Cash Dividend USD 0.525 per Share,6.30,
-Dividends,Data,USD,2024-06-10,EMR,Cash Dividend USD 0.525 per Share,6.30,
-Dividends,Data,USD,2024-09-10,EMR,Cash Dividend USD 0.525 per Share,6.30,
-Dividends,Data,USD,2024-12-10,EMR,Cash Dividend USD 0.525 per Share,6.30,
-Dividends,Data,USD,2024-03-01,ETR,Cash Dividend USD 1.13 per Share,5.65,
-Dividends,Data,USD,2024-06-01,ETR,Cash Dividend USD 1.13 per Share,5.65,
-Dividends,Data,USD,2024-09-01,ETR,Cash Dividend USD 1.13 per Share,5.65,
-Dividends,Data,USD,2024-12-01,ETR,Cash Dividend USD 1.19 per Share,5.95,
-Dividends,Data,USD,2024-01-16,FITB,Cash Dividend USD 0.35 per Share,8.75,
-Dividends,Data,USD,2024-04-15,FITB,Cash Dividend USD 0.35 per Share,8.75,
-Dividends,Data,USD,2024-07-15,FITB,Cash Dividend USD 0.35 per Share,8.75,
-Dividends,Data,USD,2024-10-15,FITB,Cash Dividend USD 0.37 per Share,9.25,
-Dividends,Data,USD,2024-03-29,FNF,Cash Dividend USD 0.48 per Share,7.20,
-Dividends,Data,USD,2024-06-28,FNF,Cash Dividend USD 0.48 per Share,7.20,
-Dividends,Data,USD,2024-09-30,FNF,Cash Dividend USD 0.48 per Share,7.20,
-Dividends,Data,USD,2024-12-31,FNF,Cash Dividend USD 0.48 per Share,7.20,
-Dividends,Data,USD,2024-03-28,GLW,Cash Dividend USD 0.28 per Share,5.60,
-Dividends,Data,USD,2024-06-27,GLW,Cash Dividend USD 0.28 per Share,5.60,
-Dividends,Data,USD,2024-09-27,GLW,Cash Dividend USD 0.28 per Share,5.60,
-Dividends,Data,USD,2024-12-18,GLW,Cash Dividend USD 0.28 per Share,5.60,
-Dividends,Data,USD,2024-01-02,GPC,Cash Dividend USD 0.95 per Share,3.80,
-Dividends,Data,USD,2024-04-01,GPC,Cash Dividend USD 1.00 per Share,4.00,
-Dividends,Data,USD,2024-07-01,GPC,Cash Dividend USD 1.00 per Share,4.00,
-Dividends,Data,USD,2024-10-01,GPC,Cash Dividend USD 1.00 per Share,4.00,
-Dividends,Data,USD,2024-02-15,HRL,Cash Dividend USD 0.2825 per Share,11.30,
-Dividends,Data,USD,2024-05-15,HRL,Cash Dividend USD 0.2825 per Share,11.30,
-Dividends,Data,USD,2024-08-15,HRL,Cash Dividend USD 0.2825 per Share,11.30,
-Dividends,Data,USD,2024-03-05,JNJ,Cash Dividend USD 1.19 per Share,14.28,
-Dividends,Data,USD,2024-06-04,JNJ,Cash Dividend USD 1.24 per Share,14.88,
-Dividends,Data,USD,2024-09-03,JNJ,Cash Dividend USD 1.24 per Share,18.60,
-Dividends,Data,USD,2024-12-03,JNJ,Cash Dividend USD 1.24 per Share,22.32,
-Dividends,Data,USD,2024-03-29,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2024-06-28,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2024-09-27,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2024-12-27,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2024-04-01,KO,Cash Dividend USD 0.485 per Share,15.52,
-Dividends,Data,USD,2024-07-01,KO,Cash Dividend USD 0.485 per Share,19.40,
-Dividends,Data,USD,2024-10-01,KO,Cash Dividend USD 0.485 per Share,19.40,
-Dividends,Data,USD,2024-12-16,KO,Cash Dividend USD 0.485 per Share,23.28,
-Dividends,Data,Total,USD,,1440.82,1440.82,
-Withholding Tax,Header,Currency,Date,Symbol,Description,Amount,Code
-Withholding Tax,Data,USD,2024-02-15,ABBV,US Tax Withholding,-1.86,
-Withholding Tax,Data,USD,2024-05-15,ABBV,US Tax Withholding,-1.86,
-Withholding Tax,Data,USD,2024-08-15,ABBV,US Tax Withholding,-2.56,
-Withholding Tax,Data,USD,2024-11-15,ABBV,US Tax Withholding,-3.02,
-Withholding Tax,Data,USD,2024-03-01,ADM,US Tax Withholding,-0.90,
-Withholding Tax,Data,USD,2024-06-07,ADM,US Tax Withholding,-0.90,
-Withholding Tax,Data,USD,2024-09-06,ADM,US Tax Withholding,-0.90,
-Withholding Tax,Data,USD,2024-12-07,ADM,US Tax Withholding,-0.90,
-Withholding Tax,Data,USD,2024-03-01,AFL,US Tax Withholding,-1.43,
-Withholding Tax,Data,USD,2024-06-01,AFL,US Tax Withholding,-1.43,
-Withholding Tax,Data,USD,2024-09-01,AFL,US Tax Withholding,-1.95,
-Withholding Tax,Data,USD,2024-12-01,AFL,US Tax Withholding,-2.33,
-Withholding Tax,Data,USD,2024-03-29,BAC,US Tax Withholding,-1.44,
-Withholding Tax,Data,USD,2024-06-28,BAC,US Tax Withholding,-1.98,
-Withholding Tax,Data,USD,2024-09-27,BAC,US Tax Withholding,-2.15,
-Withholding Tax,Data,USD,2024-12-27,BAC,US Tax Withholding,-2.15,
-Withholding Tax,Data,USD,2024-04-11,BBY,US Tax Withholding,-1.83,
-Withholding Tax,Data,USD,2024-07-09,BBY,US Tax Withholding,-1.83,
-Withholding Tax,Data,USD,2024-10-08,BBY,US Tax Withholding,-1.83,
-Withholding Tax,Data,USD,2024-01-12,BEN,US Tax Withholding,-1.86,
-Withholding Tax,Data,USD,2024-04-12,BEN,US Tax Withholding,-1.86,
-Withholding Tax,Data,USD,2024-07-12,BEN,US Tax Withholding,-1.86,
-Withholding Tax,Data,USD,2024-10-11,BEN,US Tax Withholding,-1.86,
-Withholding Tax,Data,USD,2024-01-26,BKE,US Tax Withholding,-10.50,
-Withholding Tax,Data,USD,2024-01-26,BKE,US Tax Withholding,-1.47,
-Withholding Tax,Data,USD,2024-04-26,BKE,US Tax Withholding,-1.47,
-Withholding Tax,Data,USD,2024-01-24,CSCO,US Tax Withholding,-1.17,
-Withholding Tax,Data,USD,2024-04-24,CSCO,US Tax Withholding,-1.20,
-Withholding Tax,Data,USD,2024-07-24,CSCO,US Tax Withholding,-1.20,
-Withholding Tax,Data,USD,2024-10-23,CSCO,US Tax Withholding,-1.80,
-Withholding Tax,Data,USD,2024-03-11,CVX,US Tax Withholding,-0.73,
-Withholding Tax,Data,USD,2024-06-10,CVX,US Tax Withholding,-0.73,
-Withholding Tax,Data,USD,2024-09-10,CVX,US Tax Withholding,-0.73,
-Withholding Tax,Data,USD,2024-12-10,CVX,US Tax Withholding,-0.73,
-Withholding Tax,Data,USD,2024-03-28,DVN,US Tax Withholding,-4.95,
-Withholding Tax,Data,USD,2024-03-15,ED,US Tax Withholding,-1.37,
-Withholding Tax,Data,USD,2024-06-15,ED,US Tax Withholding,-1.37,
-Withholding Tax,Data,USD,2024-09-15,ED,US Tax Withholding,-1.37,
-Withholding Tax,Data,USD,2024-12-15,ED,US Tax Withholding,-1.37,
-Withholding Tax,Data,USD,2024-01-31,EIX,US Tax Withholding,-1.05,
-Withholding Tax,Data,USD,2024-04-30,EIX,US Tax Withholding,-1.05,
-Withholding Tax,Data,USD,2024-07-31,EIX,US Tax Withholding,-1.05,
-Withholding Tax,Data,USD,2024-10-31,EIX,US Tax Withholding,-1.05,
-Withholding Tax,Data,USD,2024-03-11,EMR,US Tax Withholding,-0.95,
-Withholding Tax,Data,USD,2024-06-10,EMR,US Tax Withholding,-0.95,
-Withholding Tax,Data,USD,2024-09-10,EMR,US Tax Withholding,-0.95,
-Withholding Tax,Data,USD,2024-12-10,EMR,US Tax Withholding,-0.95,
-Withholding Tax,Data,USD,2024-03-01,ETR,US Tax Withholding,-0.85,
-Withholding Tax,Data,USD,2024-06-01,ETR,US Tax Withholding,-0.85,
-Withholding Tax,Data,USD,2024-09-01,ETR,US Tax Withholding,-0.85,
-Withholding Tax,Data,USD,2024-12-01,ETR,US Tax Withholding,-0.89,
-Withholding Tax,Data,USD,2024-01-16,FITB,US Tax Withholding,-1.31,
-Withholding Tax,Data,USD,2024-04-15,FITB,US Tax Withholding,-1.31,
-Withholding Tax,Data,USD,2024-07-15,FITB,US Tax Withholding,-1.31,
-Withholding Tax,Data,USD,2024-10-15,FITB,US Tax Withholding,-1.39,
-Withholding Tax,Data,USD,2024-03-29,FNF,US Tax Withholding,-1.08,
-Withholding Tax,Data,USD,2024-06-28,FNF,US Tax Withholding,-1.08,
-Withholding Tax,Data,USD,2024-09-30,FNF,US Tax Withholding,-1.08,
-Withholding Tax,Data,USD,2024-12-31,FNF,US Tax Withholding,-1.08,
-Withholding Tax,Data,USD,2024-03-28,GLW,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2024-06-27,GLW,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2024-09-27,GLW,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2024-12-18,GLW,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2024-01-02,GPC,US Tax Withholding,-0.57,
-Withholding Tax,Data,USD,2024-04-01,GPC,US Tax Withholding,-0.60,
-Withholding Tax,Data,USD,2024-07-01,GPC,US Tax Withholding,-0.60,
-Withholding Tax,Data,USD,2024-10-01,GPC,US Tax Withholding,-0.60,
-Withholding Tax,Data,USD,2024-02-15,HRL,US Tax Withholding,-1.70,
-Withholding Tax,Data,USD,2024-05-15,HRL,US Tax Withholding,-1.70,
-Withholding Tax,Data,USD,2024-08-15,HRL,US Tax Withholding,-1.70,
-Withholding Tax,Data,USD,2024-03-05,JNJ,US Tax Withholding,-2.14,
-Withholding Tax,Data,USD,2024-06-04,JNJ,US Tax Withholding,-2.23,
-Withholding Tax,Data,USD,2024-09-03,JNJ,US Tax Withholding,-2.79,
-Withholding Tax,Data,USD,2024-12-03,JNJ,US Tax Withholding,-3.35,
-Withholding Tax,Data,USD,2024-03-29,KHC,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2024-06-28,KHC,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2024-09-27,KHC,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2024-12-27,KHC,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2024-04-01,KO,US Tax Withholding,-2.33,
-Withholding Tax,Data,USD,2024-07-01,KO,US Tax Withholding,-2.91,
-Withholding Tax,Data,USD,2024-10-01,KO,US Tax Withholding,-2.91,
-Withholding Tax,Data,USD,2024-12-16,KO,US Tax Withholding,-3.49,
-Withholding Tax,Data,Total,USD,,-216.12,-216.12,
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2024-02-15,ABBV(US00287Y1091) Cash Dividend USD 1.55 per Share (Ordinary Dividend),12.40
+Dividends,Data,USD,2024-05-15,ABBV(US00287Y1091) Cash Dividend USD 1.55 per Share (Ordinary Dividend),12.40
+Dividends,Data,USD,2024-08-15,ABBV(US00287Y1091) Cash Dividend USD 1.55 per Share (Ordinary Dividend),17.05
+Dividends,Data,USD,2024-11-15,ABBV(US00287Y1091) Cash Dividend USD 1.55 per Share (Ordinary Dividend),20.15
+Dividends,Data,USD,2024-03-01,ADM(US0394831020) Cash Dividend USD 0.50 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2024-06-07,ADM(US0394831020) Cash Dividend USD 0.50 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2024-09-06,ADM(US0394831020) Cash Dividend USD 0.50 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2024-12-07,ADM(US0394831020) Cash Dividend USD 0.50 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2024-03-01,AFL(US0010551028) Cash Dividend USD 0.50 per Share (Ordinary Dividend),9.50
+Dividends,Data,USD,2024-06-01,AFL(US0010551028) Cash Dividend USD 0.50 per Share (Ordinary Dividend),9.50
+Dividends,Data,USD,2024-09-01,AFL(US0010551028) Cash Dividend USD 0.50 per Share (Ordinary Dividend),13.00
+Dividends,Data,USD,2024-12-01,AFL(US0010551028) Cash Dividend USD 0.50 per Share (Ordinary Dividend),15.50
+Dividends,Data,USD,2024-03-29,BAC(US0605051046) Cash Dividend USD 0.24 per Share (Ordinary Dividend),9.60
+Dividends,Data,USD,2024-06-28,BAC(US0605051046) Cash Dividend USD 0.24 per Share (Ordinary Dividend),13.20
+Dividends,Data,USD,2024-09-27,BAC(US0605051046) Cash Dividend USD 0.26 per Share (Ordinary Dividend),14.30
+Dividends,Data,USD,2024-12-27,BAC(US0605051046) Cash Dividend USD 0.26 per Share (Ordinary Dividend),14.30
+Dividends,Data,USD,2024-04-11,BBY(US0865161014) Cash Dividend USD 0.94 per Share (Ordinary Dividend),12.22
+Dividends,Data,USD,2024-07-09,BBY(US0865161014) Cash Dividend USD 0.94 per Share (Ordinary Dividend),12.22
+Dividends,Data,USD,2024-10-08,BBY(US0865161014) Cash Dividend USD 0.94 per Share (Ordinary Dividend),12.22
+Dividends,Data,USD,2024-01-12,BEN(US3546131018) Cash Dividend USD 0.31 per Share (Ordinary Dividend),12.40
+Dividends,Data,USD,2024-04-12,BEN(US3546131018) Cash Dividend USD 0.31 per Share (Ordinary Dividend),12.40
+Dividends,Data,USD,2024-07-12,BEN(US3546131018) Cash Dividend USD 0.31 per Share (Ordinary Dividend),12.40
+Dividends,Data,USD,2024-10-11,BEN(US3546131018) Cash Dividend USD 0.31 per Share (Ordinary Dividend),12.40
+Dividends,Data,USD,2024-01-26,BKE(US1182301036) Special Cash Dividend USD 2.50 per Share (Ordinary Dividend),70.00
+Dividends,Data,USD,2024-01-26,BKE(US1182301036) Cash Dividend USD 0.35 per Share (Ordinary Dividend),9.80
+Dividends,Data,USD,2024-04-26,BKE(US1182301036) Cash Dividend USD 0.35 per Share (Ordinary Dividend),9.80
+Dividends,Data,USD,2024-01-24,CSCO(US17275R1023) Cash Dividend USD 0.39 per Share (Ordinary Dividend),7.80
+Dividends,Data,USD,2024-04-24,CSCO(US17275R1023) Cash Dividend USD 0.40 per Share (Ordinary Dividend),8.00
+Dividends,Data,USD,2024-07-24,CSCO(US17275R1023) Cash Dividend USD 0.40 per Share (Ordinary Dividend),8.00
+Dividends,Data,USD,2024-10-23,CSCO(US17275R1023) Cash Dividend USD 0.40 per Share (Ordinary Dividend),12.00
+Dividends,Data,USD,2024-03-11,CVX(US1667641005) Cash Dividend USD 1.63 per Share (Ordinary Dividend),4.89
+Dividends,Data,USD,2024-06-10,CVX(US1667641005) Cash Dividend USD 1.63 per Share (Ordinary Dividend),4.89
+Dividends,Data,USD,2024-09-10,CVX(US1667641005) Cash Dividend USD 1.63 per Share (Ordinary Dividend),4.89
+Dividends,Data,USD,2024-12-10,CVX(US1667641005) Cash Dividend USD 1.63 per Share (Ordinary Dividend),4.89
+Dividends,Data,USD,2024-03-28,DVN(US25179M1036) Cash Dividend USD 0.44 per Share (Ordinary Dividend),33.00
+Dividends,Data,USD,2024-03-15,ED(US2091151041) Cash Dividend USD 0.83 per Share (Ordinary Dividend),9.13
+Dividends,Data,USD,2024-06-15,ED(US2091151041) Cash Dividend USD 0.83 per Share (Ordinary Dividend),9.13
+Dividends,Data,USD,2024-09-15,ED(US2091151041) Cash Dividend USD 0.83 per Share (Ordinary Dividend),9.13
+Dividends,Data,USD,2024-12-15,ED(US2091151041) Cash Dividend USD 0.83 per Share (Ordinary Dividend),9.13
+Dividends,Data,USD,2024-01-31,EIX(US2810201077) Cash Dividend USD 0.78 per Share (Ordinary Dividend),7.02
+Dividends,Data,USD,2024-04-30,EIX(US2810201077) Cash Dividend USD 0.78 per Share (Ordinary Dividend),7.02
+Dividends,Data,USD,2024-07-31,EIX(US2810201077) Cash Dividend USD 0.78 per Share (Ordinary Dividend),7.02
+Dividends,Data,USD,2024-10-31,EIX(US2810201077) Cash Dividend USD 0.78 per Share (Ordinary Dividend),7.02
+Dividends,Data,USD,2024-03-11,EMR(US2910111044) Cash Dividend USD 0.525 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2024-06-10,EMR(US2910111044) Cash Dividend USD 0.525 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2024-09-10,EMR(US2910111044) Cash Dividend USD 0.525 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2024-12-10,EMR(US2910111044) Cash Dividend USD 0.525 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2024-03-01,ETR(US29364G1031) Cash Dividend USD 1.13 per Share (Ordinary Dividend),5.65
+Dividends,Data,USD,2024-06-01,ETR(US29364G1031) Cash Dividend USD 1.13 per Share (Ordinary Dividend),5.65
+Dividends,Data,USD,2024-09-01,ETR(US29364G1031) Cash Dividend USD 1.13 per Share (Ordinary Dividend),5.65
+Dividends,Data,USD,2024-12-01,ETR(US29364G1031) Cash Dividend USD 1.19 per Share (Ordinary Dividend),5.95
+Dividends,Data,USD,2024-01-16,FITB(US3167731005) Cash Dividend USD 0.35 per Share (Ordinary Dividend),8.75
+Dividends,Data,USD,2024-04-15,FITB(US3167731005) Cash Dividend USD 0.35 per Share (Ordinary Dividend),8.75
+Dividends,Data,USD,2024-07-15,FITB(US3167731005) Cash Dividend USD 0.35 per Share (Ordinary Dividend),8.75
+Dividends,Data,USD,2024-10-15,FITB(US3167731005) Cash Dividend USD 0.37 per Share (Ordinary Dividend),9.25
+Dividends,Data,USD,2024-03-29,FNF(US31620R3030) Cash Dividend USD 0.48 per Share (Ordinary Dividend),7.20
+Dividends,Data,USD,2024-06-28,FNF(US31620R3030) Cash Dividend USD 0.48 per Share (Ordinary Dividend),7.20
+Dividends,Data,USD,2024-09-30,FNF(US31620R3030) Cash Dividend USD 0.48 per Share (Ordinary Dividend),7.20
+Dividends,Data,USD,2024-12-31,FNF(US31620R3030) Cash Dividend USD 0.48 per Share (Ordinary Dividend),7.20
+Dividends,Data,USD,2024-03-28,GLW(US2193501051) Cash Dividend USD 0.28 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2024-06-27,GLW(US2193501051) Cash Dividend USD 0.28 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2024-09-27,GLW(US2193501051) Cash Dividend USD 0.28 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2024-12-18,GLW(US2193501051) Cash Dividend USD 0.28 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2024-01-02,GPC(US3724601055) Cash Dividend USD 0.95 per Share (Ordinary Dividend),3.80
+Dividends,Data,USD,2024-04-01,GPC(US3724601055) Cash Dividend USD 1.00 per Share (Ordinary Dividend),4.00
+Dividends,Data,USD,2024-07-01,GPC(US3724601055) Cash Dividend USD 1.00 per Share (Ordinary Dividend),4.00
+Dividends,Data,USD,2024-10-01,GPC(US3724601055) Cash Dividend USD 1.00 per Share (Ordinary Dividend),4.00
+Dividends,Data,USD,2024-02-15,HRL(US4404521001) Cash Dividend USD 0.2825 per Share (Ordinary Dividend),11.30
+Dividends,Data,USD,2024-05-15,HRL(US4404521001) Cash Dividend USD 0.2825 per Share (Ordinary Dividend),11.30
+Dividends,Data,USD,2024-08-15,HRL(US4404521001) Cash Dividend USD 0.2825 per Share (Ordinary Dividend),11.30
+Dividends,Data,USD,2024-03-05,JNJ(US4781601046) Cash Dividend USD 1.19 per Share (Ordinary Dividend),14.28
+Dividends,Data,USD,2024-06-04,JNJ(US4781601046) Cash Dividend USD 1.24 per Share (Ordinary Dividend),14.88
+Dividends,Data,USD,2024-09-03,JNJ(US4781601046) Cash Dividend USD 1.24 per Share (Ordinary Dividend),18.60
+Dividends,Data,USD,2024-12-03,JNJ(US4781601046) Cash Dividend USD 1.24 per Share (Ordinary Dividend),22.32
+Dividends,Data,USD,2024-03-29,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2024-06-28,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2024-09-27,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2024-12-27,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2024-04-01,KO(US1912161007) Cash Dividend USD 0.485 per Share (Ordinary Dividend),15.52
+Dividends,Data,USD,2024-07-01,KO(US1912161007) Cash Dividend USD 0.485 per Share (Ordinary Dividend),19.40
+Dividends,Data,USD,2024-10-01,KO(US1912161007) Cash Dividend USD 0.485 per Share (Ordinary Dividend),19.40
+Dividends,Data,USD,2024-12-16,KO(US1912161007) Cash Dividend USD 0.485 per Share (Ordinary Dividend),23.28
+Dividends,Data,Total,,,1440.82
+Withholding Tax,Header,Currency,Date,Description,Amount
+Withholding Tax,Data,USD,2024-02-15,ABBV(US00287Y1091) US Tax Withholding,-1.86
+Withholding Tax,Data,USD,2024-05-15,ABBV(US00287Y1091) US Tax Withholding,-1.86
+Withholding Tax,Data,USD,2024-08-15,ABBV(US00287Y1091) US Tax Withholding,-2.56
+Withholding Tax,Data,USD,2024-11-15,ABBV(US00287Y1091) US Tax Withholding,-3.02
+Withholding Tax,Data,USD,2024-03-01,ADM(US0394831020) US Tax Withholding,-0.90
+Withholding Tax,Data,USD,2024-06-07,ADM(US0394831020) US Tax Withholding,-0.90
+Withholding Tax,Data,USD,2024-09-06,ADM(US0394831020) US Tax Withholding,-0.90
+Withholding Tax,Data,USD,2024-12-07,ADM(US0394831020) US Tax Withholding,-0.90
+Withholding Tax,Data,USD,2024-03-01,AFL(US0010551028) US Tax Withholding,-1.43
+Withholding Tax,Data,USD,2024-06-01,AFL(US0010551028) US Tax Withholding,-1.43
+Withholding Tax,Data,USD,2024-09-01,AFL(US0010551028) US Tax Withholding,-1.95
+Withholding Tax,Data,USD,2024-12-01,AFL(US0010551028) US Tax Withholding,-2.33
+Withholding Tax,Data,USD,2024-03-29,BAC(US0605051046) US Tax Withholding,-1.44
+Withholding Tax,Data,USD,2024-06-28,BAC(US0605051046) US Tax Withholding,-1.98
+Withholding Tax,Data,USD,2024-09-27,BAC(US0605051046) US Tax Withholding,-2.15
+Withholding Tax,Data,USD,2024-12-27,BAC(US0605051046) US Tax Withholding,-2.15
+Withholding Tax,Data,USD,2024-04-11,BBY(US0865161014) US Tax Withholding,-1.83
+Withholding Tax,Data,USD,2024-07-09,BBY(US0865161014) US Tax Withholding,-1.83
+Withholding Tax,Data,USD,2024-10-08,BBY(US0865161014) US Tax Withholding,-1.83
+Withholding Tax,Data,USD,2024-01-12,BEN(US3546131018) US Tax Withholding,-1.86
+Withholding Tax,Data,USD,2024-04-12,BEN(US3546131018) US Tax Withholding,-1.86
+Withholding Tax,Data,USD,2024-07-12,BEN(US3546131018) US Tax Withholding,-1.86
+Withholding Tax,Data,USD,2024-10-11,BEN(US3546131018) US Tax Withholding,-1.86
+Withholding Tax,Data,USD,2024-01-26,BKE(US1182301036) US Tax Withholding,-10.50
+Withholding Tax,Data,USD,2024-01-26,BKE(US1182301036) US Tax Withholding,-1.47
+Withholding Tax,Data,USD,2024-04-26,BKE(US1182301036) US Tax Withholding,-1.47
+Withholding Tax,Data,USD,2024-01-24,CSCO(US17275R1023) US Tax Withholding,-1.17
+Withholding Tax,Data,USD,2024-04-24,CSCO(US17275R1023) US Tax Withholding,-1.20
+Withholding Tax,Data,USD,2024-07-24,CSCO(US17275R1023) US Tax Withholding,-1.20
+Withholding Tax,Data,USD,2024-10-23,CSCO(US17275R1023) US Tax Withholding,-1.80
+Withholding Tax,Data,USD,2024-03-11,CVX(US1667641005) US Tax Withholding,-0.73
+Withholding Tax,Data,USD,2024-06-10,CVX(US1667641005) US Tax Withholding,-0.73
+Withholding Tax,Data,USD,2024-09-10,CVX(US1667641005) US Tax Withholding,-0.73
+Withholding Tax,Data,USD,2024-12-10,CVX(US1667641005) US Tax Withholding,-0.73
+Withholding Tax,Data,USD,2024-03-28,DVN(US25179M1036) US Tax Withholding,-4.95
+Withholding Tax,Data,USD,2024-03-15,ED(US2091151041) US Tax Withholding,-1.37
+Withholding Tax,Data,USD,2024-06-15,ED(US2091151041) US Tax Withholding,-1.37
+Withholding Tax,Data,USD,2024-09-15,ED(US2091151041) US Tax Withholding,-1.37
+Withholding Tax,Data,USD,2024-12-15,ED(US2091151041) US Tax Withholding,-1.37
+Withholding Tax,Data,USD,2024-01-31,EIX(US2810201077) US Tax Withholding,-1.05
+Withholding Tax,Data,USD,2024-04-30,EIX(US2810201077) US Tax Withholding,-1.05
+Withholding Tax,Data,USD,2024-07-31,EIX(US2810201077) US Tax Withholding,-1.05
+Withholding Tax,Data,USD,2024-10-31,EIX(US2810201077) US Tax Withholding,-1.05
+Withholding Tax,Data,USD,2024-03-11,EMR(US2910111044) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2024-06-10,EMR(US2910111044) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2024-09-10,EMR(US2910111044) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2024-12-10,EMR(US2910111044) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2024-03-01,ETR(US29364G1031) US Tax Withholding,-0.85
+Withholding Tax,Data,USD,2024-06-01,ETR(US29364G1031) US Tax Withholding,-0.85
+Withholding Tax,Data,USD,2024-09-01,ETR(US29364G1031) US Tax Withholding,-0.85
+Withholding Tax,Data,USD,2024-12-01,ETR(US29364G1031) US Tax Withholding,-0.89
+Withholding Tax,Data,USD,2024-01-16,FITB(US3167731005) US Tax Withholding,-1.31
+Withholding Tax,Data,USD,2024-04-15,FITB(US3167731005) US Tax Withholding,-1.31
+Withholding Tax,Data,USD,2024-07-15,FITB(US3167731005) US Tax Withholding,-1.31
+Withholding Tax,Data,USD,2024-10-15,FITB(US3167731005) US Tax Withholding,-1.39
+Withholding Tax,Data,USD,2024-03-29,FNF(US31620R3030) US Tax Withholding,-1.08
+Withholding Tax,Data,USD,2024-06-28,FNF(US31620R3030) US Tax Withholding,-1.08
+Withholding Tax,Data,USD,2024-09-30,FNF(US31620R3030) US Tax Withholding,-1.08
+Withholding Tax,Data,USD,2024-12-31,FNF(US31620R3030) US Tax Withholding,-1.08
+Withholding Tax,Data,USD,2024-03-28,GLW(US2193501051) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2024-06-27,GLW(US2193501051) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2024-09-27,GLW(US2193501051) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2024-12-18,GLW(US2193501051) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2024-01-02,GPC(US3724601055) US Tax Withholding,-0.57
+Withholding Tax,Data,USD,2024-04-01,GPC(US3724601055) US Tax Withholding,-0.60
+Withholding Tax,Data,USD,2024-07-01,GPC(US3724601055) US Tax Withholding,-0.60
+Withholding Tax,Data,USD,2024-10-01,GPC(US3724601055) US Tax Withholding,-0.60
+Withholding Tax,Data,USD,2024-02-15,HRL(US4404521001) US Tax Withholding,-1.70
+Withholding Tax,Data,USD,2024-05-15,HRL(US4404521001) US Tax Withholding,-1.70
+Withholding Tax,Data,USD,2024-08-15,HRL(US4404521001) US Tax Withholding,-1.70
+Withholding Tax,Data,USD,2024-03-05,JNJ(US4781601046) US Tax Withholding,-2.14
+Withholding Tax,Data,USD,2024-06-04,JNJ(US4781601046) US Tax Withholding,-2.23
+Withholding Tax,Data,USD,2024-09-03,JNJ(US4781601046) US Tax Withholding,-2.79
+Withholding Tax,Data,USD,2024-12-03,JNJ(US4781601046) US Tax Withholding,-3.35
+Withholding Tax,Data,USD,2024-03-29,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2024-06-28,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2024-09-27,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2024-12-27,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2024-04-01,KO(US1912161007) US Tax Withholding,-2.33
+Withholding Tax,Data,USD,2024-07-01,KO(US1912161007) US Tax Withholding,-2.91
+Withholding Tax,Data,USD,2024-10-01,KO(US1912161007) US Tax Withholding,-2.91
+Withholding Tax,Data,USD,2024-12-16,KO(US1912161007) US Tax Withholding,-3.49
+Withholding Tax,Data,Total,,-216.12
 Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
 Financial Instrument Information,Data,Stocks,ABBV,ABBVIE INC,123456,US00287Y1091,,NYSE,1,COMMON,
 Financial Instrument Information,Data,Stocks,ADM,ARCHER-DANIELS-MIDLAND CO,234567,US0394831020,,NYSE,1,COMMON,

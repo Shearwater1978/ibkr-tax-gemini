@@ -128,32 +128,32 @@ Deposits & Withdrawals,Data,USD,2020-11-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,USD,2020-12-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,Total,,,6500.00
 Deposits & Withdrawals,Data,Total in USD,,,6500.00
-Dividends,Header,Currency,Date,Symbol,Description,Amount,Code
-Dividends,Data,USD,2020-02-14,AAPL,Cash Dividend USD 0.77 per Share,9.24,
-Dividends,Data,USD,2020-05-15,ABBV,Cash Dividend USD 1.18 per Share,7.08,
-Dividends,Data,USD,2020-06-01,AFL,Cash Dividend USD 0.28 per Share,3.92,
-Dividends,Data,USD,2020-08-14,ABBV,Cash Dividend USD 1.18 per Share,7.08,
-Dividends,Data,USD,2020-09-01,AFL,Cash Dividend USD 0.28 per Share,3.92,
-Dividends,Data,USD,2020-09-25,BAC,Cash Dividend USD 0.18 per Share,12.24,
-Dividends,Data,USD,2020-10-06,BBY,Cash Dividend USD 0.55 per Share,3.30,
-Dividends,Data,USD,2020-10-09,BEN,Cash Dividend USD 0.27 per Share,6.48,
-Dividends,Data,USD,2020-11-16,ABBV,Cash Dividend USD 1.18 per Share,7.08,
-Dividends,Data,USD,2020-12-10,CVX,Cash Dividend USD 1.29 per Share,7.74,
-Dividends,Data,USD,2020-12-24,BAC,Cash Dividend USD 0.18 per Share,12.24,
-Dividends,Data,Total,USD,,365.40 (Includes re-inv logic implied),365.40,
-Withholding Tax,Header,Currency,Date,Symbol,Description,Amount,Code
-Withholding Tax,Data,USD,2020-02-14,AAPL,US Tax Withholding,-1.39,
-Withholding Tax,Data,USD,2020-05-15,ABBV,US Tax Withholding,-1.06,
-Withholding Tax,Data,USD,2020-06-01,AFL,US Tax Withholding,-0.59,
-Withholding Tax,Data,USD,2020-08-14,ABBV,US Tax Withholding,-1.06,
-Withholding Tax,Data,USD,2020-09-01,AFL,US Tax Withholding,-0.59,
-Withholding Tax,Data,USD,2020-09-25,BAC,US Tax Withholding,-1.84,
-Withholding Tax,Data,USD,2020-10-06,BBY,US Tax Withholding,-0.50,
-Withholding Tax,Data,USD,2020-10-09,BEN,US Tax Withholding,-0.97,
-Withholding Tax,Data,USD,2020-11-16,ABBV,US Tax Withholding,-1.06,
-Withholding Tax,Data,USD,2020-12-10,CVX,US Tax Withholding,-1.16,
-Withholding Tax,Data,USD,2020-12-24,BAC,US Tax Withholding,-1.84,
-Withholding Tax,Data,Total,USD,,-54.80,-54.80,
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2020-02-14,AAPL(US0378331005) Cash Dividend USD 0.77 per Share (Ordinary Dividend),9.24
+Dividends,Data,USD,2020-05-15,ABBV(US00287Y1091) Cash Dividend USD 1.18 per Share (Ordinary Dividend),7.08
+Dividends,Data,USD,2020-06-01,AFL(US0010551028) Cash Dividend USD 0.28 per Share (Ordinary Dividend),3.92
+Dividends,Data,USD,2020-08-14,ABBV(US00287Y1091) Cash Dividend USD 1.18 per Share (Ordinary Dividend),7.08
+Dividends,Data,USD,2020-09-01,AFL(US0010551028) Cash Dividend USD 0.28 per Share (Ordinary Dividend),3.92
+Dividends,Data,USD,2020-09-25,BAC(US0605051046) Cash Dividend USD 0.18 per Share (Ordinary Dividend),12.24
+Dividends,Data,USD,2020-10-06,BBY(US0865161014) Cash Dividend USD 0.55 per Share (Ordinary Dividend),3.30
+Dividends,Data,USD,2020-10-09,BEN(US3546131018) Cash Dividend USD 0.27 per Share (Ordinary Dividend),6.48
+Dividends,Data,USD,2020-11-16,ABBV(US00287Y1091) Cash Dividend USD 1.18 per Share (Ordinary Dividend),7.08
+Dividends,Data,USD,2020-12-10,CVX(US1667641005) Cash Dividend USD 1.29 per Share (Ordinary Dividend),7.74
+Dividends,Data,USD,2020-12-24,BAC(US0605051046) Cash Dividend USD 0.18 per Share (Ordinary Dividend),12.24
+Dividends,Data,Total,,,365.40
+Withholding Tax,Header,Currency,Date,Description,Amount
+Withholding Tax,Data,USD,2020-02-14,AAPL(US0378331005) US Tax Withholding,-1.39
+Withholding Tax,Data,USD,2020-05-15,ABBV(US00287Y1091) US Tax Withholding,-1.06
+Withholding Tax,Data,USD,2020-06-01,AFL(US0010551028) US Tax Withholding,-0.59
+Withholding Tax,Data,USD,2020-08-14,ABBV(US00287Y1091) US Tax Withholding,-1.06
+Withholding Tax,Data,USD,2020-09-01,AFL(US0010551028) US Tax Withholding,-0.59
+Withholding Tax,Data,USD,2020-09-25,BAC(US0605051046) US Tax Withholding,-1.84
+Withholding Tax,Data,USD,2020-10-06,BBY(US0865161014) US Tax Withholding,-0.50
+Withholding Tax,Data,USD,2020-10-09,BEN(US3546131018) US Tax Withholding,-0.97
+Withholding Tax,Data,USD,2020-11-16,ABBV(US00287Y1091) US Tax Withholding,-1.06
+Withholding Tax,Data,USD,2020-12-10,CVX(US1667641005) US Tax Withholding,-1.16
+Withholding Tax,Data,USD,2020-12-24,BAC(US0605051046) US Tax Withholding,-1.84
+Withholding Tax,Data,Total,,-54.80
 Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
 Financial Instrument Information,Data,Stocks,AAPL,APPLE INC,265598,US0378331005,,NASDAQ,1,COMMON,
 Financial Instrument Information,Data,Stocks,ABBV,ABBVIE INC,123456,US00287Y1091,,NYSE,1,COMMON,

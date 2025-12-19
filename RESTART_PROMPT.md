@@ -4,6 +4,37 @@
 **Project:** IBKR Tax Calculator for Poland (PIT-38).
 **Version:** v2.1.0 (Stable).
 
+## 0. CRITICAL PROTOCOLS (READ FIRST)
+
+### 1. Fix-Script Safety (Escaping Issue)
+**NEVER** use triple quotes (`"""`) to assign file content inside a fix-script if the target content itself contains triple quotes (e.g., Python docstrings). This breaks the syntax.
+**MANDATORY:** Use the **Line-by-Line** writing method for all fix-scripts (list of strings).
+
+### 2. Code Delivery Format
+**NEVER** just show code snippets or diffs. **ALWAYS** provide a full, standalone Python script (`fix_something.py`) that the user can run to apply the changes automatically.
+
+### 3. Language Protocol
+* **Chat/Reasoning:** RUSSIAN (Русский).
+* **Code/Comments/Logs:** ENGLISH only. No Cyrillic in source files.
+
+---
+
+## 0.1 CURRENT CHECKPOINT (Start Here)
+We have just completed **Sprint 3 (v2.1.0)**.
+**Status:**
+* `src/parser.py`: Fixed Regex to handle tickers with spaces (e.g. `MGA (ISIN)`).
+* `tests/`: Updated to `pytest`. All tests passed.
+* `main.py`: Unified entry point. Use `--import-data` to load CSVs.
+* DB: SQLCipher integration COMPLETED (Encrypted SQLite).
+* Comments: English-only policy maintained.
+
+## Upcoming Sprint 4: Desktop UI (Current Goal)
+* [ ] Backend: FastAPI implementation for internal API.
+* [ ] Frontend: Electron Desktop shell integration.
+* [ ] UX: Dashboard with P&L metrics and tax summaries.
+* [ ] Environment Sync: Ensuring shared data paths between UI and CLI.
+---
+
 ## ⚠️ RESTORATION INSTRUCTIONS (READ FIRST)
 This project context is split into **3 parts** due to size limits. You are currently viewing Part 1.
 
@@ -328,6 +359,8 @@ pre-commit
 cryptography
 python-decouple
 pandas
+fastapi
+uvicorn
 ```
 
 # --- FILE: .gitignore ---
@@ -343,6 +376,7 @@ db/*
 # Ignore manual history override (contains personal trades)
 manual_history.csv
 manual_fixes.csv
+*.db.enc
 
 # --- Output Reports ---
 # Ignore generated PDFs and JSONs
@@ -371,5 +405,10 @@ env/
 .DS_Store
 Thumbs.db
 .env
-```
 
+# --- Node Modules ---
+**/node_modules
+
+# --- EXCEPTIONS ---
+!example_reports_2020_2024/*.csv
+```

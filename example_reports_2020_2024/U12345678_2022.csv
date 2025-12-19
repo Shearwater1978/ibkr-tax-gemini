@@ -156,83 +156,82 @@ Deposits & Withdrawals,Data,USD,2022-10-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,USD,2022-11-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,USD,2022-12-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,Total,,,6000.00
-Deposits & Withdrawals,Data,Total in USD,,,6000.00
-Dividends,Header,Currency,Date,Symbol,Description,Amount,Code
-Dividends,Data,USD,2022-03-30,DVN,Cash Dividend USD 1.27 per Share,120.65,
-Dividends,Data,USD,2022-06-30,DVN,Cash Dividend USD 1.27 per Share,120.65,
-Dividends,Data,USD,2022-09-30,DVN,Cash Dividend USD 1.55 per Share,147.25,
-Dividends,Data,USD,2022-12-30,DVN,Cash Dividend USD 1.35 per Share,128.25,
-Dividends,Data,USD,2022-03-10,CVX,Cash Dividend USD 1.42 per Share,8.52,
-Dividends,Data,USD,2022-06-10,CVX,Cash Dividend USD 1.42 per Share,8.52,
-Dividends,Data,USD,2022-09-09,CVX,Cash Dividend USD 1.42 per Share,8.52,
-Dividends,Data,USD,2022-12-12,CVX,Cash Dividend USD 1.42 per Share,8.52,
-Dividends,Data,USD,2022-01-27,BKE,Special Cash Dividend USD 5.65 per Share,271.20,
-Dividends,Data,USD,2022-04-29,BKE,Cash Dividend USD 0.35 per Share,16.80,
-Dividends,Data,USD,2022-07-29,BKE,Cash Dividend USD 0.35 per Share,16.80,
-Dividends,Data,USD,2022-10-28,BKE,Cash Dividend USD 0.35 per Share,16.80,
-Dividends,Data,USD,2022-04-01,KO,Cash Dividend USD 0.44 per Share,9.68,
-Dividends,Data,USD,2022-07-01,KO,Cash Dividend USD 0.44 per Share,9.68,
-Dividends,Data,USD,2022-10-03,KO,Cash Dividend USD 0.44 per Share,9.68,
-Dividends,Data,USD,2022-12-15,KO,Cash Dividend USD 0.44 per Share,9.68,
-Dividends,Data,USD,2022-03-08,JNJ,Cash Dividend USD 1.06 per Share,3.18,
-Dividends,Data,USD,2022-06-07,JNJ,Cash Dividend USD 1.13 per Share,3.39,
-Dividends,Data,USD,2022-09-06,JNJ,Cash Dividend USD 1.13 per Share,3.39,
-Dividends,Data,USD,2022-12-06,JNJ,Cash Dividend USD 1.13 per Share,6.78,
-Dividends,Data,USD,2022-03-25,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2022-06-24,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2022-09-23,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2022-12-16,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2022-03-15,ED,Cash Dividend USD 0.79 per Share,8.69,
-Dividends,Data,USD,2022-06-15,ED,Cash Dividend USD 0.79 per Share,8.69,
-Dividends,Data,USD,2022-09-15,ED,Cash Dividend USD 0.79 per Share,8.69,
-Dividends,Data,USD,2022-12-15,ED,Cash Dividend USD 0.79 per Share,8.69,
-Dividends,Data,USD,2022-01-31,EIX,Cash Dividend USD 0.70 per Share,6.30,
-Dividends,Data,USD,2022-04-29,EIX,Cash Dividend USD 0.70 per Share,6.30,
-Dividends,Data,USD,2022-07-29,EIX,Cash Dividend USD 0.70 per Share,6.30,
-Dividends,Data,USD,2022-10-31,EIX,Cash Dividend USD 0.70 per Share,6.30,
-Dividends,Data,USD,2022-02-10,EMR,Cash Dividend USD 0.515 per Share,6.18,
-Dividends,Data,USD,2022-05-10,EMR,Cash Dividend USD 0.515 per Share,6.18,
-Dividends,Data,USD,2022-08-10,EMR,Cash Dividend USD 0.515 per Share,6.18,
-Dividends,Data,USD,2022-11-10,EMR,Cash Dividend USD 0.52 per Share,6.24,
-Dividends,Data,Total,USD,,1056.48,1056.48,
-Withholding Tax,Header,Currency,Date,Symbol,Description,Amount,Code
-Withholding Tax,Data,USD,2022-03-30,DVN,US Tax Withholding,-18.10,
-Withholding Tax,Data,USD,2022-06-30,DVN,US Tax Withholding,-18.10,
-Withholding Tax,Data,USD,2022-09-30,DVN,US Tax Withholding,-22.09,
-Withholding Tax,Data,USD,2022-12-30,DVN,US Tax Withholding,-19.24,
-Withholding Tax,Data,USD,2022-03-10,CVX,US Tax Withholding,-1.28,
-Withholding Tax,Data,USD,2022-06-10,CVX,US Tax Withholding,-1.28,
-Withholding Tax,Data,USD,2022-09-09,CVX,US Tax Withholding,-1.28,
-Withholding Tax,Data,USD,2022-12-12,CVX,US Tax Withholding,-1.28,
-Withholding Tax,Data,USD,2022-01-27,BKE,US Tax Withholding,-40.68,
-Withholding Tax,Data,USD,2022-04-29,BKE,US Tax Withholding,-2.52,
-Withholding Tax,Data,USD,2022-07-29,BKE,US Tax Withholding,-2.52,
-Withholding Tax,Data,USD,2022-10-28,BKE,US Tax Withholding,-2.52,
-Withholding Tax,Data,USD,2022-04-01,KO,US Tax Withholding,-1.45,
-Withholding Tax,Data,USD,2022-07-01,KO,US Tax Withholding,-1.45,
-Withholding Tax,Data,USD,2022-10-03,KO,US Tax Withholding,-1.45,
-Withholding Tax,Data,USD,2022-12-15,KO,US Tax Withholding,-1.45,
-Withholding Tax,Data,USD,2022-03-08,JNJ,US Tax Withholding,-0.48,
-Withholding Tax,Data,USD,2022-06-07,JNJ,US Tax Withholding,-0.51,
-Withholding Tax,Data,USD,2022-09-06,JNJ,US Tax Withholding,-0.51,
-Withholding Tax,Data,USD,2022-12-06,JNJ,US Tax Withholding,-1.02,
-Withholding Tax,Data,USD,2022-03-25,KHC,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2022-06-24,KHC,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2022-09-23,KHC,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2022-12-16,KHC,US Tax Withholding,-0.84,
-Withholding Tax,Data,USD,2022-03-15,ED,US Tax Withholding,-1.30,
-Withholding Tax,Data,USD,2022-06-15,ED,US Tax Withholding,-1.30,
-Withholding Tax,Data,USD,2022-09-15,ED,US Tax Withholding,-1.30,
-Withholding Tax,Data,USD,2022-12-15,ED,US Tax Withholding,-1.30,
-Withholding Tax,Data,USD,2022-01-31,EIX,US Tax Withholding,-0.95,
-Withholding Tax,Data,USD,2022-04-29,EIX,US Tax Withholding,-0.95,
-Withholding Tax,Data,USD,2022-07-29,EIX,US Tax Withholding,-0.95,
-Withholding Tax,Data,USD,2022-10-31,EIX,US Tax Withholding,-0.95,
-Withholding Tax,Data,USD,2022-02-10,EMR,US Tax Withholding,-0.93,
-Withholding Tax,Data,USD,2022-05-10,EMR,US Tax Withholding,-0.93,
-Withholding Tax,Data,USD,2022-08-10,EMR,US Tax Withholding,-0.93,
-Withholding Tax,Data,USD,2022-11-10,EMR,US Tax Withholding,-0.94,
-Withholding Tax,Data,Total,USD,,-158.40,-158.40,
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2022-03-30,DVN(US25179M1036) Cash Dividend USD 1.27 per Share (Ordinary Dividend),120.65
+Dividends,Data,USD,2022-06-30,DVN(US25179M1036) Cash Dividend USD 1.27 per Share (Ordinary Dividend),120.65
+Dividends,Data,USD,2022-09-30,DVN(US25179M1036) Cash Dividend USD 1.55 per Share (Ordinary Dividend),147.25
+Dividends,Data,USD,2022-12-30,DVN(US25179M1036) Cash Dividend USD 1.35 per Share (Ordinary Dividend),128.25
+Dividends,Data,USD,2022-03-10,CVX(US1667641005) Cash Dividend USD 1.42 per Share (Ordinary Dividend),8.52
+Dividends,Data,USD,2022-06-10,CVX(US1667641005) Cash Dividend USD 1.42 per Share (Ordinary Dividend),8.52
+Dividends,Data,USD,2022-09-09,CVX(US1667641005) Cash Dividend USD 1.42 per Share (Ordinary Dividend),8.52
+Dividends,Data,USD,2022-12-12,CVX(US1667641005) Cash Dividend USD 1.42 per Share (Ordinary Dividend),8.52
+Dividends,Data,USD,2022-01-27,BKE(US1182301036) Special Cash Dividend USD 5.65 per Share (Ordinary Dividend),271.20
+Dividends,Data,USD,2022-04-29,BKE(US1182301036) Cash Dividend USD 0.35 per Share (Ordinary Dividend),16.80
+Dividends,Data,USD,2022-07-29,BKE(US1182301036) Cash Dividend USD 0.35 per Share (Ordinary Dividend),16.80
+Dividends,Data,USD,2022-10-28,BKE(US1182301036) Cash Dividend USD 0.35 per Share (Ordinary Dividend),16.80
+Dividends,Data,USD,2022-04-01,KO(US1912161007) Cash Dividend USD 0.44 per Share (Ordinary Dividend),9.68
+Dividends,Data,USD,2022-07-01,KO(US1912161007) Cash Dividend USD 0.44 per Share (Ordinary Dividend),9.68
+Dividends,Data,USD,2022-10-03,KO(US1912161007) Cash Dividend USD 0.44 per Share (Ordinary Dividend),9.68
+Dividends,Data,USD,2022-12-15,KO(US1912161007) Cash Dividend USD 0.44 per Share (Ordinary Dividend),9.68
+Dividends,Data,USD,2022-03-08,JNJ(US4781601046) Cash Dividend USD 1.06 per Share (Ordinary Dividend),3.18
+Dividends,Data,USD,2022-06-07,JNJ(US4781601046) Cash Dividend USD 1.13 per Share (Ordinary Dividend),3.39
+Dividends,Data,USD,2022-09-06,JNJ(US4781601046) Cash Dividend USD 1.13 per Share (Ordinary Dividend),3.39
+Dividends,Data,USD,2022-12-06,JNJ(US4781601046) Cash Dividend USD 1.13 per Share (Ordinary Dividend),6.78
+Dividends,Data,USD,2022-03-25,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2022-06-24,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2022-09-23,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2022-12-16,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2022-03-15,ED(US2091151041) Cash Dividend USD 0.79 per Share (Ordinary Dividend),8.69
+Dividends,Data,USD,2022-06-15,ED(US2091151041) Cash Dividend USD 0.79 per Share (Ordinary Dividend),8.69
+Dividends,Data,USD,2022-09-15,ED(US2091151041) Cash Dividend USD 0.79 per Share (Ordinary Dividend),8.69
+Dividends,Data,USD,2022-12-15,ED(US2091151041) Cash Dividend USD 0.79 per Share (Ordinary Dividend),8.69
+Dividends,Data,USD,2022-01-31,EIX(US2810201077) Cash Dividend USD 0.70 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2022-04-29,EIX(US2810201077) Cash Dividend USD 0.70 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2022-07-29,EIX(US2810201077) Cash Dividend USD 0.70 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2022-10-31,EIX(US2810201077) Cash Dividend USD 0.70 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2022-02-10,EMR(US2910111044) Cash Dividend USD 0.515 per Share (Ordinary Dividend),6.18
+Dividends,Data,USD,2022-05-10,EMR(US2910111044) Cash Dividend USD 0.515 per Share (Ordinary Dividend),6.18
+Dividends,Data,USD,2022-08-10,EMR(US2910111044) Cash Dividend USD 0.515 per Share (Ordinary Dividend),6.18
+Dividends,Data,USD,2022-11-10,EMR(US2910111044) Cash Dividend USD 0.52 per Share (Ordinary Dividend),6.24
+Dividends,Data,Total,,,1056.48
+Withholding Tax,Header,Currency,Date,Description,Amount
+Withholding Tax,Data,USD,2022-03-30,DVN(US25179M1036) US Tax Withholding,-18.10
+Withholding Tax,Data,USD,2022-06-30,DVN(US25179M1036) US Tax Withholding,-18.10
+Withholding Tax,Data,USD,2022-09-30,DVN(US25179M1036) US Tax Withholding,-22.09
+Withholding Tax,Data,USD,2022-12-30,DVN(US25179M1036) US Tax Withholding,-19.24
+Withholding Tax,Data,USD,2022-03-10,CVX(US1667641005) US Tax Withholding,-1.28
+Withholding Tax,Data,USD,2022-06-10,CVX(US1667641005) US Tax Withholding,-1.28
+Withholding Tax,Data,USD,2022-09-09,CVX(US1667641005) US Tax Withholding,-1.28
+Withholding Tax,Data,USD,2022-12-12,CVX(US1667641005) US Tax Withholding,-1.28
+Withholding Tax,Data,USD,2022-01-27,BKE(US1182301036) US Tax Withholding,-40.68
+Withholding Tax,Data,USD,2022-04-29,BKE(US1182301036) US Tax Withholding,-2.52
+Withholding Tax,Data,USD,2022-07-29,BKE(US1182301036) US Tax Withholding,-2.52
+Withholding Tax,Data,USD,2022-10-28,BKE(US1182301036) US Tax Withholding,-2.52
+Withholding Tax,Data,USD,2022-04-01,KO(US1912161007) US Tax Withholding,-1.45
+Withholding Tax,Data,USD,2022-07-01,KO(US1912161007) US Tax Withholding,-1.45
+Withholding Tax,Data,USD,2022-10-03,KO(US1912161007) US Tax Withholding,-1.45
+Withholding Tax,Data,USD,2022-12-15,KO(US1912161007) US Tax Withholding,-1.45
+Withholding Tax,Data,USD,2022-03-08,JNJ(US4781601046) US Tax Withholding,-0.48
+Withholding Tax,Data,USD,2022-06-07,JNJ(US4781601046) US Tax Withholding,-0.51
+Withholding Tax,Data,USD,2022-09-06,JNJ(US4781601046) US Tax Withholding,-0.51
+Withholding Tax,Data,USD,2022-12-06,JNJ(US4781601046) US Tax Withholding,-1.02
+Withholding Tax,Data,USD,2022-03-25,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2022-06-24,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2022-09-23,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2022-12-16,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2022-03-15,ED(US2091151041) US Tax Withholding,-1.30
+Withholding Tax,Data,USD,2022-06-15,ED(US2091151041) US Tax Withholding,-1.30
+Withholding Tax,Data,USD,2022-09-15,ED(US2091151041) US Tax Withholding,-1.30
+Withholding Tax,Data,USD,2022-12-15,ED(US2091151041) US Tax Withholding,-1.30
+Withholding Tax,Data,USD,2022-01-31,EIX(US2810201077) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2022-04-29,EIX(US2810201077) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2022-07-29,EIX(US2810201077) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2022-10-31,EIX(US2810201077) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2022-02-10,EMR(US2910111044) US Tax Withholding,-0.93
+Withholding Tax,Data,USD,2022-05-10,EMR(US2910111044) US Tax Withholding,-0.93
+Withholding Tax,Data,USD,2022-08-10,EMR(US2910111044) US Tax Withholding,-0.93
+Withholding Tax,Data,USD,2022-11-10,EMR(US2910111044) US Tax Withholding,-0.94
+Withholding Tax,Data,Total,,-158.40
 Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
 Financial Instrument Information,Data,Stocks,ABBV,ABBVIE INC,123456,US00287Y1091,,NYSE,1,COMMON,
 Financial Instrument Information,Data,Stocks,ADM,ARCHER-DANIELS-MIDLAND CO,234567,US0394831020,,NYSE,1,COMMON,

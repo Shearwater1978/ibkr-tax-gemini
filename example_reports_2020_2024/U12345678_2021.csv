@@ -155,59 +155,58 @@ Deposits & Withdrawals,Data,USD,2021-10-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,USD,2021-11-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,USD,2021-12-01,Wire Deposit,500.00
 Deposits & Withdrawals,Data,Total,,,6000.00
-Deposits & Withdrawals,Data,Total in USD,,,6000.00
-Dividends,Header,Currency,Date,Symbol,Description,Amount,Code
-Dividends,Data,USD,2021-02-16,ABBV,Cash Dividend USD 1.30 per Share,7.80,
-Dividends,Data,USD,2021-03-10,CVX,Cash Dividend USD 1.29 per Share,7.74,
-Dividends,Data,USD,2021-03-26,BAC,Cash Dividend USD 0.18 per Share,12.24,
-Dividends,Data,USD,2021-03-30,DVN,Cash Dividend USD 0.11 per Share,10.45,
-Dividends,Data,USD,2021-04-20,CSCO,Cash Dividend USD 0.37 per Share,4.81,
-Dividends,Data,USD,2021-06-10,CVX,Cash Dividend USD 1.34 per Share,8.04,
-Dividends,Data,USD,2021-06-30,DVN,Cash Dividend USD 0.34 per Share,32.30,
-Dividends,Data,USD,2021-09-10,CVX,Cash Dividend USD 1.34 per Share,8.04,
-Dividends,Data,USD,2021-09-24,FNF,Cash Dividend USD 0.36 per Share,25.56,
-Dividends,Data,USD,2021-09-30,DVN,Cash Dividend USD 0.49 per Share,46.55,
-Dividends,Data,USD,2021-10-27,CSCO,Cash Dividend USD 0.37 per Share,4.81,
-Dividends,Data,USD,2021-12-10,CVX,Cash Dividend USD 1.34 per Share,8.04,
-Dividends,Data,USD,2021-12-30,DVN,Cash Dividend USD 0.84 per Share,79.80,
-Dividends,Data,USD,2021-06-15,ED,Cash Dividend USD 0.775 per Share,8.52,
-Dividends,Data,USD,2021-04-30,EIX,Cash Dividend USD 0.66 per Share,5.94,
-Dividends,Data,USD,2021-05-10,EMR,Cash Dividend USD 0.50 per Share,6.00,
-Dividends,Data,USD,2021-06-01,ETR,Cash Dividend USD 0.95 per Share,4.75,
-Dividends,Data,USD,2021-07-15,FITB,Cash Dividend USD 0.27 per Share,3.24,
-Dividends,Data,USD,2021-09-28,GLW,Cash Dividend USD 0.24 per Share,3.12,
-Dividends,Data,USD,2021-10-01,GPC,Cash Dividend USD 0.815 per Share,3.26,
-Dividends,Data,USD,2021-11-15,HRL,Cash Dividend USD 0.245 per Share,6.12,
-Dividends,Data,USD,2021-12-07,JNJ,Cash Dividend USD 1.06 per Share,3.18,
-Dividends,Data,USD,2021-12-17,KHC,Cash Dividend USD 0.40 per Share,5.60,
-Dividends,Data,USD,2021-03-12,BAC,Cash Dividend USD 0.18 per Share,12.24,
-Dividends,Data,USD,2021-07-06,BBY,Cash Dividend USD 0.70 per Share,4.20,
-Dividends,Data,USD,2021-01-11,BEN,Cash Dividend USD 0.28 per Share,6.72,
-Dividends,Data,USD,2021-04-12,BEN,Cash Dividend USD 0.28 per Share,6.72,
-Dividends,Data,USD,2021-07-12,BEN,Cash Dividend USD 0.28 per Share,6.72,
-Dividends,Data,USD,2021-10-11,BEN,Cash Dividend USD 0.28 per Share,6.72,
-Dividends,Data,USD,2021-01-28,BKE,Cash Dividend USD 0.30 per Share,14.40,
-Dividends,Data,USD,2021-04-28,BKE,Cash Dividend USD 0.33 per Share,15.84,
-Dividends,Data,USD,2021-07-28,BKE,Cash Dividend USD 0.33 per Share,15.84,
-Dividends,Data,USD,2021-10-28,BKE,Cash Dividend USD 0.33 per Share,15.84,
-Dividends,Data,USD,2021-12-29,BKE,Special Cash Dividend USD 5.65 per Share,271.20,
-Dividends,Data,Total,USD,,523.64,523.64,
-Withholding Tax,Header,Currency,Date,Symbol,Description,Amount,Code
-Withholding Tax,Data,USD,2021-12-30,DVN,US Tax Withholding,-11.97,
-Withholding Tax,Data,USD,2021-02-16,ABBV,US Tax Withholding,-1.17,
-Withholding Tax,Data,USD,2021-03-10,CVX,US Tax Withholding,-1.16,
-Withholding Tax,Data,USD,2021-03-26,BAC,US Tax Withholding,-1.84,
-Withholding Tax,Data,USD,2021-03-30,DVN,US Tax Withholding,-1.57,
-Withholding Tax,Data,USD,2021-04-20,CSCO,US Tax Withholding,-0.72,
-Withholding Tax,Data,USD,2021-06-10,CVX,US Tax Withholding,-1.21,
-Withholding Tax,Data,USD,2021-06-30,DVN,US Tax Withholding,-4.85,
-Withholding Tax,Data,USD,2021-09-10,CVX,US Tax Withholding,-1.21,
-Withholding Tax,Data,USD,2021-09-24,FNF,US Tax Withholding,-3.83,
-Withholding Tax,Data,USD,2021-09-30,DVN,US Tax Withholding,-6.98,
-Withholding Tax,Data,USD,2021-10-27,CSCO,US Tax Withholding,-0.72,
-Withholding Tax,Data,USD,2021-12-10,CVX,US Tax Withholding,-1.21,
-Withholding Tax,Data,USD,2021-12-29,BKE,US Tax Withholding,-40.68,
-Withholding Tax,Data,Total,USD,,-78.40,-78.40,
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2021-02-16,ABBV(US00287Y1091) Cash Dividend USD 1.30 per Share (Ordinary Dividend),7.80
+Dividends,Data,USD,2021-03-10,CVX(US1667641005) Cash Dividend USD 1.29 per Share (Ordinary Dividend),7.74
+Dividends,Data,USD,2021-03-26,BAC(US0605051046) Cash Dividend USD 0.18 per Share (Ordinary Dividend),12.24
+Dividends,Data,USD,2021-03-30,DVN(US25179M1036) Cash Dividend USD 0.11 per Share (Ordinary Dividend),10.45
+Dividends,Data,USD,2021-04-20,CSCO(US17275R1023) Cash Dividend USD 0.37 per Share (Ordinary Dividend),4.81
+Dividends,Data,USD,2021-06-10,CVX(US1667641005) Cash Dividend USD 1.34 per Share (Ordinary Dividend),8.04
+Dividends,Data,USD,2021-06-30,DVN(US25179M1036) Cash Dividend USD 0.34 per Share (Ordinary Dividend),32.30
+Dividends,Data,USD,2021-09-10,CVX(US1667641005) Cash Dividend USD 1.34 per Share (Ordinary Dividend),8.04
+Dividends,Data,USD,2021-09-24,FNF(US31620R3030) Cash Dividend USD 0.36 per Share (Ordinary Dividend),25.56
+Dividends,Data,USD,2021-09-30,DVN(US25179M1036) Cash Dividend USD 0.49 per Share (Ordinary Dividend),46.55
+Dividends,Data,USD,2021-10-27,CSCO(US17275R1023) Cash Dividend USD 0.37 per Share (Ordinary Dividend),4.81
+Dividends,Data,USD,2021-12-10,CVX(US1667641005) Cash Dividend USD 1.34 per Share (Ordinary Dividend),8.04
+Dividends,Data,USD,2021-12-30,DVN(US25179M1036) Cash Dividend USD 0.84 per Share (Ordinary Dividend),79.80
+Dividends,Data,USD,2021-06-15,ED(US2091151041) Cash Dividend USD 0.775 per Share (Ordinary Dividend),8.52
+Dividends,Data,USD,2021-04-30,EIX(US2810201077) Cash Dividend USD 0.66 per Share (Ordinary Dividend),5.94
+Dividends,Data,USD,2021-05-10,EMR(US2910111044) Cash Dividend USD 0.50 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2021-06-01,ETR(US29364G1031) Cash Dividend USD 0.95 per Share (Ordinary Dividend),4.75
+Dividends,Data,USD,2021-07-15,FITB(US3167731005) Cash Dividend USD 0.27 per Share (Ordinary Dividend),3.24
+Dividends,Data,USD,2021-09-28,GLW(US2193501051) Cash Dividend USD 0.24 per Share (Ordinary Dividend),3.12
+Dividends,Data,USD,2021-10-01,GPC(US3724601055) Cash Dividend USD 0.815 per Share (Ordinary Dividend),3.26
+Dividends,Data,USD,2021-11-15,HRL(US4404521001) Cash Dividend USD 0.245 per Share (Ordinary Dividend),6.12
+Dividends,Data,USD,2021-12-07,JNJ(US4781601046) Cash Dividend USD 1.06 per Share (Ordinary Dividend),3.18
+Dividends,Data,USD,2021-12-17,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2021-03-12,BAC(US0605051046) Cash Dividend USD 0.18 per Share (Ordinary Dividend),12.24
+Dividends,Data,USD,2021-07-06,BBY(US0865161014) Cash Dividend USD 0.70 per Share (Ordinary Dividend),4.20
+Dividends,Data,USD,2021-01-11,BEN(US3546131018) Cash Dividend USD 0.28 per Share (Ordinary Dividend),6.72
+Dividends,Data,USD,2021-04-12,BEN(US3546131018) Cash Dividend USD 0.28 per Share (Ordinary Dividend),6.72
+Dividends,Data,USD,2021-07-12,BEN(US3546131018) Cash Dividend USD 0.28 per Share (Ordinary Dividend),6.72
+Dividends,Data,USD,2021-10-11,BEN(US3546131018) Cash Dividend USD 0.28 per Share (Ordinary Dividend),6.72
+Dividends,Data,USD,2021-01-28,BKE(US1182301036) Cash Dividend USD 0.30 per Share (Ordinary Dividend),14.40
+Dividends,Data,USD,2021-04-28,BKE(US1182301036) Cash Dividend USD 0.33 per Share (Ordinary Dividend),15.84
+Dividends,Data,USD,2021-07-28,BKE(US1182301036) Cash Dividend USD 0.33 per Share (Ordinary Dividend),15.84
+Dividends,Data,USD,2021-10-28,BKE(US1182301036) Cash Dividend USD 0.33 per Share (Ordinary Dividend),15.84
+Dividends,Data,USD,2021-12-29,BKE(US1182301036) Special Cash Dividend USD 5.65 per Share (Ordinary Dividend),271.20
+Dividends,Data,Total,,,523.64
+Withholding Tax,Header,Currency,Date,Description,Amount
+Withholding Tax,Data,USD,2021-12-30,DVN(US25179M1036) US Tax Withholding,-11.97
+Withholding Tax,Data,USD,2021-02-16,ABBV(US00287Y1091) US Tax Withholding,-1.17
+Withholding Tax,Data,USD,2021-03-10,CVX(US1667641005) US Tax Withholding,-1.16
+Withholding Tax,Data,USD,2021-03-26,BAC(US0605051046) US Tax Withholding,-1.84
+Withholding Tax,Data,USD,2021-03-30,DVN(US25179M1036) US Tax Withholding,-1.57
+Withholding Tax,Data,USD,2021-04-20,CSCO(US17275R1023) US Tax Withholding,-0.72
+Withholding Tax,Data,USD,2021-06-10,CVX(US1667641005) US Tax Withholding,-1.21
+Withholding Tax,Data,USD,2021-06-30,DVN(US25179M1036) US Tax Withholding,-4.85
+Withholding Tax,Data,USD,2021-09-10,CVX(US1667641005) US Tax Withholding,-1.21
+Withholding Tax,Data,USD,2021-09-24,FNF(US31620R3030) US Tax Withholding,-3.83
+Withholding Tax,Data,USD,2021-09-30,DVN(US25179M1036) US Tax Withholding,-6.98
+Withholding Tax,Data,USD,2021-10-27,CSCO(US17275R1023) US Tax Withholding,-0.72
+Withholding Tax,Data,USD,2021-12-10,CVX(US1667641005) US Tax Withholding,-1.21
+Withholding Tax,Data,USD,2021-12-29,BKE(US1182301036) US Tax Withholding,-40.68
+Withholding Tax,Data,Total,,-78.40
 Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
 Financial Instrument Information,Data,Stocks,ABBV,ABBVIE INC,123456,US00287Y1091,,NYSE,1,COMMON,
 Financial Instrument Information,Data,Stocks,BAC,BANK OF AMERICA CORP,12100,US0605051046,,NYSE,1,COMMON,

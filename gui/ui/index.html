@@ -140,29 +140,44 @@
             loadYears();
         };
 
-        async function loadYears() {
-            try {
-                const res = await fetch(`${API_URL}/years`);
-                const data = await res.json();
-                const select = document.getElementById('yearSelect');
-                select.innerHTML = '';
-                
-                if(data.years && data.years.length > 0) {
-                    data.years.forEach(y => {
+        async function loadYears(retries = 5, delay = 1000) {
+            const select = document.getElementById('yearSelect');
+            
+            for (let i = 0; i < retries; i++) {
+                try {
+                    statusEl.innerText = i > 0 ? `Connecting to backend (Attempt ${i+1})...` : "";
+                    
+                    const res = await fetch(`${API_URL}/years`);
+                    if (!res.ok) throw new Error('Backend not ready');
+                    
+                    const data = await res.json();
+                    select.innerHTML = '';
+                    
+                    if (data.years && data.years.length > 0) {
+                        data.years.forEach(y => {
+                            const opt = document.createElement('option');
+                            opt.value = y;
+                            opt.innerText = y;
+                            select.appendChild(opt);
+                        });
+                        select.value = data.years[0];
+                        statusEl.innerText = ""; // Clear status on success
+                    } else {
                         const opt = document.createElement('option');
-                        opt.value = y;
-                        opt.innerText = y;
+                        opt.innerText = "No Data found";
                         select.appendChild(opt);
-                    });
-                    select.value = data.years[0];
-                } else {
-                    const opt = document.createElement('option');
-                    opt.innerText = "No Data found";
-                    select.appendChild(opt);
+                    }
+                    return; // Success! Exit the loop
+                    
+                } catch (e) {
+                    console.warn(`Connection attempt ${i + 1} failed. Retrying...`);
+                    if (i === retries - 1) {
+                        statusEl.innerText = "Error connecting to Backend. Please try to Re-Import.";
+                        statusEl.className = "status-error";
+                    }
+                    // Wait before next retry
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
-            } catch (e) {
-                statusEl.innerText = "Error connecting to Backend.";
-                statusEl.className = "status-error";
             }
         }
 

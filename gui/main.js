@@ -20,12 +20,21 @@ function createWindow() {
 }
 
 function startPythonBackend() {
-  // Запускаем python gui/backend/api.py
-  // В продакшене тут будет путь к скомпилированному .exe
+  const path = require('path');
+  
+  // Путь к самому скрипту бэкенда
   const scriptPath = path.join(__dirname, 'backend', 'api.py');
   
-  console.log("Starting Python Backend...");
-  pythonProcess = spawn('python', [scriptPath]);
+  // Корень проекта (поднимаемся на один уровень выше из папки gui)
+  const projectRoot = path.join(__dirname, '..'); 
+
+  console.log("Starting Python Backend from root:", projectRoot);
+
+  // ЗАПУСК: Добавляем { cwd: projectRoot }, чтобы Python "думал", 
+  // что он запущен в корне, как и main.py
+  pythonProcess = spawn('python', [scriptPath], { 
+    cwd: projectRoot 
+  });
 
   pythonProcess.stdout.on('data', (data) => {
     console.log(`Python: ${data}`);
