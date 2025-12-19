@@ -1,0 +1,177 @@
+Statement,Header,Field Name,Field Value
+Statement,Data,BrokerName,Interactive Brokers Central Europe Zrt.
+Statement,Data,BrokerAddress,"Madach Imre ut 13-14, Floor 5, Budapest, 1075, Hungary"
+Statement,Data,Title,Activity Statement
+Statement,Data,Period,"January 1, 2020 - December 31, 2020"
+Statement,Data,WhenGenerated,"2025-12-02, 10:00:00 EST"
+Account Information,Header,Field Name,Field Value
+Account Information,Data,Name,Demo User
+Account Information,Data,Account,U12345678
+Account Information,Data,Account Type,Individual
+Account Information,Data,Customer Type,Individual
+Account Information,Data,Account Capabilities,Cash
+Account Information,Data,Base Currency,USD
+Net Asset Value,Header,Asset Class,Prior Total,Current Long,Current Short,Current Total,Change
+Net Asset Value,Data,Cash,0,296.50,0,296.50,296.50
+Net Asset Value,Data,Stock,0,7685.40,0,7685.40,7685.40
+Net Asset Value,Data,Dividend Accruals,0,0.00,0,0.00,0.00
+Net Asset Value,Data,Total,0,7981.90,0,7981.90,7981.90
+Net Asset Value,Header,Time Weighted Rate of Return
+Net Asset Value,Data,15.40%
+Change in NAV,Header,Field Name,Field Value
+Change in NAV,Data,Starting Value,0.00
+Change in NAV,Data,Mark-to-Market,1134.90
+Change in NAV,Data,Deposits & Withdrawals,6500.00
+Change in NAV,Data,Dividends,365.40
+Change in NAV,Data,Withholding Tax,-54.80
+Change in NAV,Data,Commissions,-16.00
+Change in NAV,Data,Ending Value,7981.90
+Mark-to-Market Performance Summary,Header,Asset Category,Symbol,Prior Quantity,Current Quantity,Prior Price,Current Price,Mark-to-Market P/L Position,Mark-to-Market P/L Transaction,Mark-to-Market P/L Commissions,Mark-to-Market P/L Other,Mark-to-Market P/L Total,Code
+Mark-to-Market Performance Summary,Data,Stocks,AAPL,0,0,--,132.69,0.00,-211.00,-2.00,0,-213.00,
+Mark-to-Market Performance Summary,Data,Stocks,ABBV,0,6,--,107.15,78.90,0.00,-1.00,0,77.90,
+Mark-to-Market Performance Summary,Data,Stocks,ADM,0,0,--,50.41,0.00,194.00,-2.00,0,192.00,
+Mark-to-Market Performance Summary,Data,Stocks,AFL,0,0,--,44.67,0.00,20.00,-2.00,0,18.00,
+Mark-to-Market Performance Summary,Data,Stocks,ALLY,0,0,--,35.61,0.00,559.00,-2.00,0,557.00,
+Mark-to-Market Performance Summary,Data,Stocks,BAC,0,68,--,30.31,395.08,0.00,-1.00,0,394.08,
+Mark-to-Market Performance Summary,Data,Stocks,BBY,0,6,--,99.79,82.74,0.00,-1.00,0,81.74,
+Mark-to-Market Performance Summary,Data,Stocks,BEN,0,24,--,24.99,107.76,0.00,-1.00,0,106.76,
+Mark-to-Market Performance Summary,Data,Stocks,BKE,0,48,--,28.84,376.32,0.00,-1.00,0,375.32,
+Mark-to-Market Performance Summary,Data,Stocks,CSCO,0,13,--,44.75,68.25,0.00,-1.00,0,67.25,
+Mark-to-Market Performance Summary,Data,Stocks,CVX,0,6,--,84.45,-3.30,0.00,-1.00,0,-4.30,
+Mark-to-Market Performance Summary,Data,Stocks,DVN,0,95,--,15.81,-65.55,0.00,-1.00,0,-66.55,
+Mark-to-Market Performance Summary,Data,Total,,,,,,1040.20,562.00,-16.00,0,1586.20,
+Realized & Unrealized Performance Summary,Header,Asset Category,Symbol,Cost Adj.,Realized S/T Profit,Realized S/T Loss,Realized L/T Profit,Realized L/T Loss,Realized Total,Unrealized S/T Profit,Unrealized S/T Loss,Unrealized L/T Profit,Unrealized L/T Loss,Unrealized Total,Total,Code
+Realized & Unrealized Performance Summary,Data,Stocks,AAPL,0,0,-211.00,0,0,-211.00,0,0,0,0,0.00,-211.00,
+Realized & Unrealized Performance Summary,Data,Stocks,ABBV,0,0,0,0,0,0.00,78.90,0,0,0,78.90,78.90,
+Realized & Unrealized Performance Summary,Data,Stocks,ADM,0,194.00,0,0,0,194.00,0,0,0,0,0.00,194.00,
+Realized & Unrealized Performance Summary,Data,Stocks,AFL,0,20.00,0,0,0,20.00,0,0,0,0,0.00,20.00,
+Realized & Unrealized Performance Summary,Data,Stocks,ALLY,0,559.00,0,0,0,559.00,0,0,0,0,0.00,559.00,
+Realized & Unrealized Performance Summary,Data,Stocks,BAC,0,0,0,0,0,0.00,395.08,0,0,0,395.08,395.08,
+Realized & Unrealized Performance Summary,Data,Stocks,BBY,0,0,0,0,0,0.00,82.74,0,0,0,82.74,82.74,
+Realized & Unrealized Performance Summary,Data,Stocks,BEN,0,0,0,0,0,0.00,107.76,0,0,0,107.76,107.76,
+Realized & Unrealized Performance Summary,Data,Stocks,BKE,0,0,0,0,0,0.00,376.32,0,0,0,376.32,376.32,
+Realized & Unrealized Performance Summary,Data,Stocks,CSCO,0,0,0,0,0,0.00,68.25,0,0,0,68.25,68.25,
+Realized & Unrealized Performance Summary,Data,Stocks,CVX,0,0,0,0,0,0.00,0,-3.30,0,0,-3.30,-3.30,
+Realized & Unrealized Performance Summary,Data,Stocks,DVN,0,0,0,0,0,0.00,0,-65.55,0,0,-65.55,-65.55,
+Realized & Unrealized Performance Summary,Data,Total,,0,773.00,-211.00,0,0,562.00,1109.05,-68.85,0,0,1040.20,1602.20,
+Cash Report,Header,Currency Summary,Currency,Total,
+Cash Report,Data,Starting Cash,Base Currency Summary,0.00,
+Cash Report,Data,Commissions,Base Currency Summary,-16.00,
+Cash Report,Data,Deposits,Base Currency Summary,6500.00,
+Cash Report,Data,Dividends,Base Currency Summary,365.40,
+Cash Report,Data,Withholding Tax,Base Currency Summary,-54.80,
+Cash Report,Data,Trades (Sales),Base Currency Summary,2443.00,
+Cash Report,Data,Trades (Purchase),Base Currency Summary,-8941.10,
+Cash Report,Data,Ending Cash,Base Currency Summary,296.50,
+Cash Report,Data,Ending Settled Cash,Base Currency Summary,296.50,
+Cash Report,Data,Starting Cash,USD,0.00,
+Cash Report,Data,Commissions,USD,-16.00,
+Cash Report,Data,Deposits,USD,6500.00,
+Cash Report,Data,Dividends,USD,365.40,
+Cash Report,Data,Withholding Tax,USD,-54.80,
+Cash Report,Data,Trades (Sales),USD,2443.00,
+Cash Report,Data,Trades (Purchase),USD,-8941.10,
+Cash Report,Data,Ending Cash,USD,296.50,
+Cash Report,Data,Ending Settled Cash,USD,296.50,
+Open Positions,Header,DataDiscriminator,Asset Category,Currency,Symbol,Quantity,Mult,Cost Price,Cost Basis,Close Price,Value,Unrealized P/L,Code
+Open Positions,Data,Summary,Stocks,USD,ABBV,6,1,94.00,564.00,107.15,642.90,78.90,
+Open Positions,Data,Summary,Stocks,USD,BAC,68,1,24.50,1666.00,30.31,2061.08,395.08,
+Open Positions,Data,Summary,Stocks,USD,BBY,6,1,86.00,516.00,99.79,598.74,82.74,
+Open Positions,Data,Summary,Stocks,USD,BEN,24,1,20.50,492.00,24.99,599.76,107.76,
+Open Positions,Data,Summary,Stocks,USD,BKE,48,1,21.00,1008.00,28.84,1384.32,376.32,
+Open Positions,Data,Summary,Stocks,USD,CSCO,13,1,39.50,513.50,44.75,581.75,68.25,
+Open Positions,Data,Summary,Stocks,USD,CVX,6,1,85.00,510.00,84.45,506.70,-3.30,
+Open Positions,Data,Summary,Stocks,USD,DVN,95,1,16.50,1567.50,15.81,1501.95,-65.55,
+Open Positions,Total,,Stocks,USD,,,,,7685.40,1040.20,
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code
+Trades,Data,Order,Stocks,USD,AAPL,"2020-01-15, 10:30:00",12,77.50,77.45,-930.00,-1.00,931.00,0.00,0.60,O
+Trades,Data,Order,Stocks,USD,AAPL,"2020-03-16, 14:00:00",-12,60.00,60.10,720.00,-1.00,-931.00,-211.00,-1.20,C
+Trades,SubTotal,,Stocks,USD,AAPL,,0,,,210.00,-2.00,0.00,-211.00,-0.60,
+Trades,Data,Order,Stocks,USD,ABBV,"2020-02-14, 11:00:00",6,94.00,94.05,-564.00,-1.00,565.00,0.00,0.30,O
+Trades,SubTotal,,Stocks,USD,ABBV,,6,,,-564.00,-1.00,565.00,0.00,0.30,
+Trades,Data,Order,Stocks,USD,ADM,"2020-03-16, 14:05:00",30,34.00,33.95,-1020.00,-1.00,1021.00,0.00,-1.50,O
+Trades,Data,Order,Stocks,USD,ADM,"2020-06-15, 11:00:00",-30,40.50,40.40,1215.00,-1.00,-1021.00,194.00,3.00,C
+Trades,SubTotal,,Stocks,USD,ADM,,0,,,195.00,-2.00,0.00,194.00,1.50,
+Trades,Data,Order,Stocks,USD,AFL,"2020-04-15, 10:00:00",14,35.50,35.40,-497.00,-1.00,498.00,0.00,-1.40,O
+Trades,Data,Order,Stocks,USD,AFL,"2020-09-15, 15:00:00",-14,37.00,37.05,518.00,-1.00,-498.00,20.00,0.70,C
+Trades,SubTotal,,Stocks,USD,AFL,,0,,,21.00,-2.00,0.00,20.00,-0.70,
+Trades,Data,Order,Stocks,USD,ALLY,"2020-05-15, 10:30:00",32,15.50,15.45,-496.00,-1.00,497.00,0.00,-1.60,O
+Trades,Data,Order,Stocks,USD,ALLY,"2020-12-15, 14:00:00",-32,33.00,32.90,1056.00,-1.00,-497.00,559.00,-3.20,C
+Trades,SubTotal,,Stocks,USD,ALLY,,0,,,560.00,-2.00,0.00,559.00,-4.80,
+Trades,Data,Order,Stocks,USD,BAC,"2020-06-15, 11:05:00",68,24.50,24.55,-1666.00,-1.00,1667.00,0.00,3.40,O
+Trades,SubTotal,,Stocks,USD,BAC,,68,,,-1666.00,-1.00,1667.00,0.00,3.40,
+Trades,Data,Order,Stocks,USD,BBY,"2020-07-15, 12:00:00",6,86.00,85.90,-516.00,-1.00,517.00,0.00,-0.60,O
+Trades,SubTotal,,Stocks,USD,BBY,,6,,,-516.00,-1.00,517.00,0.00,-0.60,
+Trades,Data,Order,Stocks,USD,BEN,"2020-08-14, 10:00:00",24,20.50,20.45,-492.00,-1.00,493.00,0.00,-1.20,O
+Trades,SubTotal,,Stocks,USD,BEN,,24,,,-492.00,-1.00,493.00,0.00,-1.20,
+Trades,Data,Order,Stocks,USD,BKE,"2020-09-15, 15:05:00",48,21.00,21.05,-1008.00,-1.00,1009.00,0.00,2.40,O
+Trades,SubTotal,,Stocks,USD,BKE,,48,,,-1008.00,-1.00,1009.00,0.00,2.40,
+Trades,Data,Order,Stocks,USD,CSCO,"2020-10-15, 10:00:00",13,39.50,39.45,-513.50,-1.00,514.50,0.00,-0.65,O
+Trades,SubTotal,,Stocks,USD,CSCO,,13,,,-513.50,-1.00,514.50,0.00,-0.65,
+Trades,Data,Order,Stocks,USD,CVX,"2020-11-16, 11:00:00",6,85.00,85.10,-510.00,-1.00,511.00,0.00,0.60,O
+Trades,SubTotal,,Stocks,USD,CVX,,6,,,-510.00,-1.00,511.00,0.00,0.60,
+Trades,Data,Order,Stocks,USD,DVN,"2020-12-15, 14:05:00",95,16.50,16.45,-1567.50,-1.00,1568.50,0.00,-4.75,O
+Trades,SubTotal,,Stocks,USD,DVN,,95,,,-1567.50,-1.00,1568.50,0.00,-4.75,
+Trades,Total,,Stocks,USD,,,,,,-6498.10,-16.00,6839.00,562.00,-5.05,
+Deposits & Withdrawals,Header,Currency,Settle Date,Description,Amount
+Deposits & Withdrawals,Data,USD,2020-01-01,Wire Deposit,1000.00
+Deposits & Withdrawals,Data,USD,2020-02-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-03-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-04-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-05-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-06-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-07-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-08-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-09-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-10-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-11-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2020-12-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,Total,,,6500.00
+Deposits & Withdrawals,Data,Total in USD,,,6500.00
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2020-02-14,AAPL(US0378331005) Cash Dividend USD 0.77 per Share (Ordinary Dividend),9.24
+Dividends,Data,USD,2020-05-15,ABBV(US00287Y1091) Cash Dividend USD 1.18 per Share (Ordinary Dividend),7.08
+Dividends,Data,USD,2020-06-01,AFL(US0010551028) Cash Dividend USD 0.28 per Share (Ordinary Dividend),3.92
+Dividends,Data,USD,2020-08-14,ABBV(US00287Y1091) Cash Dividend USD 1.18 per Share (Ordinary Dividend),7.08
+Dividends,Data,USD,2020-09-01,AFL(US0010551028) Cash Dividend USD 0.28 per Share (Ordinary Dividend),3.92
+Dividends,Data,USD,2020-09-25,BAC(US0605051046) Cash Dividend USD 0.18 per Share (Ordinary Dividend),12.24
+Dividends,Data,USD,2020-10-06,BBY(US0865161014) Cash Dividend USD 0.55 per Share (Ordinary Dividend),3.30
+Dividends,Data,USD,2020-10-09,BEN(US3546131018) Cash Dividend USD 0.27 per Share (Ordinary Dividend),6.48
+Dividends,Data,USD,2020-11-16,ABBV(US00287Y1091) Cash Dividend USD 1.18 per Share (Ordinary Dividend),7.08
+Dividends,Data,USD,2020-12-10,CVX(US1667641005) Cash Dividend USD 1.29 per Share (Ordinary Dividend),7.74
+Dividends,Data,USD,2020-12-24,BAC(US0605051046) Cash Dividend USD 0.18 per Share (Ordinary Dividend),12.24
+Dividends,Data,Total,,,365.40
+Withholding Tax,Header,Currency,Date,Description,Amount
+Withholding Tax,Data,USD,2020-02-14,AAPL(US0378331005) US Tax Withholding,-1.39
+Withholding Tax,Data,USD,2020-05-15,ABBV(US00287Y1091) US Tax Withholding,-1.06
+Withholding Tax,Data,USD,2020-06-01,AFL(US0010551028) US Tax Withholding,-0.59
+Withholding Tax,Data,USD,2020-08-14,ABBV(US00287Y1091) US Tax Withholding,-1.06
+Withholding Tax,Data,USD,2020-09-01,AFL(US0010551028) US Tax Withholding,-0.59
+Withholding Tax,Data,USD,2020-09-25,BAC(US0605051046) US Tax Withholding,-1.84
+Withholding Tax,Data,USD,2020-10-06,BBY(US0865161014) US Tax Withholding,-0.50
+Withholding Tax,Data,USD,2020-10-09,BEN(US3546131018) US Tax Withholding,-0.97
+Withholding Tax,Data,USD,2020-11-16,ABBV(US00287Y1091) US Tax Withholding,-1.06
+Withholding Tax,Data,USD,2020-12-10,CVX(US1667641005) US Tax Withholding,-1.16
+Withholding Tax,Data,USD,2020-12-24,BAC(US0605051046) US Tax Withholding,-1.84
+Withholding Tax,Data,Total,,-54.80
+Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
+Financial Instrument Information,Data,Stocks,AAPL,APPLE INC,265598,US0378331005,,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,ABBV,ABBVIE INC,123456,US00287Y1091,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,ADM,ARCHER-DANIELS-MIDLAND CO,234567,US0394831020,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,AFL,AFLAC INC,4227,US0010551028,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,ALLY,ALLY FINANCIAL INC,345678,US02005N1000,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BAC,BANK OF AMERICA CORP,12100,US0605051046,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BBY,BEST BUY CO INC,456789,US0865161014,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BEN,FRANKLIN RESOURCES INC,567890,US3546131018,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BKE,BUCKLE INC/THE,678901,US1182301036,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,CSCO,CISCO SYSTEMS INC,4309,US17275R1023,,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,CVX,CHEVRON CORP,890123,US1667641005,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,DVN,DEVON ENERGY CORP,901234,US25179M1036,,NYSE,1,COMMON,
+Codes,Header,Code,Meaning,Code (Cont.),Meaning (Cont.)
+Codes,Data,O,Opening Trade,,
+Codes,Data,C,Closing Trade,,
+Codes,Data,Po,Interest or Dividend Accrual Posting,,
+Codes,Data,T,Transfer,,
+Notes/Legal Notes,Header,Type,Note
+Notes/Legal Notes,Data,Notes,"Stock exchange transactions generally settle on the trade date plus one business day (T+1)..."
+Notes/Legal Notes,Data,Legal Notes,"Interactive Brokers Central Europe Zrt. is regulated by the MNB."
