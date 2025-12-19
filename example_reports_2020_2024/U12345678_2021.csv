@@ -1,0 +1,238 @@
+Statement,Header,Field Name,Field Value
+Statement,Data,BrokerName,Interactive Brokers Central Europe Zrt.
+Statement,Data,BrokerAddress,"Madach Imre ut 13-14, Floor 5, Budapest, 1075, Hungary"
+Statement,Data,Title,Activity Statement
+Statement,Data,Period,"January 1, 2021 - December 31, 2021"
+Statement,Data,WhenGenerated,"2025-12-02, 10:05:00 EST"
+Account Information,Header,Field Name,Field Value
+Account Information,Data,Name,Demo User
+Account Information,Data,Account,U12345678
+Account Information,Data,Account Type,Individual
+Account Information,Data,Customer Type,Individual
+Account Information,Data,Account Capabilities,Cash
+Account Information,Data,Base Currency,USD
+Net Asset Value,Header,Asset Class,Prior Total,Current Long,Current Short,Current Total,Change
+Net Asset Value,Data,Cash,296.50,473.34,0,473.34,176.84
+Net Asset Value,Data,Stock,7685.40,16694.40,0,16694.40,9009.00
+Net Asset Value,Data,Dividend Accruals,0.00,0.00,0,0.00,0.00
+Net Asset Value,Data,Total,7981.90,17167.74,0,17167.74,9185.84
+Net Asset Value,Header,Time Weighted Rate of Return
+Net Asset Value,Data,38.45%
+Change in NAV,Header,Field Name,Field Value
+Change in NAV,Data,Starting Value,7981.90
+Change in NAV,Data,Mark-to-Market,2735.60
+Change in NAV,Data,Deposits & Withdrawals,6000.00
+Change in NAV,Data,Dividends,523.64
+Change in NAV,Data,Withholding Tax,-78.40
+Change in NAV,Data,Commissions,-16.00
+Change in NAV,Data,Ending Value,17167.74
+Mark-to-Market Performance Summary,Header,Asset Category,Symbol,Prior Quantity,Current Quantity,Prior Price,Current Price,Mark-to-Market P/L Position,Mark-to-Market P/L Transaction,Mark-to-Market P/L Commissions,Mark-to-Market P/L Other,Mark-to-Market P/L Total,Code
+Mark-to-Market Performance Summary,Data,Stocks,ABBV,6,0,107.15,--,-6.90,0.00,-1.00,0,-7.90,
+Mark-to-Market Performance Summary,Data,Stocks,BAC,68,0,30.31,--,658.92,0.00,-1.00,0,657.92,
+Mark-to-Market Performance Summary,Data,Stocks,BBY,6,0,99.79,--,49.26,0.00,-1.00,0,48.26,
+Mark-to-Market Performance Summary,Data,Stocks,BEN,24,0,24.99,--,192.24,0.00,-1.00,0,191.24,
+Mark-to-Market Performance Summary,Data,Stocks,BKE,48,48,28.84,42.50,655.68,0.00,0.00,0,655.68,
+Mark-to-Market Performance Summary,Data,Stocks,CSCO,13,13,44.75,63.37,242.06,0.00,0.00,0,242.06,
+Mark-to-Market Performance Summary,Data,Stocks,CVX,6,6,84.45,117.35,197.40,0.00,0.00,0,197.40,
+Mark-to-Market Performance Summary,Data,Stocks,DVN,95,95,15.81,44.05,2682.80,0.00,0.00,0,2682.80,
+Mark-to-Market Performance Summary,Data,Stocks,ED,0,11,--,85.32,0.00,146.52,-1.00,0,145.52,
+Mark-to-Market Performance Summary,Data,Stocks,EIX,0,9,--,68.25,0.00,110.25,-1.00,0,109.25,
+Mark-to-Market Performance Summary,Data,Stocks,EMR,0,12,--,92.97,0.00,29.64,-1.00,0,28.64,
+Mark-to-Market Performance Summary,Data,Stocks,ETR,0,5,--,112.68,0.00,48.40,-1.00,0,47.40,
+Mark-to-Market Performance Summary,Data,Stocks,FITB,0,12,--,43.55,0.00,24.60,-1.00,0,23.60,
+Mark-to-Market Performance Summary,Data,Stocks,FNF,0,71,--,52.00,0.00,497.00,-1.00,0,496.00,
+Mark-to-Market Performance Summary,Data,Stocks,GLW,0,13,--,37.24,0.00,-42.38,-1.00,0,-43.38,
+Mark-to-Market Performance Summary,Data,Stocks,GPC,0,4,--,140.20,0.00,64.80,-1.00,0,63.80,
+Mark-to-Market Performance Summary,Data,Stocks,HRL,0,25,--,48.80,0.00,145.00,-1.00,0,144.00,
+Mark-to-Market Performance Summary,Data,Stocks,JNJ,0,3,--,171.07,0.00,30.21,-1.00,0,29.21,
+Mark-to-Market Performance Summary,Data,Stocks,KHC,0,14,--,35.90,0.00,-8.40,-1.00,0,-9.40,
+Mark-to-Market Performance Summary,Data,Stocks,KO,0,22,--,59.21,0.00,26.62,-1.00,0,25.62,
+Mark-to-Market Performance Summary,Data,Total,,,,,,4671.26,872.26,-16.00,0,5527.52,
+Realized & Unrealized Performance Summary,Header,Asset Category,Symbol,Cost Adj.,Realized S/T Profit,Realized S/T Loss,Realized L/T Profit,Realized L/T Loss,Realized Total,Unrealized S/T Profit,Unrealized S/T Loss,Unrealized L/T Profit,Unrealized L/T Loss,Unrealized Total,Total,Code
+Realized & Unrealized Performance Summary,Data,Stocks,ABBV,0,0,0,72.00,0,72.00,0,0,0,0,0.00,72.00,
+Realized & Unrealized Performance Summary,Data,Stocks,BAC,0,1054.00,0,0,0,1054.00,0,0,0,0,0.00,1054.00,
+Realized & Unrealized Performance Summary,Data,Stocks,BBY,0,0,0,132.00,0,132.00,0,0,0,0,0.00,132.00,
+Realized & Unrealized Performance Summary,Data,Stocks,BEN,0,0,0,300.00,0,300.00,0,0,0,0,0.00,300.00,
+Realized & Unrealized Performance Summary,Data,Stocks,BKE,0,0,0,0,0,0.00,1032.00,0,0,0,1032.00,1032.00,
+Realized & Unrealized Performance Summary,Data,Stocks,CSCO,0,0,0,0,0,0.00,310.31,0,0,0,310.31,310.31,
+Realized & Unrealized Performance Summary,Data,Stocks,CVX,0,0,0,0,0,0.00,194.10,0,0,0,194.10,194.10,
+Realized & Unrealized Performance Summary,Data,Stocks,DVN,0,0,0,0,0,0.00,2617.25,0,0,0,2617.25,2617.25,
+Realized & Unrealized Performance Summary,Data,Stocks,ED,0,0,0,0,0,0.00,146.52,0,0,0,146.52,146.52,
+Realized & Unrealized Performance Summary,Data,Stocks,EIX,0,0,0,0,0,0.00,110.25,0,0,0,110.25,110.25,
+Realized & Unrealized Performance Summary,Data,Stocks,EMR,0,0,0,0,0,0.00,29.64,0,0,0,29.64,29.64,
+Realized & Unrealized Performance Summary,Data,Stocks,ETR,0,0,0,0,0,0.00,48.40,0,0,0,48.40,48.40,
+Realized & Unrealized Performance Summary,Data,Stocks,FITB,0,0,0,0,0,0.00,24.60,0,0,0,24.60,24.60,
+Realized & Unrealized Performance Summary,Data,Stocks,FNF,0,0,0,0,0,0.00,497.00,0,0,0,497.00,497.00,
+Realized & Unrealized Performance Summary,Data,Stocks,GLW,0,0,0,0,0,0.00,0,-42.38,0,0,-42.38,-42.38,
+Realized & Unrealized Performance Summary,Data,Stocks,GPC,0,0,0,0,0,0.00,64.80,0,0,0,64.80,64.80,
+Realized & Unrealized Performance Summary,Data,Stocks,HRL,0,0,0,0,0,0.00,145.00,0,0,0,145.00,145.00,
+Realized & Unrealized Performance Summary,Data,Stocks,JNJ,0,0,0,0,0,0.00,30.21,0,0,0,30.21,30.21,
+Realized & Unrealized Performance Summary,Data,Stocks,KHC,0,0,0,0,0,0.00,0,-8.40,0,0,-8.40,-8.40,
+Realized & Unrealized Performance Summary,Data,Stocks,KO,0,0,0,0,0,0.00,26.62,0,0,0,26.62,26.62,
+Realized & Unrealized Performance Summary,Data,Total,,1054.00,0,504.00,0,1558.00,5276.70,-50.78,0,0,5225.92,6783.92,
+Cash Report,Header,Currency Summary,Currency,Total,
+Cash Report,Data,Starting Cash,Base Currency Summary,296.50,
+Cash Report,Data,Commissions,Base Currency Summary,-16.00,
+Cash Report,Data,Deposits,Base Currency Summary,6000.00,
+Cash Report,Data,Dividends,Base Currency Summary,523.64,
+Cash Report,Data,Withholding Tax,Base Currency Summary,-78.40,
+Cash Report,Data,Trades (Sales),Base Currency Summary,4796.00,
+Cash Report,Data,Trades (Purchase),Base Currency Summary,-11048.40,
+Cash Report,Data,Ending Cash,Base Currency Summary,473.34,
+Cash Report,Data,Ending Settled Cash,Base Currency Summary,473.34,
+Cash Report,Data,Starting Cash,USD,296.50,
+Cash Report,Data,Commissions,USD,-16.00,
+Cash Report,Data,Deposits,USD,6000.00,
+Cash Report,Data,Dividends,USD,523.64,
+Cash Report,Data,Withholding Tax,USD,-78.40,
+Cash Report,Data,Trades (Sales),USD,4796.00,
+Cash Report,Data,Trades (Purchase),USD,-11048.40,
+Cash Report,Data,Ending Cash,USD,473.34,
+Cash Report,Data,Ending Settled Cash,USD,473.34,
+Open Positions,Header,DataDiscriminator,Asset Category,Currency,Symbol,Quantity,Mult,Cost Price,Cost Basis,Close Price,Value,Unrealized P/L,Code
+Open Positions,Data,Summary,Stocks,USD,BKE,48,1,21.00,1008.00,42.50,2040.00,1032.00,
+Open Positions,Data,Summary,Stocks,USD,CSCO,13,1,39.50,513.50,63.37,823.81,310.31,
+Open Positions,Data,Summary,Stocks,USD,CVX,6,1,85.00,510.00,117.35,704.10,194.10,
+Open Positions,Data,Summary,Stocks,USD,DVN,95,1,16.50,1567.50,44.05,4184.75,2617.25,
+Open Positions,Data,Summary,Stocks,USD,ED,11,1,72.00,792.00,85.32,938.52,146.52,
+Open Positions,Data,Summary,Stocks,USD,EIX,9,1,56.00,504.00,68.25,614.25,110.25,
+Open Positions,Data,Summary,Stocks,USD,EMR,12,1,90.50,1086.00,92.97,1115.64,29.64,
+Open Positions,Data,Summary,Stocks,USD,ETR,5,1,103.00,515.00,112.68,563.40,48.40,
+Open Positions,Data,Summary,Stocks,USD,FITB,12,1,41.50,498.00,43.55,522.60,24.60,
+Open Positions,Data,Summary,Stocks,USD,FNF,71,1,45.00,3195.00,52.00,3692.00,497.00,
+Open Positions,Data,Summary,Stocks,USD,GLW,13,1,37.64,489.26,37.24,484.12,-5.14,
+Open Positions,Data,Summary,Stocks,USD,GPC,4,1,124.00,496.00,140.20,560.80,64.80,
+Open Positions,Data,Summary,Stocks,USD,HRL,25,1,43.50,1087.50,48.80,1220.00,132.50,
+Open Positions,Data,Summary,Stocks,USD,JNJ,3,1,161.00,483.00,171.07,513.21,30.21,
+Open Positions,Data,Summary,Stocks,USD,KHC,14,1,36.50,511.00,35.90,502.60,-8.40,
+Open Positions,Data,Summary,Stocks,USD,KO,22,1,58.00,1276.00,59.21,1302.62,26.62,
+Open Positions,Total,,Stocks,USD,,,,,16694.40,5225.92,
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code
+Trades,Data,Order,Stocks,USD,ED,"2021-01-15, 10:30:00",11,72.00,72.10,-792.00,-1.00,793.00,0.00,-1.10,O
+Trades,SubTotal,,Stocks,USD,ED,,11,,,-792.00,-1.00,793.00,0.00,-1.10,
+Trades,Data,Order,Stocks,USD,EIX,"2021-02-16, 11:00:00",9,56.00,55.90,-504.00,-1.00,505.00,0.00,0.90,O
+Trades,SubTotal,,Stocks,USD,EIX,,9,,,-504.00,-1.00,505.00,0.00,0.90,
+Trades,Data,Order,Stocks,USD,ABBV,"2021-03-15, 14:00:00",-6,106.00,105.80,636.00,-1.00,-565.00,72.00,1.20,C
+Trades,SubTotal,,Stocks,USD,ABBV,,0,,,636.00,-1.00,0.00,72.00,1.20,
+Trades,Data,Order,Stocks,USD,EMR,"2021-03-15, 14:05:00",12,90.50,90.40,-1086.00,-1.00,1087.00,0.00,-1.20,O
+Trades,SubTotal,,Stocks,USD,EMR,,12,,,-1086.00,-1.00,1087.00,0.00,-1.20,
+Trades,Data,Order,Stocks,USD,ETR,"2021-04-15, 10:00:00",5,103.00,103.15,-515.00,-1.00,516.00,0.00,0.75,O
+Trades,SubTotal,,Stocks,USD,ETR,,5,,,-515.00,-1.00,516.00,0.00,0.75,
+Trades,Data,Order,Stocks,USD,FITB,"2021-05-14, 10:30:00",12,41.50,41.60,-498.00,-1.00,499.00,0.00,1.20,O
+Trades,SubTotal,,Stocks,USD,FITB,,12,,,-498.00,-1.00,499.00,0.00,1.20,
+Trades,Data,Order,Stocks,USD,BAC,"2021-06-15, 11:00:00",-68,40.00,39.90,2720.00,-1.00,-1667.00,1054.00,6.80,C
+Trades,SubTotal,,Stocks,USD,BAC,,0,,,2720.00,-1.00,0.00,1054.00,6.80,
+Trades,Data,Order,Stocks,USD,FNF,"2021-06-15, 11:05:00",71,45.00,44.95,-3195.00,-1.00,3196.00,0.00,-3.55,O
+Trades,SubTotal,,Stocks,USD,FNF,,71,,,-3195.00,-1.00,3196.00,0.00,-3.55,
+Trades,Data,Order,Stocks,USD,GLW,"2021-07-15, 12:00:00",13,37.64,37.70,-489.26,-1.00,490.26,0.00,0.78,O
+Trades,SubTotal,,Stocks,USD,GLW,,13,,,-489.26,-1.00,490.26,0.00,0.78,
+Trades,Data,Order,Stocks,USD,GPC,"2021-08-16, 10:00:00",4,124.00,123.90,-496.00,-1.00,497.00,0.00,-0.40,O
+Trades,SubTotal,,Stocks,USD,GPC,,4,,,-496.00,-1.00,497.00,0.00,-0.40,
+Trades,Data,Order,Stocks,USD,BBY,"2021-09-15, 15:00:00",-6,108.00,107.80,648.00,-1.00,-517.00,132.00,1.20,C
+Trades,SubTotal,,Stocks,USD,BBY,,0,,,648.00,-1.00,0.00,132.00,1.20,
+Trades,Data,Order,Stocks,USD,HRL,"2021-09-15, 15:05:00",25,43.50,43.45,-1087.50,-1.00,1088.50,0.00,-1.25,O
+Trades,SubTotal,,Stocks,USD,HRL,,25,,,-1087.50,-1.00,1088.50,0.00,-1.25,
+Trades,Data,Order,Stocks,USD,JNJ,"2021-10-15, 10:00:00",3,161.00,161.10,-483.00,-1.00,484.00,0.00,0.30,O
+Trades,SubTotal,,Stocks,USD,JNJ,,3,,,-483.00,-1.00,484.00,0.00,0.30,
+Trades,Data,Order,Stocks,USD,KHC,"2021-11-15, 11:00:00",14,36.50,36.45,-511.00,-1.00,512.00,0.00,-0.70,O
+Trades,SubTotal,,Stocks,USD,KHC,,14,,,-511.00,-1.00,512.00,0.00,-0.70,
+Trades,Data,Order,Stocks,USD,BEN,"2021-12-15, 14:00:00",-24,33.00,32.95,792.00,-1.00,-493.00,300.00,1.20,C
+Trades,SubTotal,,Stocks,USD,BEN,,0,,,792.00,-1.00,0.00,300.00,1.20,
+Trades,Data,Order,Stocks,USD,KO,"2021-12-15, 14:05:00",22,58.00,57.90,-1276.00,-1.00,1277.00,0.00,-2.20,O
+Trades,SubTotal,,Stocks,USD,KO,,22,,,-1276.00,-1.00,1277.00,0.00,-2.20,
+Trades,Total,,Stocks,USD,,,,,,-6236.76,-16.00,6429.76,1558.00,1.63,
+Deposits & Withdrawals,Header,Currency,Settle Date,Description,Amount
+Deposits & Withdrawals,Data,USD,2021-01-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-02-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-03-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-04-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-05-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-06-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-07-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-08-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-09-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-10-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-11-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2021-12-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,Total,,,6000.00
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2021-02-16,ABBV(US00287Y1091) Cash Dividend USD 1.30 per Share (Ordinary Dividend),7.80
+Dividends,Data,USD,2021-03-10,CVX(US1667641005) Cash Dividend USD 1.29 per Share (Ordinary Dividend),7.74
+Dividends,Data,USD,2021-03-26,BAC(US0605051046) Cash Dividend USD 0.18 per Share (Ordinary Dividend),12.24
+Dividends,Data,USD,2021-03-30,DVN(US25179M1036) Cash Dividend USD 0.11 per Share (Ordinary Dividend),10.45
+Dividends,Data,USD,2021-04-20,CSCO(US17275R1023) Cash Dividend USD 0.37 per Share (Ordinary Dividend),4.81
+Dividends,Data,USD,2021-06-10,CVX(US1667641005) Cash Dividend USD 1.34 per Share (Ordinary Dividend),8.04
+Dividends,Data,USD,2021-06-30,DVN(US25179M1036) Cash Dividend USD 0.34 per Share (Ordinary Dividend),32.30
+Dividends,Data,USD,2021-09-10,CVX(US1667641005) Cash Dividend USD 1.34 per Share (Ordinary Dividend),8.04
+Dividends,Data,USD,2021-09-24,FNF(US31620R3030) Cash Dividend USD 0.36 per Share (Ordinary Dividend),25.56
+Dividends,Data,USD,2021-09-30,DVN(US25179M1036) Cash Dividend USD 0.49 per Share (Ordinary Dividend),46.55
+Dividends,Data,USD,2021-10-27,CSCO(US17275R1023) Cash Dividend USD 0.37 per Share (Ordinary Dividend),4.81
+Dividends,Data,USD,2021-12-10,CVX(US1667641005) Cash Dividend USD 1.34 per Share (Ordinary Dividend),8.04
+Dividends,Data,USD,2021-12-30,DVN(US25179M1036) Cash Dividend USD 0.84 per Share (Ordinary Dividend),79.80
+Dividends,Data,USD,2021-06-15,ED(US2091151041) Cash Dividend USD 0.775 per Share (Ordinary Dividend),8.52
+Dividends,Data,USD,2021-04-30,EIX(US2810201077) Cash Dividend USD 0.66 per Share (Ordinary Dividend),5.94
+Dividends,Data,USD,2021-05-10,EMR(US2910111044) Cash Dividend USD 0.50 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2021-06-01,ETR(US29364G1031) Cash Dividend USD 0.95 per Share (Ordinary Dividend),4.75
+Dividends,Data,USD,2021-07-15,FITB(US3167731005) Cash Dividend USD 0.27 per Share (Ordinary Dividend),3.24
+Dividends,Data,USD,2021-09-28,GLW(US2193501051) Cash Dividend USD 0.24 per Share (Ordinary Dividend),3.12
+Dividends,Data,USD,2021-10-01,GPC(US3724601055) Cash Dividend USD 0.815 per Share (Ordinary Dividend),3.26
+Dividends,Data,USD,2021-11-15,HRL(US4404521001) Cash Dividend USD 0.245 per Share (Ordinary Dividend),6.12
+Dividends,Data,USD,2021-12-07,JNJ(US4781601046) Cash Dividend USD 1.06 per Share (Ordinary Dividend),3.18
+Dividends,Data,USD,2021-12-17,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2021-03-12,BAC(US0605051046) Cash Dividend USD 0.18 per Share (Ordinary Dividend),12.24
+Dividends,Data,USD,2021-07-06,BBY(US0865161014) Cash Dividend USD 0.70 per Share (Ordinary Dividend),4.20
+Dividends,Data,USD,2021-01-11,BEN(US3546131018) Cash Dividend USD 0.28 per Share (Ordinary Dividend),6.72
+Dividends,Data,USD,2021-04-12,BEN(US3546131018) Cash Dividend USD 0.28 per Share (Ordinary Dividend),6.72
+Dividends,Data,USD,2021-07-12,BEN(US3546131018) Cash Dividend USD 0.28 per Share (Ordinary Dividend),6.72
+Dividends,Data,USD,2021-10-11,BEN(US3546131018) Cash Dividend USD 0.28 per Share (Ordinary Dividend),6.72
+Dividends,Data,USD,2021-01-28,BKE(US1182301036) Cash Dividend USD 0.30 per Share (Ordinary Dividend),14.40
+Dividends,Data,USD,2021-04-28,BKE(US1182301036) Cash Dividend USD 0.33 per Share (Ordinary Dividend),15.84
+Dividends,Data,USD,2021-07-28,BKE(US1182301036) Cash Dividend USD 0.33 per Share (Ordinary Dividend),15.84
+Dividends,Data,USD,2021-10-28,BKE(US1182301036) Cash Dividend USD 0.33 per Share (Ordinary Dividend),15.84
+Dividends,Data,USD,2021-12-29,BKE(US1182301036) Special Cash Dividend USD 5.65 per Share (Ordinary Dividend),271.20
+Dividends,Data,Total,,,523.64
+Withholding Tax,Header,Currency,Date,Description,Amount
+Withholding Tax,Data,USD,2021-12-30,DVN(US25179M1036) US Tax Withholding,-11.97
+Withholding Tax,Data,USD,2021-02-16,ABBV(US00287Y1091) US Tax Withholding,-1.17
+Withholding Tax,Data,USD,2021-03-10,CVX(US1667641005) US Tax Withholding,-1.16
+Withholding Tax,Data,USD,2021-03-26,BAC(US0605051046) US Tax Withholding,-1.84
+Withholding Tax,Data,USD,2021-03-30,DVN(US25179M1036) US Tax Withholding,-1.57
+Withholding Tax,Data,USD,2021-04-20,CSCO(US17275R1023) US Tax Withholding,-0.72
+Withholding Tax,Data,USD,2021-06-10,CVX(US1667641005) US Tax Withholding,-1.21
+Withholding Tax,Data,USD,2021-06-30,DVN(US25179M1036) US Tax Withholding,-4.85
+Withholding Tax,Data,USD,2021-09-10,CVX(US1667641005) US Tax Withholding,-1.21
+Withholding Tax,Data,USD,2021-09-24,FNF(US31620R3030) US Tax Withholding,-3.83
+Withholding Tax,Data,USD,2021-09-30,DVN(US25179M1036) US Tax Withholding,-6.98
+Withholding Tax,Data,USD,2021-10-27,CSCO(US17275R1023) US Tax Withholding,-0.72
+Withholding Tax,Data,USD,2021-12-10,CVX(US1667641005) US Tax Withholding,-1.21
+Withholding Tax,Data,USD,2021-12-29,BKE(US1182301036) US Tax Withholding,-40.68
+Withholding Tax,Data,Total,,-78.40
+Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
+Financial Instrument Information,Data,Stocks,ABBV,ABBVIE INC,123456,US00287Y1091,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BAC,BANK OF AMERICA CORP,12100,US0605051046,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BBY,BEST BUY CO INC,456789,US0865161014,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BEN,FRANKLIN RESOURCES INC,567890,US3546131018,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BKE,BUCKLE INC/THE,678901,US1182301036,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,CSCO,CISCO SYSTEMS INC,4309,US17275R1023,,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,CVX,CHEVRON CORP,890123,US1667641005,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,DVN,DEVON ENERGY CORP,901234,US25179M1036,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,ED,CONSOLIDATED EDISON INC,12345,US2091151041,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,EIX,EDISON INTERNATIONAL,23456,US2810201077,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,EMR,EMERSON ELECTRIC CO,34567,US2910111044,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,ETR,ENTERGY CORP,45678,US29364G1031,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,FITB,FIFTH THIRD BANCORP,56789,US3167731005,,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,FNF,FIDELITY NATIONAL FINANCIAL,67890,US31620R3030,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,GLW,CORNING INC,78901,US2193501051,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,GPC,GENUINE PARTS CO,89012,US3724601055,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,HRL,HORMEL FOODS CORP,90123,US4404521001,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,JNJ,JOHNSON & JOHNSON,01234,US4781601046,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,KHC,KRAFT HEINZ CO/THE,12340,US5007541064,,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,KO,COCA-COLA CO/THE,23450,US1912161007,,NYSE,1,COMMON,
+Codes,Header,Code,Meaning,Code (Cont.),Meaning (Cont.)
+Codes,Data,O,Opening Trade,,
+Codes,Data,C,Closing Trade,,
+Codes,Data,Po,Interest or Dividend Accrual Posting,,
+Codes,Data,T,Transfer,,
+Notes/Legal Notes,Header,Type,Note
+Notes/Legal Notes,Data,Notes,"Stock exchange transactions generally settle on the trade date plus one business day (T+1)..."
+Notes/Legal Notes,Data,Legal Notes,"Interactive Brokers Central Europe Zrt. is regulated by the MNB."
