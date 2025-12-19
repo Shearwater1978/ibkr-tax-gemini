@@ -1,0 +1,379 @@
+Statement,Header,Field Name,Field Value
+Statement,Data,BrokerName,Interactive Brokers Central Europe Zrt.
+Statement,Data,BrokerAddress,"Madach Imre ut 13-14, Floor 5, Budapest, 1075, Hungary"
+Statement,Data,Title,Activity Statement
+Statement,Data,Period,"January 1, 2023 - December 31, 2023"
+Statement,Data,WhenGenerated,"2025-12-02, 10:15:00 EST"
+Account Information,Header,Field Name,Field Value
+Account Information,Data,Name,Demo User
+Account Information,Data,Account,U12345678
+Account Information,Data,Account Type,Individual
+Account Information,Data,Customer Type,Individual
+Account Information,Data,Account Capabilities,Cash
+Account Information,Data,Base Currency,USD
+Net Asset Value,Header,Asset Class,Prior Total,Current Long,Current Short,Current Total,Change
+Net Asset Value,Data,Cash,680.12,875.46,0,875.46,195.34
+Net Asset Value,Data,Stock,21845.50,29650.80,0,29650.80,7805.30
+Net Asset Value,Data,Dividend Accruals,0.00,0.00,0,0.00,0.00
+Net Asset Value,Data,Total,22525.62,30526.26,0,30526.26,8000.64
+Net Asset Value,Header,Time Weighted Rate of Return
+Net Asset Value,Data,21.50%
+Change in NAV,Header,Field Name,Field Value
+Change in NAV,Data,Starting Value,22525.62
+Change in NAV,Data,Mark-to-Market,1070.80
+Change in NAV,Data,Deposits & Withdrawals,6000.00
+Change in NAV,Data,Dividends,1065.20
+Change in NAV,Data,Withholding Tax,-159.36
+Change in NAV,Data,Commissions,-16.00
+Change in NAV,Data,Ending Value,30526.26
+Mark-to-Market Performance Summary,Header,Asset Category,Symbol,Prior Quantity,Current Quantity,Prior Price,Current Price,Mark-to-Market P/L Position,Mark-to-Market P/L Transaction,Mark-to-Market P/L Commissions,Mark-to-Market P/L Other,Mark-to-Market P/L Total,Code
+Mark-to-Market Performance Summary,Data,Stocks,ABBV,3,8,161.61,154.97,-19.92,24.85,-1.00,0,3.93,
+Mark-to-Market Performance Summary,Data,Stocks,ADM,12,12,92.85,72.22,-247.56,0.00,0.00,0,-247.56,
+Mark-to-Market Performance Summary,Data,Stocks,AFL,9,19,71.93,82.50,95.13,145.00,-1.00,0,239.13,
+Mark-to-Market Performance Summary,Data,Stocks,ALLY,12,0,24.45,--,101.40,0.00,-1.00,0,100.40,
+Mark-to-Market Performance Summary,Data,Stocks,BAC,20,40,33.12,33.67,11.00,113.40,-1.00,0,123.40,
+Mark-to-Market Performance Summary,Data,Stocks,BBY,6,13,80.21,78.28,-11.58,43.96,-1.00,0,31.38,
+Mark-to-Market Performance Summary,Data,Stocks,BEN,20,40,26.39,29.77,67.60,55.40,-1.00,0,122.00,
+Mark-to-Market Performance Summary,Data,Stocks,BKE,48,28,45.60,47.05,40.60,26.00,-1.00,0,65.60,
+Mark-to-Market Performance Summary,Data,Stocks,CSCO,0,20,--,50.52,0.00,50.40,-1.00,0,49.40,
+Mark-to-Market Performance Summary,Data,Stocks,CVX,6,3,179.49,149.16,-90.99,-43.47,-1.00,0,-135.46,
+Mark-to-Market Performance Summary,Data,Stocks,DVN,95,75,61.51,45.30,-1539.95,-230.20,-1.00,0,-1771.15,
+Mark-to-Market Performance Summary,Data,Stocks,ED,11,11,95.31,90.99,-47.52,0.00,0.00,0,-47.52,
+Mark-to-Market Performance Summary,Data,Stocks,EIX,9,9,63.62,71.49,70.83,0.00,0.00,0,70.83,
+Mark-to-Market Performance Summary,Data,Stocks,EMR,12,12,96.05,97.33,15.36,0.00,0.00,0,15.36,
+Mark-to-Market Performance Summary,Data,Stocks,ETR,5,5,112.50,101.19,-56.55,0.00,0.00,0,-56.55,
+Mark-to-Market Performance Summary,Data,Stocks,FITB,0,25,--,34.46,0.00,211.50,-1.00,0,210.50,
+Mark-to-Market Performance Summary,Data,Stocks,FNF,0,15,--,51.08,0.00,241.20,-1.00,0,240.20,
+Mark-to-Market Performance Summary,Data,Stocks,GLW,0,20,--,30.45,0.00,-91.00,-1.00,0,-92.00,
+Mark-to-Market Performance Summary,Data,Stocks,GPC,4,4,173.50,138.04,-141.84,0.00,0.00,0,-141.84,
+Mark-to-Market Performance Summary,Data,Stocks,HRL,25,40,45.55,32.11,-336.00,-103.35,-1.00,0,-440.35,
+Mark-to-Market Performance Summary,Data,Stocks,JNJ,6,9,176.65,156.74,-119.46,5.22,-1.00,0,-115.24,
+Mark-to-Market Performance Summary,Data,Stocks,KHC,14,14,40.71,36.98,-52.22,0.00,0.00,0,-52.22,
+Mark-to-Market Performance Summary,Data,Stocks,KO,22,32,63.61,58.93,-102.96,19.30,-1.00,0,-84.66,
+Mark-to-Market Performance Summary,Data,Total,,,,,,63.16,-62.40,-16.00,0,1054.80,
+Realized & Unrealized Performance Summary,Header,Asset Category,Symbol,Cost Adj.,Realized S/T Profit,Realized S/T Loss,Realized L/T Profit,Realized L/T Loss,Realized Total,Unrealized S/T Profit,Unrealized S/T Loss,Unrealized L/T Profit,Unrealized L/T Loss,Unrealized Total,Total,Code
+Realized & Unrealized Performance Summary,Data,Stocks,ABBV,0,0,0,0,0,0.00,0,-0.15,-40.08,0,-40.23,-40.23,
+Realized & Unrealized Performance Summary,Data,Stocks,ADM,0,0,0,0,0,0.00,26.64,0,0,0,26.64,26.64,
+Realized & Unrealized Performance Summary,Data,Stocks,AFL,0,0,0,0,0,0.00,323.73,0,0,0,323.73,323.73,
+Realized & Unrealized Performance Summary,Data,Stocks,ALLY,0,0,-69.60,0,0,-69.60,0,0,0,0,0.00,-69.60,
+Realized & Unrealized Performance Summary,Data,Stocks,BAC,0,0,0,0,0,0.00,101.60,0,0,0,101.60,101.60,
+Realized & Unrealized Performance Summary,Data,Stocks,BBY,0,0,0,0,0,0.00,43.96,0,-10.14,0,33.82,33.82,
+Realized & Unrealized Performance Summary,Data,Stocks,BEN,0,0,0,0,0,0.00,185.20,0,0,0,185.20,185.20,
+Realized & Unrealized Performance Summary,Data,Stocks,BKE,0,0,0,766.00,0,766.00,729.40,0,0,0,729.40,1495.40,
+Realized & Unrealized Performance Summary,Data,Stocks,CSCO,0,0,0,0,0,0.00,50.40,0,0,0,50.40,50.40,
+Realized & Unrealized Performance Summary,Data,Stocks,CVX,0,0,0,240.00,0,240.00,192.48,0,0,0,192.48,432.48,
+Realized & Unrealized Performance Summary,Data,Stocks,DVN,0,0,0,670.00,0,670.00,2160.00,0,0,0,2160.00,2830.00,
+Realized & Unrealized Performance Summary,Data,Stocks,ED,0,0,0,0,0,0.00,208.89,0,0,0,208.89,208.89,
+Realized & Unrealized Performance Summary,Data,Stocks,EIX,0,0,0,0,0,0.00,139.41,0,0,0,139.41,139.41,
+Realized & Unrealized Performance Summary,Data,Stocks,EMR,0,0,0,0,0,0.00,81.96,0,0,0,81.96,81.96,
+Realized & Unrealized Performance Summary,Data,Stocks,ETR,0,0,0,0,0,0.00,0,-9.05,0,0,-9.05,-9.05,
+Realized & Unrealized Performance Summary,Data,Stocks,FITB,0,0,0,0,0,0.00,211.50,0,0,0,211.50,211.50,
+Realized & Unrealized Performance Summary,Data,Stocks,FNF,0,0,0,0,0,0.00,241.20,0,0,0,241.20,241.20,
+Realized & Unrealized Performance Summary,Data,Stocks,GLW,0,0,0,0,0,0.00,0,-91.00,0,0,-91.00,-91.00,
+Realized & Unrealized Performance Summary,Data,Stocks,GPC,0,0,0,0,0,0.00,56.16,0,0,0,56.16,56.16,
+Realized & Unrealized Performance Summary,Data,Stocks,HRL,0,0,0,0,0,0.00,0,-387.65,0,0,-387.65,-387.65,
+Realized & Unrealized Performance Summary,Data,Stocks,JNJ,0,0,0,0,0,0.00,0,-110.46,0,-5.22,-115.68,-115.68,
+Realized & Unrealized Performance Summary,Data,Stocks,KHC,0,0,0,0,0,0.00,6.72,0,0,0,6.72,6.72,
+Realized & Unrealized Performance Summary,Data,Stocks,KO,0,0,0,0,0,0.00,29.74,0,0,0,29.74,29.74,
+Realized & Unrealized Performance Summary,Data,Total,,0,-69.60,1676.00,0,1606.40,4588.94,-598.26,-40.08,0,3950.60,5557.00,
+Cash Report,Header,Currency Summary,Currency,Total,
+Cash Report,Data,Starting Cash,Base Currency Summary,680.12,
+Cash Report,Data,Commissions,Base Currency Summary,-16.00,
+Cash Report,Data,Deposits,Base Currency Summary,6000.00,
+Cash Report,Data,Dividends,Base Currency Summary,1065.20,
+Cash Report,Data,Withholding Tax,Base Currency Summary,-159.36,
+Cash Report,Data,Trades (Sales),Base Currency Summary,2579.00,
+Cash Report,Data,Trades (Purchase),Base Currency Summary,-9273.50,
+Cash Report,Data,Ending Cash,Base Currency Summary,875.46,
+Cash Report,Data,Ending Settled Cash,Base Currency Summary,875.46,
+Cash Report,Data,Starting Cash,USD,680.12,
+Cash Report,Data,Commissions,USD,-16.00,
+Cash Report,Data,Deposits,USD,6000.00,
+Cash Report,Data,Dividends,USD,1065.20,
+Cash Report,Data,Withholding Tax,USD,-159.36,
+Cash Report,Data,Trades (Sales),USD,2579.00,
+Cash Report,Data,Trades (Purchase),USD,-9273.50,
+Cash Report,Data,Ending Cash,USD,875.46,
+Cash Report,Data,Ending Settled Cash,USD,875.46,
+Open Positions,Header,DataDiscriminator,Asset Category,Currency,Symbol,Quantity,Mult,Cost Price,Cost Basis,Close Price,Value,Unrealized P/L,Code
+Open Positions,Data,Summary,Stocks,USD,ABBV,8,1,154.99,1239.95,154.97,1239.76,-0.19,
+Open Positions,Data,Summary,Stocks,USD,ADM,12,1,70.00,840.00,72.22,866.64,26.64,
+Open Positions,Data,Summary,Stocks,USD,AFL,19,1,64.21,1220.00,82.50,1567.50,347.50,
+Open Positions,Data,Summary,Stocks,USD,BAC,40,1,31.00,1240.00,33.67,1346.80,106.80,
+Open Positions,Data,Summary,Stocks,USD,BBY,13,1,73.38,954.00,78.28,1017.64,63.64,
+Open Positions,Data,Summary,Stocks,USD,BEN,40,1,24.50,980.00,29.77,1190.80,210.80,
+Open Positions,Data,Summary,Stocks,USD,BKE,28,1,21.00,588.00,47.05,1317.40,729.40,
+Open Positions,Data,Summary,Stocks,USD,CSCO,20,1,48.00,960.00,50.52,1010.40,50.40,
+Open Positions,Data,Summary,Stocks,USD,CVX,3,1,85.00,255.00,149.16,447.48,192.48,
+Open Positions,Data,Summary,Stocks,USD,DVN,75,1,16.50,1237.50,45.30,3397.50,2160.00,
+Open Positions,Data,Summary,Stocks,USD,ED,11,1,72.00,792.00,90.99,1000.89,208.89,
+Open Positions,Data,Summary,Stocks,USD,EIX,9,1,56.00,504.00,71.49,643.41,139.41,
+Open Positions,Data,Summary,Stocks,USD,EMR,12,1,90.50,1086.00,97.33,1167.96,81.96,
+Open Positions,Data,Summary,Stocks,USD,ETR,5,1,103.00,515.00,101.19,505.95,-9.05,
+Open Positions,Data,Summary,Stocks,USD,FITB,25,1,26.00,650.00,34.46,861.50,211.50,
+Open Positions,Data,Summary,Stocks,USD,FNF,15,1,35.00,525.00,51.08,766.20,241.20,
+Open Positions,Data,Summary,Stocks,USD,GLW,20,1,35.00,700.00,30.45,609.00,-91.00,
+Open Positions,Data,Summary,Stocks,USD,GPC,4,1,124.00,496.00,138.04,552.16,56.16,
+Open Positions,Data,Summary,Stocks,USD,HRL,40,1,41.81,1672.50,32.11,1284.40,-388.10,
+Open Positions,Data,Summary,Stocks,USD,JNJ,9,1,168.00,1512.00,156.74,1410.66,-101.34,
+Open Positions,Data,Summary,Stocks,USD,KHC,14,1,36.50,511.00,36.98,517.72,6.72,
+Open Positions,Data,Summary,Stocks,USD,KO,32,1,57.69,1846.00,58.93,1885.76,39.76,
+Open Positions,Total,,Stocks,USD,,,,,29650.80,3950.60,
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code
+Trades,Data,Order,Stocks,USD,CSCO,"2023-01-16, 10:30:00",20,48.00,47.95,-960.00,-1.00,961.00,0.00,-1.00,O
+Trades,SubTotal,,Stocks,USD,CSCO,,20,,,-960.00,-1.00,961.00,0.00,-1.00,
+Trades,Data,Order,Stocks,USD,GLW,"2023-02-15, 11:00:00",20,35.00,34.90,-700.00,-1.00,701.00,0.00,-2.00,O
+Trades,SubTotal,,Stocks,USD,GLW,,20,,,-700.00,-1.00,701.00,0.00,-2.00,
+Trades,Data,Order,Stocks,USD,DVN,"2023-03-15, 14:00:00",-20,50.00,49.90,1000.00,-1.00,-330.00,670.00,2.00,C
+Trades,SubTotal,,Stocks,USD,DVN,,0,,,1000.00,-1.00,0.00,670.00,2.00,
+Trades,Data,Order,Stocks,USD,FNF,"2023-03-15, 14:05:00",15,35.00,34.95,-525.00,-1.00,526.00,0.00,-0.75,O
+Trades,SubTotal,,Stocks,USD,FNF,,15,,,-525.00,-1.00,526.00,0.00,-0.75,
+Trades,Data,Order,Stocks,USD,FITB,"2023-04-14, 10:00:00",25,26.00,25.90,-650.00,-1.00,651.00,0.00,-2.50,O
+Trades,SubTotal,,Stocks,USD,FITB,,25,,,-650.00,-1.00,651.00,0.00,-2.50,
+Trades,Data,Order,Stocks,USD,BBY,"2023-05-15, 11:00:00",7,72.00,71.95,-504.00,-1.00,505.00,0.00,-0.35,O
+Trades,SubTotal,,Stocks,USD,BBY,,7,,,-504.00,-1.00,505.00,0.00,-0.35,
+Trades,Data,Order,Stocks,USD,BKE,"2023-06-15, 11:05:00",-20,35.00,34.90,700.00,-1.00,-420.00,280.00,2.00,C
+Trades,SubTotal,,Stocks,USD,BKE,,0,,,700.00,-1.00,0.00,280.00,2.00,
+Trades,Data,Order,Stocks,USD,AFL,"2023-06-15, 11:10:00",10,68.00,67.95,-680.00,-1.00,681.00,0.00,-0.50,O
+Trades,SubTotal,,Stocks,USD,AFL,,10,,,-680.00,-1.00,681.00,0.00,-0.50,
+Trades,Data,Order,Stocks,USD,BEN,"2023-07-14, 12:00:00",20,27.00,26.90,-540.00,-1.00,541.00,0.00,-2.00,O
+Trades,SubTotal,,Stocks,USD,BEN,,20,,,-540.00,-1.00,541.00,0.00,-2.00,
+Trades,Data,Order,Stocks,USD,HRL,"2023-08-15, 10:00:00",15,39.00,38.95,-585.00,-1.00,586.00,0.00,-0.75,O
+Trades,SubTotal,,Stocks,USD,HRL,,15,,,-585.00,-1.00,586.00,0.00,-0.75,
+Trades,Data,Order,Stocks,USD,CVX,"2023-09-15, 15:00:00",-3,165.00,164.90,495.00,-1.00,-255.00,240.00,0.30,C
+Trades,SubTotal,,Stocks,USD,CVX,,0,,,495.00,-1.00,0.00,240.00,0.30,
+Trades,Data,Order,Stocks,USD,BAC,"2023-09-15, 15:05:00",20,28.00,27.95,-560.00,-1.00,561.00,0.00,-1.00,O
+Trades,SubTotal,,Stocks,USD,BAC,,20,,,-560.00,-1.00,561.00,0.00,-1.00,
+Trades,Data,Order,Stocks,USD,JNJ,"2023-10-16, 10:00:00",3,155.00,154.90,-465.00,-1.00,466.00,0.00,-0.30,O
+Trades,SubTotal,,Stocks,USD,JNJ,,3,,,-465.00,-1.00,466.00,0.00,-0.30,
+Trades,Data,Order,Stocks,USD,KO,"2023-11-15, 11:00:00",10,57.00,56.95,-570.00,-1.00,571.00,0.00,-0.50,O
+Trades,SubTotal,,Stocks,USD,KO,,10,,,-570.00,-1.00,571.00,0.00,-0.50,
+Trades,Data,Order,Stocks,USD,ALLY,"2023-12-15, 14:00:00",-12,32.00,31.95,384.00,-1.00,-480.00,-96.00,0.60,C
+Trades,SubTotal,,Stocks,USD,ALLY,,0,,,384.00,-1.00,0.00,-96.00,0.60,
+Trades,Data,Order,Stocks,USD,ABBV,"2023-12-15, 14:05:00",5,150.00,149.95,-750.00,-1.00,751.00,0.00,-0.25,O
+Trades,SubTotal,,Stocks,USD,ABBV,,5,,,-750.00,-1.00,751.00,0.00,-0.25,
+Trades,Total,,Stocks,USD,,,,,,-6694.50,-16.00,7797.00,1094.00,-7.00,
+Deposits & Withdrawals,Header,Currency,Settle Date,Description,Amount
+Deposits & Withdrawals,Data,USD,2023-01-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-02-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-03-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-04-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-05-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-06-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-07-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-08-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-09-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-10-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-11-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,USD,2023-12-01,Wire Deposit,500.00
+Deposits & Withdrawals,Data,Total,,,6000.00
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2023-01-27,BKE(US1182301036) Special Cash Dividend USD 2.65 per Share (Ordinary Dividend),127.20
+Dividends,Data,USD,2023-04-28,BKE(US1182301036) Cash Dividend USD 0.35 per Share (Ordinary Dividend),16.80
+Dividends,Data,USD,2023-07-28,BKE(US1182301036) Cash Dividend USD 0.35 per Share (Ordinary Dividend),9.80
+Dividends,Data,USD,2023-10-27,BKE(US1182301036) Cash Dividend USD 0.35 per Share (Ordinary Dividend),9.80
+Dividends,Data,USD,2023-03-31,DVN(US25179M1036) Cash Dividend USD 0.89 per Share (Ordinary Dividend),84.55
+Dividends,Data,USD,2023-06-30,DVN(US25179M1036) Cash Dividend USD 0.72 per Share (Ordinary Dividend),54.00
+Dividends,Data,USD,2023-09-29,DVN(US25179M1036) Cash Dividend USD 0.49 per Share (Ordinary Dividend),36.75
+Dividends,Data,USD,2023-12-29,DVN(US25179M1036) Cash Dividend USD 0.77 per Share (Ordinary Dividend),57.75
+Dividends,Data,USD,2023-03-10,CVX(US1667641005) Cash Dividend USD 1.51 per Share (Ordinary Dividend),9.06
+Dividends,Data,USD,2023-06-09,CVX(US1667641005) Cash Dividend USD 1.51 per Share (Ordinary Dividend),9.06
+Dividends,Data,USD,2023-09-11,CVX(US1667641005) Cash Dividend USD 1.51 per Share (Ordinary Dividend),9.06
+Dividends,Data,USD,2023-12-11,CVX(US1667641005) Cash Dividend USD 1.51 per Share (Ordinary Dividend),4.53
+Dividends,Data,USD,2023-03-31,BAC(US0605051046) Cash Dividend USD 0.22 per Share (Ordinary Dividend),4.40
+Dividends,Data,USD,2023-06-30,BAC(US0605051046) Cash Dividend USD 0.22 per Share (Ordinary Dividend),4.40
+Dividends,Data,USD,2023-09-29,BAC(US0605051046) Cash Dividend USD 0.22 per Share (Ordinary Dividend),8.80
+Dividends,Data,USD,2023-12-29,BAC(US0605051046) Cash Dividend USD 0.24 per Share (Ordinary Dividend),9.60
+Dividends,Data,USD,2023-02-15,ABBV(US00287Y1091) Cash Dividend USD 1.48 per Share (Ordinary Dividend),4.44
+Dividends,Data,USD,2023-05-15,ABBV(US00287Y1091) Cash Dividend USD 1.48 per Share (Ordinary Dividend),4.44
+Dividends,Data,USD,2023-08-15,ABBV(US00287Y1091) Cash Dividend USD 1.48 per Share (Ordinary Dividend),4.44
+Dividends,Data,USD,2023-11-15,ABBV(US00287Y1091) Cash Dividend USD 1.48 per Share (Ordinary Dividend),4.44
+Dividends,Data,USD,2023-03-01,ADM(US0394831020) Cash Dividend USD 0.45 per Share (Ordinary Dividend),5.40
+Dividends,Data,USD,2023-06-07,ADM(US0394831020) Cash Dividend USD 0.45 per Share (Ordinary Dividend),5.40
+Dividends,Data,USD,2023-09-06,ADM(US0394831020) Cash Dividend USD 0.45 per Share (Ordinary Dividend),5.40
+Dividends,Data,USD,2023-12-07,ADM(US0394831020) Cash Dividend USD 0.45 per Share (Ordinary Dividend),5.40
+Dividends,Data,USD,2023-03-01,AFL(US0010551028) Cash Dividend USD 0.42 per Share (Ordinary Dividend),3.78
+Dividends,Data,USD,2023-06-01,AFL(US0010551028) Cash Dividend USD 0.42 per Share (Ordinary Dividend),3.78
+Dividends,Data,USD,2023-09-01,AFL(US0010551028) Cash Dividend USD 0.42 per Share (Ordinary Dividend),7.98
+Dividends,Data,USD,2023-12-01,AFL(US0010551028) Cash Dividend USD 0.42 per Share (Ordinary Dividend),7.98
+Dividends,Data,USD,2023-02-15,ALLY(US02005N1000) Cash Dividend USD 0.30 per Share (Ordinary Dividend),3.60
+Dividends,Data,USD,2023-05-15,ALLY(US02005N1000) Cash Dividend USD 0.30 per Share (Ordinary Dividend),3.60
+Dividends,Data,USD,2023-08-15,ALLY(US02005N1000) Cash Dividend USD 0.30 per Share (Ordinary Dividend),3.60
+Dividends,Data,USD,2023-11-15,ALLY(US02005N1000) Cash Dividend USD 0.30 per Share (Ordinary Dividend),3.60
+Dividends,Data,USD,2023-04-13,BBY(US0865161014) Cash Dividend USD 0.92 per Share (Ordinary Dividend),5.52
+Dividends,Data,USD,2023-07-06,BBY(US0865161014) Cash Dividend USD 0.92 per Share (Ordinary Dividend),11.96
+Dividends,Data,USD,2023-10-10,BBY(US0865161014) Cash Dividend USD 0.92 per Share (Ordinary Dividend),11.96
+Dividends,Data,USD,2023-01-13,BEN(US3546131018) Cash Dividend USD 0.30 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2023-04-14,BEN(US3546131018) Cash Dividend USD 0.30 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2023-07-14,BEN(US3546131018) Cash Dividend USD 0.30 per Share (Ordinary Dividend),6.00
+Dividends,Data,USD,2023-10-13,BEN(US3546131018) Cash Dividend USD 0.30 per Share (Ordinary Dividend),12.00
+Dividends,Data,USD,2023-01-25,CSCO(US17275R1023) Cash Dividend USD 0.38 per Share (Ordinary Dividend),7.60
+Dividends,Data,USD,2023-04-26,CSCO(US17275R1023) Cash Dividend USD 0.39 per Share (Ordinary Dividend),7.80
+Dividends,Data,USD,2023-07-26,CSCO(US17275R1023) Cash Dividend USD 0.39 per Share (Ordinary Dividend),7.80
+Dividends,Data,USD,2023-10-25,CSCO(US17275R1023) Cash Dividend USD 0.39 per Share (Ordinary Dividend),7.80
+Dividends,Data,USD,2023-03-15,ED(US2091151041) Cash Dividend USD 0.81 per Share (Ordinary Dividend),8.91
+Dividends,Data,USD,2023-06-15,ED(US2091151041) Cash Dividend USD 0.81 per Share (Ordinary Dividend),8.91
+Dividends,Data,USD,2023-09-15,ED(US2091151041) Cash Dividend USD 0.81 per Share (Ordinary Dividend),8.91
+Dividends,Data,USD,2023-12-15,ED(US2091151041) Cash Dividend USD 0.81 per Share (Ordinary Dividend),8.91
+Dividends,Data,USD,2023-01-31,EIX(US2810201077) Cash Dividend USD 0.7375 per Share (Ordinary Dividend),6.64
+Dividends,Data,USD,2023-04-30,EIX(US2810201077) Cash Dividend USD 0.7375 per Share (Ordinary Dividend),6.64
+Dividends,Data,USD,2023-07-31,EIX(US2810201077) Cash Dividend USD 0.7375 per Share (Ordinary Dividend),6.64
+Dividends,Data,USD,2023-10-31,EIX(US2810201077) Cash Dividend USD 0.7375 per Share (Ordinary Dividend),6.64
+Dividends,Data,USD,2023-03-10,EMR(US2910111044) Cash Dividend USD 0.52 per Share (Ordinary Dividend),6.24
+Dividends,Data,USD,2023-06-09,EMR(US2910111044) Cash Dividend USD 0.52 per Share (Ordinary Dividend),6.24
+Dividends,Data,USD,2023-09-11,EMR(US2910111044) Cash Dividend USD 0.52 per Share (Ordinary Dividend),6.24
+Dividends,Data,USD,2023-12-11,EMR(US2910111044) Cash Dividend USD 0.525 per Share (Ordinary Dividend),6.30
+Dividends,Data,USD,2023-03-01,ETR(US29364G1031) Cash Dividend USD 1.07 per Share (Ordinary Dividend),5.35
+Dividends,Data,USD,2023-06-01,ETR(US29364G1031) Cash Dividend USD 1.07 per Share (Ordinary Dividend),5.35
+Dividends,Data,USD,2023-09-01,ETR(US29364G1031) Cash Dividend USD 1.07 per Share (Ordinary Dividend),5.35
+Dividends,Data,USD,2023-12-01,ETR(US29364G1031) Cash Dividend USD 1.13 per Share (Ordinary Dividend),5.65
+Dividends,Data,USD,2023-07-17,FITB(US3167731005) Cash Dividend USD 0.33 per Share (Ordinary Dividend),8.25
+Dividends,Data,USD,2023-10-17,FITB(US3167731005) Cash Dividend USD 0.35 per Share (Ordinary Dividend),8.75
+Dividends,Data,USD,2023-06-30,FNF(US31620R3030) Cash Dividend USD 0.45 per Share (Ordinary Dividend),6.75
+Dividends,Data,USD,2023-09-29,FNF(US31620R3030) Cash Dividend USD 0.45 per Share (Ordinary Dividend),6.75
+Dividends,Data,USD,2023-12-29,FNF(US31620R3030) Cash Dividend USD 0.48 per Share (Ordinary Dividend),7.20
+Dividends,Data,USD,2023-03-30,GLW(US2193501051) Cash Dividend USD 0.28 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2023-06-29,GLW(US2193501051) Cash Dividend USD 0.28 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2023-09-28,GLW(US2193501051) Cash Dividend USD 0.28 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2023-12-19,GLW(US2193501051) Cash Dividend USD 0.28 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2023-04-03,GPC(US3724601055) Cash Dividend USD 0.95 per Share (Ordinary Dividend),3.80
+Dividends,Data,USD,2023-07-03,GPC(US3724601055) Cash Dividend USD 0.95 per Share (Ordinary Dividend),3.80
+Dividends,Data,USD,2023-10-02,GPC(US3724601055) Cash Dividend USD 0.95 per Share (Ordinary Dividend),3.80
+Dividends,Data,USD,2023-02-15,HRL(US4404521001) Cash Dividend USD 0.275 per Share (Ordinary Dividend),6.88
+Dividends,Data,USD,2023-05-15,HRL(US4404521001) Cash Dividend USD 0.275 per Share (Ordinary Dividend),6.88
+Dividends,Data,USD,2023-08-15,HRL(US4404521001) Cash Dividend USD 0.275 per Share (Ordinary Dividend),6.88
+Dividends,Data,USD,2023-11-15,HRL(US4404521001) Cash Dividend USD 0.275 per Share (Ordinary Dividend),11.00
+Dividends,Data,USD,2023-03-07,JNJ(US4781601046) Cash Dividend USD 1.13 per Share (Ordinary Dividend),6.78
+Dividends,Data,USD,2023-06-06,JNJ(US4781601046) Cash Dividend USD 1.19 per Share (Ordinary Dividend),7.14
+Dividends,Data,USD,2023-09-05,JNJ(US4781601046) Cash Dividend USD 1.19 per Share (Ordinary Dividend),7.14
+Dividends,Data,USD,2023-12-05,JNJ(US4781601046) Cash Dividend USD 1.19 per Share (Ordinary Dividend),10.71
+Dividends,Data,USD,2023-03-31,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2023-06-30,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2023-09-29,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2023-12-29,KHC(US5007541064) Cash Dividend USD 0.40 per Share (Ordinary Dividend),5.60
+Dividends,Data,USD,2023-04-03,KO(US1912161007) Cash Dividend USD 0.46 per Share (Ordinary Dividend),10.12
+Dividends,Data,USD,2023-07-03,KO(US1912161007) Cash Dividend USD 0.46 per Share (Ordinary Dividend),10.12
+Dividends,Data,USD,2023-10-02,KO(US1912161007) Cash Dividend USD 0.46 per Share (Ordinary Dividend),10.12
+Dividends,Data,USD,2023-12-15,KO(US1912161007) Cash Dividend USD 0.46 per Share (Ordinary Dividend),14.72
+Dividends,Data,Total,,,1065.20
+Withholding Tax,Header,Currency,Date,Description,Amount
+Withholding Tax,Data,USD,2023-01-27,BKE(US1182301036) US Tax Withholding,-19.08
+Withholding Tax,Data,USD,2023-04-28,BKE(US1182301036) US Tax Withholding,-2.52
+Withholding Tax,Data,USD,2023-07-28,BKE(US1182301036) US Tax Withholding,-1.47
+Withholding Tax,Data,USD,2023-10-27,BKE(US1182301036) US Tax Withholding,-1.47
+Withholding Tax,Data,USD,2023-03-31,DVN(US25179M1036) US Tax Withholding,-12.68
+Withholding Tax,Data,USD,2023-06-30,DVN(US25179M1036) US Tax Withholding,-8.10
+Withholding Tax,Data,USD,2023-09-29,DVN(US25179M1036) US Tax Withholding,-5.51
+Withholding Tax,Data,USD,2023-12-29,DVN(US25179M1036) US Tax Withholding,-8.66
+Withholding Tax,Data,USD,2023-03-10,CVX(US1667641005) US Tax Withholding,-1.36
+Withholding Tax,Data,USD,2023-06-09,CVX(US1667641005) US Tax Withholding,-1.36
+Withholding Tax,Data,USD,2023-09-11,CVX(US1667641005) US Tax Withholding,-1.36
+Withholding Tax,Data,USD,2023-12-11,CVX(US1667641005) US Tax Withholding,-0.68
+Withholding Tax,Data,USD,2023-03-31,BAC(US0605051046) US Tax Withholding,-0.66
+Withholding Tax,Data,USD,2023-06-30,BAC(US0605051046) US Tax Withholding,-0.66
+Withholding Tax,Data,USD,2023-09-29,BAC(US0605051046) US Tax Withholding,-1.32
+Withholding Tax,Data,USD,2023-12-29,BAC(US0605051046) US Tax Withholding,-1.44
+Withholding Tax,Data,USD,2023-02-15,ABBV(US00287Y1091) US Tax Withholding,-0.67
+Withholding Tax,Data,USD,2023-05-15,ABBV(US00287Y1091) US Tax Withholding,-0.67
+Withholding Tax,Data,USD,2023-08-15,ABBV(US00287Y1091) US Tax Withholding,-0.67
+Withholding Tax,Data,USD,2023-11-15,ABBV(US00287Y1091) US Tax Withholding,-0.67
+Withholding Tax,Data,USD,2023-03-01,ADM(US0394831020) US Tax Withholding,-0.81
+Withholding Tax,Data,USD,2023-06-07,ADM(US0394831020) US Tax Withholding,-0.81
+Withholding Tax,Data,USD,2023-09-06,ADM(US0394831020) US Tax Withholding,-0.81
+Withholding Tax,Data,USD,2023-12-07,ADM(US0394831020) US Tax Withholding,-0.81
+Withholding Tax,Data,USD,2023-03-01,AFL(US0010551028) US Tax Withholding,-0.57
+Withholding Tax,Data,USD,2023-06-01,AFL(US0010551028) US Tax Withholding,-0.57
+Withholding Tax,Data,USD,2023-09-01,AFL(US0010551028) US Tax Withholding,-1.20
+Withholding Tax,Data,USD,2023-12-01,AFL(US0010551028) US Tax Withholding,-1.20
+Withholding Tax,Data,USD,2023-02-15,ALLY(US02005N1000) US Tax Withholding,-0.54
+Withholding Tax,Data,USD,2023-05-15,ALLY(US02005N1000) US Tax Withholding,-0.54
+Withholding Tax,Data,USD,2023-08-15,ALLY(US02005N1000) US Tax Withholding,-0.54
+Withholding Tax,Data,USD,2023-11-15,ALLY(US02005N1000) US Tax Withholding,-0.54
+Withholding Tax,Data,USD,2023-04-13,BBY(US0865161014) US Tax Withholding,-0.83
+Withholding Tax,Data,USD,2023-07-06,BBY(US0865161014) US Tax Withholding,-1.79
+Withholding Tax,Data,USD,2023-10-10,BBY(US0865161014) US Tax Withholding,-1.79
+Withholding Tax,Data,USD,2023-01-13,BEN(US3546131018) US Tax Withholding,-0.90
+Withholding Tax,Data,USD,2023-04-14,BEN(US3546131018) US Tax Withholding,-0.90
+Withholding Tax,Data,USD,2023-07-14,BEN(US3546131018) US Tax Withholding,-0.90
+Withholding Tax,Data,USD,2023-10-13,BEN(US3546131018) US Tax Withholding,-1.80
+Withholding Tax,Data,USD,2023-01-25,CSCO(US17275R1023) US Tax Withholding,-1.14
+Withholding Tax,Data,USD,2023-04-26,CSCO(US17275R1023) US Tax Withholding,-1.17
+Withholding Tax,Data,USD,2023-07-26,CSCO(US17275R1023) US Tax Withholding,-1.17
+Withholding Tax,Data,USD,2023-10-25,CSCO(US17275R1023) US Tax Withholding,-1.17
+Withholding Tax,Data,USD,2023-03-15,ED(US2091151041) US Tax Withholding,-1.34
+Withholding Tax,Data,USD,2023-06-15,ED(US2091151041) US Tax Withholding,-1.34
+Withholding Tax,Data,USD,2023-09-15,ED(US2091151041) US Tax Withholding,-1.34
+Withholding Tax,Data,USD,2023-12-15,ED(US2091151041) US Tax Withholding,-1.34
+Withholding Tax,Data,USD,2023-01-31,EIX(US2810201077) US Tax Withholding,-1.00
+Withholding Tax,Data,USD,2023-04-30,EIX(US2810201077) US Tax Withholding,-1.00
+Withholding Tax,Data,USD,2023-07-31,EIX(US2810201077) US Tax Withholding,-1.00
+Withholding Tax,Data,USD,2023-10-31,EIX(US2810201077) US Tax Withholding,-1.00
+Withholding Tax,Data,USD,2023-03-10,EMR(US2910111044) US Tax Withholding,-0.94
+Withholding Tax,Data,USD,2023-06-09,EMR(US2910111044) US Tax Withholding,-0.94
+Withholding Tax,Data,USD,2023-09-11,EMR(US2910111044) US Tax Withholding,-0.94
+Withholding Tax,Data,USD,2023-12-11,EMR(US2910111044) US Tax Withholding,-0.95
+Withholding Tax,Data,USD,2023-03-01,ETR(US29364G1031) US Tax Withholding,-0.80
+Withholding Tax,Data,USD,2023-06-01,ETR(US29364G1031) US Tax Withholding,-0.80
+Withholding Tax,Data,USD,2023-09-01,ETR(US29364G1031) US Tax Withholding,-0.80
+Withholding Tax,Data,USD,2023-12-01,ETR(US29364G1031) US Tax Withholding,-0.85
+Withholding Tax,Data,USD,2023-07-17,FITB(US3167731005) US Tax Withholding,-1.24
+Withholding Tax,Data,USD,2023-10-17,FITB(US3167731005) US Tax Withholding,-1.31
+Withholding Tax,Data,USD,2023-06-30,FNF(US31620R3030) US Tax Withholding,-1.01
+Withholding Tax,Data,USD,2023-09-29,FNF(US31620R3030) US Tax Withholding,-1.01
+Withholding Tax,Data,USD,2023-12-29,FNF(US31620R3030) US Tax Withholding,-1.08
+Withholding Tax,Data,USD,2023-03-30,GLW(US2193501051) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2023-06-29,GLW(US2193501051) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2023-09-28,GLW(US2193501051) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2023-12-19,GLW(US2193501051) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2023-04-03,GPC(US3724601055) US Tax Withholding,-0.57
+Withholding Tax,Data,USD,2023-07-03,GPC(US3724601055) US Tax Withholding,-0.57
+Withholding Tax,Data,USD,2023-10-02,GPC(US3724601055) US Tax Withholding,-0.57
+Withholding Tax,Data,USD,2023-02-15,HRL(US4404521001) US Tax Withholding,-1.03
+Withholding Tax,Data,USD,2023-05-15,HRL(US4404521001) US Tax Withholding,-1.03
+Withholding Tax,Data,USD,2023-08-15,HRL(US4404521001) US Tax Withholding,-1.03
+Withholding Tax,Data,USD,2023-11-15,HRL(US4404521001) US Tax Withholding,-1.65
+Withholding Tax,Data,USD,2023-03-07,JNJ(US4781601046) US Tax Withholding,-1.02
+Withholding Tax,Data,USD,2023-06-06,JNJ(US4781601046) US Tax Withholding,-1.07
+Withholding Tax,Data,USD,2023-09-05,JNJ(US4781601046) US Tax Withholding,-1.07
+Withholding Tax,Data,USD,2023-12-05,JNJ(US4781601046) US Tax Withholding,-1.61
+Withholding Tax,Data,USD,2023-03-31,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2023-06-30,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2023-09-29,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2023-12-29,KHC(US5007541064) US Tax Withholding,-0.84
+Withholding Tax,Data,USD,2023-04-03,KO(US1912161007) US Tax Withholding,-1.52
+Withholding Tax,Data,USD,2023-07-03,KO(US1912161007) US Tax Withholding,-1.52
+Withholding Tax,Data,USD,2023-10-02,KO(US1912161007) US Tax Withholding,-1.52
+Withholding Tax,Data,USD,2023-12-15,KO(US1912161007) US Tax Withholding,-2.21
+Withholding Tax,Data,Total,,-159.36
+Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
+Financial Instrument Information,Data,Stocks,ABBV,ABBVIE INC,123456,US00287Y1091,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,ADM,ARCHER-DANIELS-MIDLAND CO,234567,US0394831020,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,AFL,AFLAC INC,4227,US0010551028,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,ALLY,ALLY FINANCIAL INC,345678,US02005N1000,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BAC,BANK OF AMERICA CORP,12100,US0605051046,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BBY,BEST BUY CO INC,456789,US0865161014,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BEN,FRANKLIN RESOURCES INC,567890,US3546131018,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,BKE,BUCKLE INC/THE,678901,US1182301036,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,CSCO,CISCO SYSTEMS INC,4309,US17275R1023,,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,CVX,CHEVRON CORP,890123,US1667641005,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,DVN,DEVON ENERGY CORP,901234,US25179M1036,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,ED,CONSOLIDATED EDISON INC,12345,US2091151041,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,EIX,EDISON INTERNATIONAL,23456,US2810201077,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,EMR,EMERSON ELECTRIC CO,34567,US2910111044,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,ETR,ENTERGY CORP,45678,US29364G1031,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,FITB,FIFTH THIRD BANCORP,56789,US3167731005,,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,FNF,FIDELITY NATIONAL FINANCIAL,67890,US31620R3030,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,GLW,CORNING INC,78901,US2193501051,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,GPC,GENUINE PARTS CO,89012,US3724601055,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,HRL,HORMEL FOODS CORP,90123,US4404521001,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,JNJ,JOHNSON & JOHNSON,01234,US4781601046,,NYSE,1,COMMON,
+Financial Instrument Information,Data,Stocks,KHC,KRAFT HEINZ CO/THE,12340,US5007541064,,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,KO,COCA-COLA CO/THE,23450,US1912161007,,NYSE,1,COMMON,
+Codes,Header,Code,Meaning,Code (Cont.),Meaning (Cont.)
+Codes,Data,O,Opening Trade,,
+Codes,Data,C,Closing Trade,,
+Codes,Data,Po,Interest or Dividend Accrual Posting,,
+Codes,Data,T,Transfer,,
+Notes/Legal Notes,Header,Type,Note
+Notes/Legal Notes,Data,Notes,"Stock exchange transactions generally settle on the trade date plus one business day (T+1)..."
+Notes/Legal Notes,Data,Legal Notes,"Interactive Brokers Central Europe Zrt. is regulated by the MNB."
