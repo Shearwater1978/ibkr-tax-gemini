@@ -12,6 +12,10 @@
 
 ## Sprint 3: Security & Reporting (Completed - 2025-12-09)
 * **Database Migration:** Switched from H2/SQLite to **SQLCipher** (Encrypted SQLite).
+* **Documentation:** Created Master Restart Prompt for context preservation.
+* **Security:** Implementation of **SQLCipher** (AES-256) for local DB encryption.
+* **Quality Assurance:** Migration to `pytest` framework with parametrized tests.
+* **Robust Parsing:** Fixed regex logic to handle ticker symbols with spaces (e.g., `MGA (ISIN)`).
 * **Refactoring:**
     * Updated `src/db_connector.py` to handle encryption keys from `.env`.
     * Updated `src/parser.py` to write directly to SQLCipher via transactions.
@@ -39,3 +43,10 @@
     * Implemented direct "Open File" system integration for Excel and PDF reports.
 * [ ] **Stability:** Fixed Windows-specific encoding issues (UTF-8/Charmap) and socket port management.
 * [ ] **Environment Sync:** Ensuring shared data paths between UI and CLI.
+* [ ] **Single Source of Truth:** The UI must read/write to the EXISTING encrypted database (`ibkr_history.db.enc`).
+* [ ] **Single Source of Truth:** The UI must read/write to the EXISTING encrypted database (`ibkr_history.db.enc`).
+* [ ] **Implementation Tasks:**
+    * [ ] **Backend API:** Create FastAPI endpoints for `/years`, `/calculate`, `/export`, and `/import`.
+    * [ ] **Frontend Core:** Setup Electron with IPC bridge.
+    * [ ] **Dashboard:** Visual summary of Portfolio, P&L, and Dividends.
+    * [ ] **Packaging:** Build executables (.exe / .app).
