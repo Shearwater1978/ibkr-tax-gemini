@@ -41,7 +41,6 @@ We have just completed **Sprint 3 (v2.1.0)**.
 * [ ] **Stability:** Fixed Windows-specific encoding issues (UTF-8/Charmap) and socket port management.
 * [ ] **Environment Sync:** Ensuring shared data paths between UI and CLI.
 * [ ] **Single Source of Truth:** The UI must read/write to the EXISTING encrypted database (`ibkr_history.db.enc`).
-* [ ] **Single Source of Truth:** The UI must read/write to the EXISTING encrypted database (`ibkr_history.db.enc`).
 * [ ] **Implementation Tasks:**
     * [ ] **Backend API:** Create FastAPI endpoints for `/years`, `/calculate`, `/export`, and `/import`.
     * [ ] **Frontend Core:** Setup Electron with IPC bridge.
