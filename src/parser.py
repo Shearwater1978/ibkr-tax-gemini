@@ -40,7 +40,9 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
     # 1. Deduction (Qty < 0) -> Always trust Symbol column (selling/removing old stock)
     if quantity < 0:
         if symbol_col and symbol_col.strip():
-            return symbol_col.strip()
+            # Handle comma-separated aliases (e.g., 'TTE, TOT')
+            clean_sym = symbol_col.strip().split(',')[0].strip()
+            return clean_sym.split()[0]  # Take first word
         match_start = re.search(r'^([A-Za-z0-9\.]+)\s*\(', description)
         if match_start:
             return match_start.group(1).strip()
@@ -54,7 +56,9 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
 
     # 3. Fallback logic
     if symbol_col and symbol_col.strip(): 
-        return symbol_col.strip()
+        # Handle comma-separated aliases (e.g., 'TTE, TOT')
+        clean_sym = symbol_col.strip().split(',')[0].strip()
+        return clean_sym.split()[0]  # Take first word
         
     # Priority: Regex looking for Ticker(ISIN) or Ticker (ISIN)
     match_start = re.search(r'^([A-Za-z0-9\.]+)\s*\(', description)
