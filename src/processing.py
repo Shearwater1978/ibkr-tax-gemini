@@ -13,6 +13,12 @@ from src.fifo import TradeMatcher
 def process_yearly_data(
     raw_trades: List[Dict[str, Any]], target_year: int
 ) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+    # Ticker Aliases Mapping (Normalization)
+    TICKER_MAP = {
+        "TOT": "TTE",  # TotalEnergies old ticker
+        "FB": "META",  # Facebook old ticker
+    }
+
     """
     Main Processing Pipeline:
     1. Fetches raw data from DB.
@@ -47,6 +53,8 @@ def process_yearly_data(
         # Extract fields
         date_str = trade["Date"]
         ticker = trade["Ticker"]
+        # Apply normalization (e.g., TOT -> TTE)
+        ticker = TICKER_MAP.get(ticker, ticker)
         event_type = trade[
             "EventType"
         ]  # BUY, SELL, SPLIT, DIVIDEND, STOCK_DIV, MERGER, etc.
