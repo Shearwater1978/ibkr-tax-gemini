@@ -752,7 +752,9 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
     # 1. Deduction (Qty < 0) -> Always trust Symbol column (selling/removing old stock)
     if quantity < 0:
         if symbol_col and symbol_col.strip():
-            return symbol_col.strip()
+            # Handle comma-separated aliases (e.g., 'TTE, TOT')
+            clean_sym = symbol_col.strip().split(',')[0].strip()
+            return clean_sym.split()[0]  # Take first word
         match_start = re.search(r'^([A-Za-z0-9\.]+)\s*\(', description)
         if match_start:
             return match_start.group(1).strip()
@@ -766,7 +768,9 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
 
     # 3. Fallback logic
     if symbol_col and symbol_col.strip(): 
-        return symbol_col.strip()
+        # Handle comma-separated aliases (e.g., 'TTE, TOT')
+        clean_sym = symbol_col.strip().split(',')[0].strip()
+        return clean_sym.split()[0]  # Take first word
         
     # Priority: Regex looking for Ticker(ISIN) or Ticker (ISIN)
     match_start = re.search(r'^([A-Za-z0-9\.]+)\s*\(', description)
@@ -1085,6 +1089,12 @@ from src.nbp import get_nbp_rate
 from src.fifo import TradeMatcher 
 
 def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> Tuple[List[Dict], List[Dict], List[Dict]]:
+    # Ticker Aliases Mapping (Normalization)
+    TICKER_MAP = {
+        'TOT': 'TTE',   # TotalEnergies old ticker
+        'FB': 'META',   # Facebook old ticker
+    }
+
     """
     Main Processing Pipeline:
     1. Fetches raw data from DB.
@@ -1119,6 +1129,8 @@ def process_yearly_data(raw_trades: List[Dict[str, Any]], target_year: int) -> T
         # Extract fields
         date_str = trade['Date']
         ticker = trade['Ticker']
+        # Apply normalization (e.g., TOT -> TTE)
+        ticker = TICKER_MAP.get(ticker, ticker)
         event_type = trade['EventType'] # BUY, SELL, SPLIT, DIVIDEND, STOCK_DIV, MERGER, etc.
         currency = trade['Currency']
         
