@@ -11,6 +11,12 @@ from src.fifo import TradeMatcher
 
 
 def process_yearly_data(
+    # Ticker Aliases Mapping (Normalization)
+    TICKER_MAP = {
+        'TOT': 'TTE',   # TotalEnergies old ticker
+        'FB': 'META',   # Facebook old ticker
+    }
+
     raw_trades: List[Dict[str, Any]], target_year: int
 ) -> Tuple[List[Dict], List[Dict], List[Dict]]:
     """
