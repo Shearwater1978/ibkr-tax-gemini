@@ -16,7 +16,7 @@ from reportlab.lib.units import mm
 import itertools
 
 APP_NAME = "IBKR Tax Assistant"
-APP_VERSION = "v1.2.0"
+APP_VERSION = "v2.2.0"
 
 
 def get_zebra_style(row_count, header_color=colors.HexColor("#D0D0D0")):
