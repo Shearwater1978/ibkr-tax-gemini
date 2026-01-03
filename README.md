@@ -31,7 +31,7 @@
 3.  **Setup Security:**
     Create `.env`:
     ```ini
-    SQLCIPHER_KEY='your_secret_key'
+    SQLCIPHER_KEY=your_secret_key
     DATABASE_PATH=db/ibkr_history.db.enc
     ```
 
