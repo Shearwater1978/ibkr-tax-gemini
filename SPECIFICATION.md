@@ -1,4 +1,4 @@
-# Technical Specification: IBKR Tax Assistant (v2.1.0)
+# Technical Specification: IBKR Tax Assistant (v2.2.0)
 
 ## 1. System Architecture
 Modular architecture separating Data Ingestion, Encryption, Logic, and Reporting.
@@ -7,7 +7,7 @@ Modular architecture separating Data Ingestion, Encryption, Logic, and Reporting
 [IBKR CSV] -> [Universal Parser] -> [SQLCipher DB] -> [FIFO Core] -> [Reporters]
 ```
 
-## 2. Key Modules (v2.1.0)
+## 2. Key Modules (v2.2.0)
 
 ### 2.1. Security (`src/db_connector.py`)
 * **SQLCipher:** AES-256 encryption at rest.

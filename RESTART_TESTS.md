@@ -1,4 +1,4 @@
-# RESTART PROMPT: TESTS (v2.1.0)
+# RESTART PROMPT: TESTS (v2.2.0)
 
 **Context:** Part 3 of 3. Contains pytest suite and mock data.
 **Instructions:** Restore these files to `tests/` directory.

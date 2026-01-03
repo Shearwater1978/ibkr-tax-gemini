@@ -1,11 +1,11 @@
-# 🇵🇱 IBKR Tax Calculator (PIT-38 Poland) v2.1.0
+# 🇵🇱 IBKR Tax Calculator (PIT-38 Poland) v2.2.0
 
 **Automated Capital Gains & Dividend Tax Calculator for Polish Residents using Interactive Brokers.**
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Security](https://img.shields.io/badge/Security-SQLCipher%20AES--256-red)
-![Version](https://img.shields.io/badge/Release-v2.1.0-orange)
+![Version](https://img.shields.io/badge/Release-v2.2.0-orange)
 
 ## 🚀 Key Features
 
