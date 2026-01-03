@@ -448,6 +448,7 @@ def save_to_database(all_data):
 
     with DBConnector() as db:
         db.initialize_schema()
+        # Clean current transactions before fresh import
         db.conn.execute("DELETE FROM transactions")
         db.conn.executemany(
             "INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) VALUES (?,?,?,?,?,?,?,?,?)",
