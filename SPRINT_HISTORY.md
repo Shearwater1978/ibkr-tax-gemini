@@ -31,7 +31,10 @@
     * **Withholding Tax:** Implemented logic in `processing.py` to map TAX rows to DIVIDEND rows by date/ticker.
     * **FIFO:** Fixed P&L calculation to include buy/sell commissions in Cost Basis.
 
-## Sprint 4: GUI Implementation & UX (Goal)
+## Sprint 4: Bug fixing (Goal)
+* [ ] **Security:** Fixing of **SQLCipher** (AES-256) for local DB encryption.
+
+## Sprint 5: GUI Implementation & UX (Goal)
 * [ ] **Architecture:** Implemented Electron + FastAPI (Uvicorn) bridge.
 * [ ] **Database Integration:** Direct connection between Python Backend and SQLCipher (`transactions` table).
 * [ ] **UI Development:**
