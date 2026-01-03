@@ -216,6 +216,7 @@ from decouple import config
 DB_PATH = config("DATABASE_PATH", default="db/ibkr_history.db.enc")
 DB_KEY = config("SQLCIPHER_KEY", default=None)
 
+
 class DBConnector:
     def __init__(self, db_path=None):
         self.db_path = db_path if db_path else DB_PATH
@@ -233,7 +234,7 @@ class DBConnector:
     def connect(self):
         # Ensure the database directory exists
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        
+
         # Critical security check: the key MUST be present
         if not DB_KEY:
             print("FATAL ERROR: SQLCIPHER_KEY not found in environment!")
@@ -242,16 +243,16 @@ class DBConnector:
         try:
             self.conn = sqlite3.connect(self.db_path)
             self.conn.row_factory = sqlite3.Row
-            
+
             # Apply the encryption key IMMEDIATELY after connecting.
             # This is mandatory for SQLCipher to encrypt the file correctly.
             self.conn.execute(f"PRAGMA key = '{DB_KEY}';")
-            
+
             # Verification: attempt to read the master table.
-            # If the database was created as plaintext, this will fail 
+            # If the database was created as plaintext, this will fail
             # because SQLCipher expects an encrypted header.
             self.conn.execute("SELECT count(*) FROM sqlite_master;")
-            
+
         except sqlite3.DatabaseError as e:
             print(f"FATAL ERROR: Encryption/Key error. Details: {e}")
             self.close()
@@ -305,9 +306,15 @@ class DBConnector:
         self.conn.execute(
             query,
             (
-                data["date"], data["type"], data["ticker"],
-                data["qty"], data["price"], data["currency"],
-                data.get("amount", 0), data["fee"], data["desc"],
+                data["date"],
+                data["type"],
+                data["ticker"],
+                data["qty"],
+                data["price"],
+                data["currency"],
+                data.get("amount", 0),
+                data["fee"],
+                data["desc"],
             ),
         )
         self.conn.commit()
@@ -333,19 +340,20 @@ class DBConnector:
             WHERE 1=1
         """
         params = []
-        
+
         if ticker:
             query += " AND Ticker = ?"
             params.append(ticker)
-        
+
         if target_year:
             query += " AND Date <= ?"
             params.append(f"{target_year}-12-31")
-            
+
         query += " ORDER BY Date ASC"
-        
+
         cursor = self.conn.execute(query, params)
-        return [dict(row) for row in cursor.fetchall()]```
+        return [dict(row) for row in cursor.fetchall()]
+```
 
 # --- FILE: src/excel_exporter.py ---
 ```python
@@ -1232,7 +1240,8 @@ if __name__ == "__main__":
         for k in combined:
             combined[k].extend(parsed[k])
 
-    save_to_database(combined)```
+    save_to_database(combined)
+```
 
 # --- FILE: src/processing.py ---
 ```python
