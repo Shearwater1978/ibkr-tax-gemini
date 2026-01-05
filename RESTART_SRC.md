@@ -1598,6 +1598,56 @@ def generate_pdf(json_data, filename="report.pdf"):
     else:
         elements.append(Paragraph("No trades executed this year.", normal_style))
 
+    # PAGE: COMMISSIONS DETAIL (New Section)
+    elements.append(PageBreak())
+    elements.append(Paragraph(f"Brokerage Commissions Detail ({year})", h2_style))
+    elements.append(
+        Paragraph(
+            "Detailed breakdown of all fees paid to the broker for trade execution.",
+            normal_style,
+        )
+    )
+    elements.append(Spacer(1, 10))
+
+    comm_header = [["#", "Date", "Ticker", "Type", "Commission", "Curr"]]
+    comm_rows = []
+    total_comm_by_curr = {}
+
+    for i, t in enumerate(data["trades_history"], 1):
+        fee = t.get("commission", 0)
+        curr = t.get("currency", "USD")
+        if fee != 0:
+            comm_rows.append(
+                [
+                    str(len(comm_rows) + 1),
+                    t["date"],
+                    t["ticker"],
+                    t.get("type", "TRADE"),
+                    f"{abs(fee):.2f}",
+                    curr,
+                ]
+            )
+            total_comm_by_curr[curr] = total_comm_by_curr.get(curr, 0) + abs(fee)
+
+    if comm_rows:
+        t_comm = Table(
+            comm_header + comm_rows, colWidths=[25, 80, 70, 80, 80, 60], repeatRows=1
+        )
+        t_comm.setStyle(get_zebra_style(len(comm_header + comm_rows)))
+        elements.append(t_comm)
+
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph("Total Commissions per Currency:", h3_style))
+        sum_data = [["Currency", "Total Amount"]]
+        for c, val in total_comm_by_curr.items():
+            sum_data.append([c, f"{val:,.2f}"])
+
+        t_sum_comm = Table(sum_data, colWidths=[100, 100])
+        t_sum_comm.setStyle(get_zebra_style(len(sum_data)))
+        elements.append(t_sum_comm)
+    else:
+        elements.append(Paragraph("No brokerage commissions recorded.", normal_style))
+
     # PAGE: CORPORATE ACTIONS
     if data["corp_actions"]:
         elements.append(PageBreak())
@@ -1637,7 +1687,7 @@ def generate_pdf(json_data, filename="report.pdf"):
 
     elements.append(PageBreak())
 
-    # PAGE 4: MONTHLY DIVIDENDS SUMMARY
+    # PAGE: MONTHLY DIVIDENDS SUMMARY
     elements.append(Paragraph(f"Monthly Dividends Summary ({year})", h2_style))
     month_names = {
         "01": "January",
