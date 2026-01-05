@@ -44,21 +44,20 @@ def normalize_date(date_str: str) -> Optional[str]:
 def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
     """
     Extracts ticker symbol. Handles cases with spaces like 'MGA (ISIN)'
-    and simple cases like 'TSLA Cash Div'.
+    and complex spinoff descriptions like 'FNF(...) Spinoff (FG, ...)'.
     """
-    # 1. Deduction (Qty < 0) -> Always trust Symbol column (selling/removing old stock)
+    # 1. Deduction (Qty < 0) -> Trust Symbol column for exits
     if quantity < 0:
         if symbol_col and symbol_col.strip():
-            # Handle comma-separated aliases (e.g., 'TTE, TOT')
             clean_sym = symbol_col.strip().split(",")[0].strip()
-            return clean_sym.split()[0]  # Take first word
+            return clean_sym.split()[0]
         match_start = re.search(r"^([A-Za-z0-9\.]+)\s*\(", description)
         if match_start:
             return match_start.group(1).strip()
 
-    # 2. Addition (Qty > 0) -> Look for new ticker in description (for Spinoffs/Mergers)
+    # 2. Addition (Qty > 0) -> Priority to embedded tickers in description (Spinoffs/Mergers)
     if quantity > 0:
-        # Regex for patterns like "(NEWTICKER, ISIN, ...)" inside description
+        # Matches (TICKER, ISIN, ...) inside description
         embedded_match = re.search(
             r"\(([A-Za-z0-9\.]+),\s+[^,]+,\s+[A-Za-z0-9]{9,}\)", description
         )
@@ -67,21 +66,17 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
 
     # 3. Fallback logic
     if symbol_col and symbol_col.strip():
-        # Handle comma-separated aliases (e.g., 'TTE, TOT')
         clean_sym = symbol_col.strip().split(",")[0].strip()
-        return clean_sym.split()[0]  # Take first word
+        return clean_sym.split()[0]
 
-    # Priority: Regex looking for Ticker(ISIN) or Ticker (ISIN)
     match_start = re.search(r"^([A-Za-z0-9\.]+)\s*\(", description)
     if match_start:
         return match_start.group(1).strip()
 
-    # 4. LAST RESORT: First word
-    # This fixes cases like "TSLA Cash Div" where there are no parentheses.
+    # 4. First word fallback
     parts = description.split()
     if parts:
         candidate = parts[0]
-        # Basic validation: Uppercase and reasonable length
         if candidate.isupper() and len(candidate) < 12:
             return candidate
 
@@ -89,6 +84,7 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
 
 
 def classify_trade_type(description: str, quantity: Decimal) -> str:
+    """Classifies standard trades and transfers."""
     desc_upper = description.upper()
     transfer_keywords = [
         "ACATS",
@@ -108,6 +104,13 @@ def classify_trade_type(description: str, quantity: Decimal) -> str:
 
 
 def classify_corp_action(description: str, quantity: Decimal) -> str:
+    """
+    Classifies corporate actions.
+    Explicitly detects SPINOFF for better reporting.
+    """
+    desc_upper = description.upper()
+    if "SPINOFF" in desc_upper:
+        return "SPINOFF"
     if quantity > 0:
         return "STOCK_DIV"
     if quantity < 0:
@@ -116,6 +119,7 @@ def classify_corp_action(description: str, quantity: Decimal) -> str:
 
 
 def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[int]:
+    """Helper to find column index from a list of possible header names."""
     for name in possible_names:
         if name in headers:
             return headers[name]
@@ -123,6 +127,7 @@ def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[
 
 
 def load_manual_fixes(filepath: str) -> List[Dict]:
+    """Loads manual adjustments from a CSV file."""
     fixes = []
     if not os.path.exists(filepath):
         return fixes
@@ -152,11 +157,11 @@ def load_manual_fixes(filepath: str) -> List[Dict]:
                 )
     except Exception as e:
         print(f"❌ Error loading manual fixes: {e}")
-
     return fixes
 
 
 def parse_csv(filepath: str) -> Dict[str, List]:
+    """Parses IBKR Activity Flex Query CSV file."""
     data = {"trades": [], "dividends": [], "taxes": [], "corp_actions": []}
     section_headers = {}
     filename = os.path.basename(filepath)
@@ -180,9 +185,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
 
                 def check_date_and_parse(row, idx_date_col):
                     d_str = normalize_date(row[idx_date_col])
-                    if not d_str:
-                        return None
-                    return d_str
+                    return d_str if d_str else None
 
                 # --- TRADES ---
                 if section == "Trades":
@@ -230,7 +233,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                                 parse_decimal(row[idx_comm]) if idx_comm else Decimal(0)
                             ),
                             "type": classify_trade_type(desc_raw, qty),
-                            "source": "IBKR",
+                            "source": desc_raw or "IBKR Trade",
                             "source_file": filename,
                         }
                     )
@@ -258,10 +261,10 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     qty = parse_decimal(row[idx_qty])
                     desc = row[idx_desc]
                     sym_val = row[idx_sym] if idx_sym else ""
-
                     action_type = classify_corp_action(desc, qty)
 
-                    if action_type in ["STOCK_DIV", "MERGER"]:
+                    # Now explicitly handling SPINOFF
+                    if action_type in ["STOCK_DIV", "MERGER", "SPINOFF"]:
                         real_ticker = extract_ticker(desc, sym_val, qty)
                         data["corp_actions"].append(
                             {
@@ -272,7 +275,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                                 "price": Decimal(0),
                                 "commission": Decimal(0),
                                 "type": action_type,
-                                "source": "IBKR_CORP",
+                                "source": desc,  # Captures full spinoff description
                                 "source_file": filename,
                             }
                         )
@@ -295,9 +298,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     if not date_norm:
                         continue
 
-                    # FIX: Pass empty string as symbol to force regex extraction from description
                     ticker = extract_ticker(row[idx_desc], "", Decimal(0))
-
                     data["dividends"].append(
                         {
                             "ticker": ticker,
@@ -308,7 +309,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         }
                     )
 
-                # --- TAXES ---
+                # --- WITHHOLDING TAXES ---
                 elif section == "Withholding Tax":
                     idx_date = get_col_idx(headers, ["Date"])
                     idx_cur = get_col_idx(headers, ["Currency"])
@@ -327,7 +328,6 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     ticker = extract_ticker(
                         row[idx_desc] if idx_desc else "", "", Decimal(0)
                     )
-
                     data["taxes"].append(
                         {
                             "ticker": ticker,
@@ -340,12 +340,11 @@ def parse_csv(filepath: str) -> Dict[str, List]:
 
     except Exception as e:
         print(f"❌ Error parsing {filename}: {e}")
-
     return data
 
 
 def save_to_database(all_data):
-    # Load manual fixes
+    """Deduplicates records and saves them to the encrypted database."""
     manual_fixes = load_manual_fixes(MANUAL_FIXES_FILE)
     if manual_fixes:
         all_data["corp_actions"].extend(manual_fixes)
@@ -354,16 +353,14 @@ def save_to_database(all_data):
     unique_records = []
     duplicates_count = 0
 
-    # Universal list processing
     def process_list(datalist, category):
         nonlocal duplicates_count
         for t in datalist:
-            # Use .get() to avoid KeyError (dividends have no qty)
             qty_val = t.get("qty", 0)
             price_val = t.get("price", 0)
             amount_val = t.get("amount", 0)
 
-            # Create hash signature
+            # Hash signature for deduplication
             qty_sig = f"{qty_val:.6f}"
             price_sig = f"{price_val:.6f}"
             amt_sig = f"{amount_val:.6f}"
@@ -377,17 +374,12 @@ def save_to_database(all_data):
                 t.get("type", category),
             )
 
-            current_file = t.get("source_file", "UNKNOWN")
-
             if sig in seen_registry:
-                # Duplicate found - skipping
                 duplicates_count += 1
                 continue
 
-            # Register new unique record
-            seen_registry[sig] = current_file
+            seen_registry[sig] = t.get("source_file", "UNKNOWN")
 
-            # Add to DB list
             if category == "DIVIDEND":
                 unique_records.append(
                     (
@@ -427,11 +419,10 @@ def save_to_database(all_data):
                         t["currency"],
                         float(qty_val * price_val),
                         float(t["commission"]),
-                        t["source"],
+                        t["source"],  # Preserves original description
                     )
                 )
 
-    # Process all lists via unified logic
     process_list(all_data["trades"], "TRADE")
     process_list(all_data["corp_actions"], "CORP")
     process_list(all_data["dividends"], "DIVIDEND")
@@ -439,7 +430,7 @@ def save_to_database(all_data):
 
     if duplicates_count > 0:
         print(
-            f"🧹 Deduplication: Skipped {duplicates_count} duplicate records found across overlapping files."
+            f"🧹 Deduplication: Skipped {duplicates_count} duplicate records across files."
         )
 
     if not unique_records:
@@ -448,7 +439,6 @@ def save_to_database(all_data):
 
     with DBConnector() as db:
         db.initialize_schema()
-        # Clean current transactions before fresh import
         db.conn.execute("DELETE FROM transactions")
         db.conn.executemany(
             "INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) VALUES (?,?,?,?,?,?,?,?,?)",

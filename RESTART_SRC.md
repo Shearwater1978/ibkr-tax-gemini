@@ -1,4 +1,4 @@
-# RESTART PROMPT: SOURCE CODE (v2.2.0)
+# RESTART PROMPT: SOURCE CODE (v2.1.0)
 
 **Context:** Part 2 of 3. Contains application source code.
 **Instructions:** Restore these files to `src/` directory.
@@ -813,21 +813,20 @@ def normalize_date(date_str: str) -> Optional[str]:
 def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
     """
     Extracts ticker symbol. Handles cases with spaces like 'MGA (ISIN)'
-    and simple cases like 'TSLA Cash Div'.
+    and complex spinoff descriptions like 'FNF(...) Spinoff (FG, ...)'.
     """
-    # 1. Deduction (Qty < 0) -> Always trust Symbol column (selling/removing old stock)
+    # 1. Deduction (Qty < 0) -> Trust Symbol column for exits
     if quantity < 0:
         if symbol_col and symbol_col.strip():
-            # Handle comma-separated aliases (e.g., 'TTE, TOT')
             clean_sym = symbol_col.strip().split(",")[0].strip()
-            return clean_sym.split()[0]  # Take first word
+            return clean_sym.split()[0]
         match_start = re.search(r"^([A-Za-z0-9\.]+)\s*\(", description)
         if match_start:
             return match_start.group(1).strip()
 
-    # 2. Addition (Qty > 0) -> Look for new ticker in description (for Spinoffs/Mergers)
+    # 2. Addition (Qty > 0) -> Priority to embedded tickers in description (Spinoffs/Mergers)
     if quantity > 0:
-        # Regex for patterns like "(NEWTICKER, ISIN, ...)" inside description
+        # Matches (TICKER, ISIN, ...) inside description
         embedded_match = re.search(
             r"\(([A-Za-z0-9\.]+),\s+[^,]+,\s+[A-Za-z0-9]{9,}\)", description
         )
@@ -836,21 +835,17 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
 
     # 3. Fallback logic
     if symbol_col and symbol_col.strip():
-        # Handle comma-separated aliases (e.g., 'TTE, TOT')
         clean_sym = symbol_col.strip().split(",")[0].strip()
-        return clean_sym.split()[0]  # Take first word
+        return clean_sym.split()[0]
 
-    # Priority: Regex looking for Ticker(ISIN) or Ticker (ISIN)
     match_start = re.search(r"^([A-Za-z0-9\.]+)\s*\(", description)
     if match_start:
         return match_start.group(1).strip()
 
-    # 4. LAST RESORT: First word
-    # This fixes cases like "TSLA Cash Div" where there are no parentheses.
+    # 4. First word fallback
     parts = description.split()
     if parts:
         candidate = parts[0]
-        # Basic validation: Uppercase and reasonable length
         if candidate.isupper() and len(candidate) < 12:
             return candidate
 
@@ -858,6 +853,7 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
 
 
 def classify_trade_type(description: str, quantity: Decimal) -> str:
+    """Classifies standard trades and transfers."""
     desc_upper = description.upper()
     transfer_keywords = [
         "ACATS",
@@ -877,6 +873,13 @@ def classify_trade_type(description: str, quantity: Decimal) -> str:
 
 
 def classify_corp_action(description: str, quantity: Decimal) -> str:
+    """
+    Classifies corporate actions.
+    Explicitly detects SPINOFF for better reporting.
+    """
+    desc_upper = description.upper()
+    if "SPINOFF" in desc_upper:
+        return "SPINOFF"
     if quantity > 0:
         return "STOCK_DIV"
     if quantity < 0:
@@ -885,6 +888,7 @@ def classify_corp_action(description: str, quantity: Decimal) -> str:
 
 
 def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[int]:
+    """Helper to find column index from a list of possible header names."""
     for name in possible_names:
         if name in headers:
             return headers[name]
@@ -892,6 +896,7 @@ def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[
 
 
 def load_manual_fixes(filepath: str) -> List[Dict]:
+    """Loads manual adjustments from a CSV file."""
     fixes = []
     if not os.path.exists(filepath):
         return fixes
@@ -921,11 +926,11 @@ def load_manual_fixes(filepath: str) -> List[Dict]:
                 )
     except Exception as e:
         print(f"❌ Error loading manual fixes: {e}")
-
     return fixes
 
 
 def parse_csv(filepath: str) -> Dict[str, List]:
+    """Parses IBKR Activity Flex Query CSV file."""
     data = {"trades": [], "dividends": [], "taxes": [], "corp_actions": []}
     section_headers = {}
     filename = os.path.basename(filepath)
@@ -949,9 +954,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
 
                 def check_date_and_parse(row, idx_date_col):
                     d_str = normalize_date(row[idx_date_col])
-                    if not d_str:
-                        return None
-                    return d_str
+                    return d_str if d_str else None
 
                 # --- TRADES ---
                 if section == "Trades":
@@ -999,7 +1002,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                                 parse_decimal(row[idx_comm]) if idx_comm else Decimal(0)
                             ),
                             "type": classify_trade_type(desc_raw, qty),
-                            "source": "IBKR",
+                            "source": desc_raw or "IBKR Trade",
                             "source_file": filename,
                         }
                     )
@@ -1027,10 +1030,10 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     qty = parse_decimal(row[idx_qty])
                     desc = row[idx_desc]
                     sym_val = row[idx_sym] if idx_sym else ""
-
                     action_type = classify_corp_action(desc, qty)
 
-                    if action_type in ["STOCK_DIV", "MERGER"]:
+                    # Now explicitly handling SPINOFF
+                    if action_type in ["STOCK_DIV", "MERGER", "SPINOFF"]:
                         real_ticker = extract_ticker(desc, sym_val, qty)
                         data["corp_actions"].append(
                             {
@@ -1041,7 +1044,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                                 "price": Decimal(0),
                                 "commission": Decimal(0),
                                 "type": action_type,
-                                "source": "IBKR_CORP",
+                                "source": desc,  # Captures full spinoff description
                                 "source_file": filename,
                             }
                         )
@@ -1064,9 +1067,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     if not date_norm:
                         continue
 
-                    # FIX: Pass empty string as symbol to force regex extraction from description
                     ticker = extract_ticker(row[idx_desc], "", Decimal(0))
-
                     data["dividends"].append(
                         {
                             "ticker": ticker,
@@ -1077,7 +1078,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         }
                     )
 
-                # --- TAXES ---
+                # --- WITHHOLDING TAXES ---
                 elif section == "Withholding Tax":
                     idx_date = get_col_idx(headers, ["Date"])
                     idx_cur = get_col_idx(headers, ["Currency"])
@@ -1096,7 +1097,6 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     ticker = extract_ticker(
                         row[idx_desc] if idx_desc else "", "", Decimal(0)
                     )
-
                     data["taxes"].append(
                         {
                             "ticker": ticker,
@@ -1109,12 +1109,11 @@ def parse_csv(filepath: str) -> Dict[str, List]:
 
     except Exception as e:
         print(f"❌ Error parsing {filename}: {e}")
-
     return data
 
 
 def save_to_database(all_data):
-    # Load manual fixes
+    """Deduplicates records and saves them to the encrypted database."""
     manual_fixes = load_manual_fixes(MANUAL_FIXES_FILE)
     if manual_fixes:
         all_data["corp_actions"].extend(manual_fixes)
@@ -1123,16 +1122,14 @@ def save_to_database(all_data):
     unique_records = []
     duplicates_count = 0
 
-    # Universal list processing
     def process_list(datalist, category):
         nonlocal duplicates_count
         for t in datalist:
-            # Use .get() to avoid KeyError (dividends have no qty)
             qty_val = t.get("qty", 0)
             price_val = t.get("price", 0)
             amount_val = t.get("amount", 0)
 
-            # Create hash signature
+            # Hash signature for deduplication
             qty_sig = f"{qty_val:.6f}"
             price_sig = f"{price_val:.6f}"
             amt_sig = f"{amount_val:.6f}"
@@ -1146,17 +1143,12 @@ def save_to_database(all_data):
                 t.get("type", category),
             )
 
-            current_file = t.get("source_file", "UNKNOWN")
-
             if sig in seen_registry:
-                # Duplicate found - skipping
                 duplicates_count += 1
                 continue
 
-            # Register new unique record
-            seen_registry[sig] = current_file
+            seen_registry[sig] = t.get("source_file", "UNKNOWN")
 
-            # Add to DB list
             if category == "DIVIDEND":
                 unique_records.append(
                     (
@@ -1196,11 +1188,10 @@ def save_to_database(all_data):
                         t["currency"],
                         float(qty_val * price_val),
                         float(t["commission"]),
-                        t["source"],
+                        t["source"],  # Preserves original description
                     )
                 )
 
-    # Process all lists via unified logic
     process_list(all_data["trades"], "TRADE")
     process_list(all_data["corp_actions"], "CORP")
     process_list(all_data["dividends"], "DIVIDEND")
@@ -1208,7 +1199,7 @@ def save_to_database(all_data):
 
     if duplicates_count > 0:
         print(
-            f"🧹 Deduplication: Skipped {duplicates_count} duplicate records found across overlapping files."
+            f"🧹 Deduplication: Skipped {duplicates_count} duplicate records across files."
         )
 
     if not unique_records:
@@ -1217,7 +1208,6 @@ def save_to_database(all_data):
 
     with DBConnector() as db:
         db.initialize_schema()
-        # Clean current transactions before fresh import
         db.conn.execute("DELETE FROM transactions")
         db.conn.executemany(
             "INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) VALUES (?,?,?,?,?,?,?,?,?)",
@@ -1416,14 +1406,15 @@ APP_VERSION = "v2.2.0"
 
 
 def get_zebra_style(row_count, header_color=colors.HexColor("#D0D0D0")):
+    """Creates a striped table style with a sticky header."""
     cmds = [
         ("BACKGROUND", (0, 0), (-1, 0), header_color),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),  # Slightly smaller font to fit extra column
-        ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Center the Numbering column
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("ALIGN", (0, 1), (0, -1), "CENTER"),
     ]
     for i in range(1, row_count):
         if i % 2 == 0:
@@ -1432,11 +1423,22 @@ def get_zebra_style(row_count, header_color=colors.HexColor("#D0D0D0")):
 
 
 def add_footer(canvas, doc):
+    """Draws page numbers and a warning legend on every page."""
     canvas.saveState()
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(colors.grey)
     footer_text = f"Generated by {APP_NAME} {APP_VERSION}"
     canvas.drawString(10 * mm, 10 * mm, footer_text)
+
+    # Legend for the zero-cost warning marker
+    canvas.setFont("Helvetica-Oblique", 7)
+    canvas.drawRightString(
+        A4[0] - 10 * mm,
+        14 * mm,
+        "(!) Warning: Acquisition price is 0.00. Check manual_fixes.csv.",
+    )
+
+    canvas.setFont("Helvetica", 8)
     page_num = f"Page {doc.page}"
     canvas.drawRightString(A4[0] - 10 * mm, 10 * mm, page_num)
     canvas.setStrokeColor(colors.lightgrey)
@@ -1445,6 +1447,7 @@ def add_footer(canvas, doc):
 
 
 def generate_pdf(json_data, filename="report.pdf"):
+    """Main function to build the multi-page tax report."""
     doc = SimpleDocTemplate(
         filename,
         pagesize=A4,
@@ -1452,13 +1455,14 @@ def generate_pdf(json_data, filename="report.pdf"):
         topMargin=20 * mm,
         leftMargin=10 * mm,
         rightMargin=10 * mm,
-    )  # Slightly wider margins for tables
+    )
     elements = []
     styles = getSampleStyleSheet()
 
     year = json_data["year"]
     data = json_data["data"]
 
+    # --- STYLES DEFINITION ---
     title_style = ParagraphStyle(
         "ReportTitle",
         parent=styles["Title"],
@@ -1488,7 +1492,7 @@ def generate_pdf(json_data, filename="report.pdf"):
         "ItalicSmall", parent=styles["Italic"], fontSize=8, alignment=TA_LEFT
     )
 
-    # PAGE 1
+    # PAGE 1: COVER PAGE
     elements.append(Spacer(1, 50))
     elements.append(Paragraph(f"Tax report — {year}", title_style))
     elements.append(Spacer(1, 10))
@@ -1497,12 +1501,11 @@ def generate_pdf(json_data, filename="report.pdf"):
     )
     elements.append(PageBreak())
 
-    # PAGE 2: PORTFOLIO (WITH FIFO CHECK)
+    # PAGE 2: PORTFOLIO COMPOSITION
     elements.append(
         Paragraph(f"Portfolio Composition (as of Dec 31, {year})", h2_style)
     )
     if data["holdings"]:
-        # Header with Numbering column
         holdings_data = [["#", "Ticker", "Quantity", "FIFO Check"]]
         restricted_indices = []
         has_restricted = False
@@ -1515,28 +1518,27 @@ def generate_pdf(json_data, filename="report.pdf"):
                 has_restricted = True
                 restricted_indices.append(row_idx)
 
+            # Mark OK with (!) if cost basis is zero (like for Spinoffs)
             check_mark = "OK" if h.get("fifo_match", False) else "MISMATCH!"
+            if h.get("fifo_match", False) and h.get("cost_basis", 1) == 0:
+                check_mark = "OK (!)"
 
             holdings_data.append(
                 [str(row_idx), display_ticker, f"{h['qty']:.4f}", check_mark]
             )
             row_idx += 1
 
-        # Adjusted widths for 4 columns
         t_holdings = Table(holdings_data, colWidths=[30, 180, 100, 100], repeatRows=1)
         ts = get_zebra_style(len(holdings_data))
+        ts.add("ALIGN", (2, 1), (2, -1), "RIGHT")
+        ts.add("ALIGN", (3, 1), (3, -1), "CENTER")
 
-        # --- STYLING ---
-        # Note: Indices shifted by +1 because of the new "#" column at index 0
-        ts.add("ALIGN", (2, 1), (2, -1), "RIGHT")  # Qty -> Right (Index 2)
-        ts.add("ALIGN", (3, 1), (3, -1), "CENTER")  # FIFO Check -> Center (Index 3)
-
-        # Color coding for Mismatches
         for i, row in enumerate(holdings_data[1:], start=1):
-            if row[3] != "OK":  # Index 3 is Check
+            if "MISMATCH" in row[3]:
                 ts.add("TEXTCOLOR", (3, i), (3, i), colors.red)
+            elif "(!)" in row[3]:
+                ts.add("TEXTCOLOR", (3, i), (3, i), colors.orange)
 
-        # Red Highlight for Restricted
         for r_idx in restricted_indices:
             ts.add("BACKGROUND", (0, r_idx), (-1, r_idx), colors.HexColor("#FFCCCC"))
 
@@ -1552,40 +1554,45 @@ def generate_pdf(json_data, filename="report.pdf"):
                 )
             )
     else:
-        elements.append(
-            Paragraph("No open positions found at end of year.", normal_style)
-        )
+        elements.append(Paragraph("No open positions found.", normal_style))
     elements.append(PageBreak())
 
     # PAGE 3: TRADES HISTORY
     elements.append(Paragraph(f"Trades History ({year})", h2_style))
     if data["trades_history"]:
-        # Header with Numbering
         trades_header = [
             ["#", "Date", "Ticker", "Type", "Qty", "Price", "Comm", "Curr"]
         ]
         trades_rows = []
 
         for i, t in enumerate(data["trades_history"], 1):
-            t_type = t.get("type", "UNKNOWN")
+            price_val = t.get("price", 0)
+            price_display = f"{price_val:.2f}"
+            if price_val == 0:
+                price_display += " (!)"
+
             row = [
                 str(i),
                 t["date"],
                 t["ticker"],
-                t_type,
+                t.get("type", "UNKNOWN"),
                 f"{abs(t['qty']):.4f}",
-                f"{t['price']:.2f}",
+                price_display,
                 f"{t['commission']:.2f}",
                 t["currency"],
             ]
             trades_rows.append(row)
 
         full_table_data = trades_header + trades_rows
-        # Adjusted widths
         col_widths = [25, 60, 50, 50, 50, 50, 50, 40]
         t_trades = Table(full_table_data, colWidths=col_widths, repeatRows=1)
         ts_trades = get_zebra_style(len(full_table_data))
-        ts_trades.add("ALIGN", (4, 1), (-1, -1), "RIGHT")  # Qty right align
+        ts_trades.add("ALIGN", (4, 1), (-1, -1), "RIGHT")
+
+        for i, row in enumerate(trades_rows, 1):
+            if "(!)" in row[5]:
+                ts_trades.add("TEXTCOLOR", (5, i), (5, i), colors.orange)
+
         t_trades.setStyle(ts_trades)
         elements.append(t_trades)
     else:
@@ -1600,27 +1607,32 @@ def generate_pdf(json_data, filename="report.pdf"):
 
         for i, act in enumerate(data["corp_actions"], 1):
             details = ""
+            warning = " (!)" if act.get("price", 0) == 0 else ""
+
             if act["type"] == "SPLIT":
                 ratio = act.get("ratio", 1)
                 details = f"Split Ratio: {ratio:.4f}"
-            elif act["type"] == "STOCK_DIV" or (
-                act["type"] == "BUY" and act.get("source") == "IBKR_CORP_ACTION"
+            elif (
+                act["type"] in ["STOCK_DIV", "SPINOFF"]
+                or act.get("source") == "IBKR_CORP_ACTION"
             ):
-                details = f"Stock Div: +{act['qty']:.4f}"
-            elif act["type"] == "MERGER" or (
-                act["type"] == "SELL" and act.get("source") == "IBKR_CORP_ACTION"
-            ):
-                details = f"Merger/Liq: {act['qty']:.4f}"
+                details = f"Stock/Spin: +{act['qty']:.4f}{warning}"
+            elif act["type"] == "MERGER":
+                details = f"Merger/Liq: {act['qty']:.4f}{warning}"
             elif act["type"] == "TRANSFER":
-                details = f"Adjustment: {act['qty']:.4f}"
+                details = f"Adjustment: {act['qty']:.4f}{warning}"
             else:
-                details = "Other Adjustment"
+                details = f"Other Adjustment{warning}"
 
             corp_rows.append([str(i), act["date"], act["ticker"], act["type"], details])
 
         full_corp_data = corp_header + corp_rows
         t_corp = Table(full_corp_data, colWidths=[25, 75, 60, 70, 200], repeatRows=1)
-        t_corp.setStyle(get_zebra_style(len(full_corp_data)))
+        ts_corp = get_zebra_style(len(full_corp_data))
+        for i, row in enumerate(corp_rows, 1):
+            if "(!)" in row[4]:
+                ts_corp.add("TEXTCOLOR", (4, i), (4, i), colors.orange)
+        t_corp.setStyle(ts_corp)
         elements.append(t_corp)
 
     elements.append(PageBreak())
@@ -1643,7 +1655,6 @@ def generate_pdf(json_data, filename="report.pdf"):
     }
 
     if data["monthly_dividends"]:
-        # Note: Summary tables usually don't need row numbers, but added for consistency if requested.
         m_data = [["#", "Month", "Gross (PLN)", "Tax Paid (PLN)", "Net (PLN)"]]
         sorted_months = sorted(data["monthly_dividends"].keys())
         total_gross, total_tax = 0, 0
@@ -1674,9 +1685,9 @@ def generate_pdf(json_data, filename="report.pdf"):
 
         t_months = Table(m_data, colWidths=[25, 90, 100, 100, 100], repeatRows=1)
         ts = get_zebra_style(len(m_data))
-        ts.add("FONT-WEIGHT", (1, -1), (-1, -1), "BOLD")  # Bold Total Row
+        ts.add("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold")
         ts.add("BACKGROUND", (0, -1), (-1, -1), colors.lightgrey)
-        ts.add("ALIGN", (2, 1), (-1, -1), "RIGHT")  # Numbers right align
+        ts.add("ALIGN", (2, 1), (-1, -1), "RIGHT")
         t_months.setStyle(ts)
         elements.append(t_months)
 
@@ -1691,7 +1702,6 @@ def generate_pdf(json_data, filename="report.pdf"):
         elements.append(Spacer(1, 10))
 
         sorted_divs = sorted(data["dividends"], key=lambda x: x["date"])
-
         is_first_month = True
         global_div_idx = 1
 
@@ -1703,14 +1713,12 @@ def generate_pdf(json_data, filename="report.pdf"):
             is_first_month = False
 
             y, m = month_key.split("-")
-            m_name = month_names.get(m, m)
-            elements.append(Paragraph(f"{m_name} {y}", h2_style))
+            elements.append(Paragraph(f"{month_names.get(m, m)} {y}", h2_style))
 
             det_header = [
                 ["#", "Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]
             ]
             det_rows = []
-
             for d in group:
                 det_rows.append(
                     [
@@ -1725,15 +1733,15 @@ def generate_pdf(json_data, filename="report.pdf"):
                 )
                 global_div_idx += 1
 
-            full_det_data = det_header + det_rows
             t_det = Table(
-                full_det_data, colWidths=[25, 60, 45, 80, 45, 65, 65], repeatRows=1
+                det_header + det_rows,
+                colWidths=[25, 60, 45, 80, 45, 65, 65],
+                repeatRows=1,
             )
-            ts_det = get_zebra_style(len(full_det_data))
+            ts_det = get_zebra_style(len(det_header + det_rows))
             ts_det.add("ALIGN", (3, 1), (-1, -1), "RIGHT")
             t_det.setStyle(ts_det)
             elements.append(t_det)
-
     else:
         elements.append(Paragraph("No dividends received this year.", normal_style))
 
@@ -1759,6 +1767,7 @@ def generate_pdf(json_data, filename="report.pdf"):
     t_summary.setStyle(ts_sum)
     elements.append(t_summary)
 
+    # DIAGNOSTICS
     elements.append(Spacer(1, 20))
     elements.append(Paragraph("Diagnostics", h2_style))
     diag = data["diagnostics"]
@@ -1774,6 +1783,7 @@ def generate_pdf(json_data, filename="report.pdf"):
     t_diag.setStyle(ts_diag)
     elements.append(t_diag)
 
+    # PER-CURRENCY
     elements.append(Spacer(1, 20))
     elements.append(Paragraph("Per-currency totals (PLN)", h2_style))
     curr_data = [["Currency", "PLN total"]]
@@ -1786,7 +1796,7 @@ def generate_pdf(json_data, filename="report.pdf"):
     elements.append(t_curr)
     elements.append(PageBreak())
 
-    # PAGE: PIT-38
+    # PAGE: PIT-38 HELPER
     elements.append(Paragraph(f"PIT-38 Helper Data ({year})", h2_style))
     elements.append(Spacer(1, 10))
     elements.append(Paragraph("Section C (Stocks/Derivatives)", h3_style))
@@ -1803,13 +1813,6 @@ def generate_pdf(json_data, filename="report.pdf"):
     ts_pit.add("ALIGN", (1, 1), (-1, -1), "RIGHT")
     t_pit_c.setStyle(ts_pit)
     elements.append(t_pit_c)
-    elements.append(Spacer(1, 5))
-    elements.append(
-        Paragraph(
-            "<i>* Note: 'Koszty' includes purchase price + buy/sell commissions.</i>",
-            styles["Italic"],
-        )
-    )
     elements.append(Spacer(1, 20))
 
     elements.append(Paragraph("Dividends (Foreign Tax)", h3_style))

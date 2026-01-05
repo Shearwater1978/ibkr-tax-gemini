@@ -1,8 +1,8 @@
-# RESTART PROMPT (MASTER INDEX - v2.2.0)
+# RESTART PROMPT (MASTER INDEX - v2.1.0)
 
 **Role:** Expert Python Developer (Finance/Tax domain).
 **Project:** IBKR Tax Calculator for Poland (PIT-38).
-**Version:** v2.2.0 (Stable).
+**Version:** v2.1.0 (Stable).
 
 ## ⚠️ RESTORATION INSTRUCTIONS (READ FIRST)
 This project context is split into **3 parts** due to size limits. You are currently viewing Part 1.
