@@ -87,8 +87,12 @@ def classify_trade_type(description: str, quantity: Decimal) -> str:
     """Classifies standard trades and transfers."""
     desc_upper = description.upper()
     transfer_keywords = [
-        "ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM",
-        "RECEIVE DELIVER", "CASH IN LIEU",
+        "ACATS",
+        "TRANSFER",
+        "INTERNAL",
+        "POSITION MOVEM",
+        "RECEIVE DELIVER",
+        "CASH IN LIEU",
     ]
     if any(k in desc_upper for k in transfer_keywords):
         return "TRANSFER"
@@ -101,7 +105,7 @@ def classify_trade_type(description: str, quantity: Decimal) -> str:
 
 def classify_corp_action(description: str, quantity: Decimal) -> str:
     """
-    Classifies corporate actions. 
+    Classifies corporate actions.
     Explicitly detects SPINOFF for better reporting.
     """
     desc_upper = description.upper()
@@ -136,17 +140,21 @@ def load_manual_fixes(filepath: str) -> List[Dict]:
                 if not row["Date"] or not row["Ticker"]:
                     continue
 
-                fixes.append({
-                    "ticker": row["Ticker"].strip(),
-                    "currency": row["Currency"].strip() if row["Currency"] else "USD",
-                    "date": row["Date"].strip(),
-                    "qty": parse_decimal(row["Quantity"]),
-                    "price": parse_decimal(row["Price"]),
-                    "commission": Decimal(0),
-                    "type": row["Type"].strip(),
-                    "source": "MANUAL_FIX",
-                    "source_file": "manual_fixes.csv",
-                })
+                fixes.append(
+                    {
+                        "ticker": row["Ticker"].strip(),
+                        "currency": (
+                            row["Currency"].strip() if row["Currency"] else "USD"
+                        ),
+                        "date": row["Date"].strip(),
+                        "qty": parse_decimal(row["Quantity"]),
+                        "price": parse_decimal(row["Price"]),
+                        "commission": Decimal(0),
+                        "type": row["Type"].strip(),
+                        "source": "MANUAL_FIX",
+                        "source_file": "manual_fixes.csv",
+                    }
+                )
     except Exception as e:
         print(f"❌ Error loading manual fixes: {e}")
     return fixes
@@ -189,8 +197,12 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     idx_cur = get_col_idx(headers, ["Currency"])
                     idx_sym = get_col_idx(headers, ["Symbol", "Ticker"])
                     idx_qty = get_col_idx(headers, ["Quantity"])
-                    idx_price = get_col_idx(headers, ["T. Price", "TradePrice", "Price"])
-                    idx_comm = get_col_idx(headers, ["Comm/Fee", "IBCommission", "Commission"])
+                    idx_price = get_col_idx(
+                        headers, ["T. Price", "TradePrice", "Price"]
+                    )
+                    idx_comm = get_col_idx(
+                        headers, ["Comm/Fee", "IBCommission", "Commission"]
+                    )
                     idx_desc = get_col_idx(headers, ["Description"])
 
                     if any(x is None for x in [idx_date, idx_qty, idx_price]):
@@ -199,26 +211,32 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
-                    if not date_norm: continue
+                    if not date_norm:
+                        continue
 
                     qty = parse_decimal(row[idx_qty])
-                    if qty == 0: continue
+                    if qty == 0:
+                        continue
 
                     sym_raw = row[idx_sym] if idx_sym else ""
                     desc_raw = row[idx_desc] if idx_desc else ""
                     ticker = extract_ticker(desc_raw, sym_raw, qty)
 
-                    data["trades"].append({
-                        "ticker": ticker,
-                        "currency": row[idx_cur],
-                        "date": date_norm,
-                        "qty": qty,
-                        "price": parse_decimal(row[idx_price]),
-                        "commission": parse_decimal(row[idx_comm]) if idx_comm else Decimal(0),
-                        "type": classify_trade_type(desc_raw, qty),
-                        "source": desc_raw or "IBKR Trade",
-                        "source_file": filename,
-                    })
+                    data["trades"].append(
+                        {
+                            "ticker": ticker,
+                            "currency": row[idx_cur],
+                            "date": date_norm,
+                            "qty": qty,
+                            "price": parse_decimal(row[idx_price]),
+                            "commission": (
+                                parse_decimal(row[idx_comm]) if idx_comm else Decimal(0)
+                            ),
+                            "type": classify_trade_type(desc_raw, qty),
+                            "source": desc_raw or "IBKR Trade",
+                            "source_file": filename,
+                        }
+                    )
 
                 # --- CORPORATE ACTIONS ---
                 elif section == "Corporate Actions":
@@ -237,7 +255,8 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
-                    if not date_norm: continue
+                    if not date_norm:
+                        continue
 
                     qty = parse_decimal(row[idx_qty])
                     desc = row[idx_desc]
@@ -247,24 +266,28 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     # Now explicitly handling SPINOFF
                     if action_type in ["STOCK_DIV", "MERGER", "SPINOFF"]:
                         real_ticker = extract_ticker(desc, sym_val, qty)
-                        data["corp_actions"].append({
-                            "ticker": real_ticker,
-                            "currency": "USD",
-                            "date": date_norm,
-                            "qty": qty,
-                            "price": Decimal(0),
-                            "commission": Decimal(0),
-                            "type": action_type,
-                            "source": desc, # Captures full spinoff description
-                            "source_file": filename,
-                        })
+                        data["corp_actions"].append(
+                            {
+                                "ticker": real_ticker,
+                                "currency": "USD",
+                                "date": date_norm,
+                                "qty": qty,
+                                "price": Decimal(0),
+                                "commission": Decimal(0),
+                                "type": action_type,
+                                "source": desc,  # Captures full spinoff description
+                                "source_file": filename,
+                            }
+                        )
 
                 # --- DIVIDENDS ---
                 elif section == "Dividends":
                     idx_date = get_col_idx(headers, ["Date", "PayDate"])
                     idx_cur = get_col_idx(headers, ["Currency"])
                     idx_desc = get_col_idx(headers, ["Description", "Label"])
-                    idx_amt = get_col_idx(headers, ["Amount", "Gross Rate", "Gross Amount"])
+                    idx_amt = get_col_idx(
+                        headers, ["Amount", "Gross Rate", "Gross Amount"]
+                    )
 
                     if any(x is None for x in [idx_date, idx_desc, idx_amt]):
                         continue
@@ -272,16 +295,19 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
-                    if not date_norm: continue
+                    if not date_norm:
+                        continue
 
                     ticker = extract_ticker(row[idx_desc], "", Decimal(0))
-                    data["dividends"].append({
-                        "ticker": ticker,
-                        "currency": row[idx_cur],
-                        "date": date_norm,
-                        "amount": parse_decimal(row[idx_amt]),
-                        "source_file": filename,
-                    })
+                    data["dividends"].append(
+                        {
+                            "ticker": ticker,
+                            "currency": row[idx_cur],
+                            "date": date_norm,
+                            "amount": parse_decimal(row[idx_amt]),
+                            "source_file": filename,
+                        }
+                    )
 
                 # --- WITHHOLDING TAXES ---
                 elif section == "Withholding Tax":
@@ -296,16 +322,21 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
-                    if not date_norm: continue
+                    if not date_norm:
+                        continue
 
-                    ticker = extract_ticker(row[idx_desc] if idx_desc else "", "", Decimal(0))
-                    data["taxes"].append({
-                        "ticker": ticker,
-                        "currency": row[idx_cur],
-                        "date": date_norm,
-                        "amount": parse_decimal(row[idx_amt]),
-                        "source_file": filename,
-                    })
+                    ticker = extract_ticker(
+                        row[idx_desc] if idx_desc else "", "", Decimal(0)
+                    )
+                    data["taxes"].append(
+                        {
+                            "ticker": ticker,
+                            "currency": row[idx_cur],
+                            "date": date_norm,
+                            "amount": parse_decimal(row[idx_amt]),
+                            "source_file": filename,
+                        }
+                    )
 
     except Exception as e:
         print(f"❌ Error parsing {filename}: {e}")
@@ -350,16 +381,47 @@ def save_to_database(all_data):
             seen_registry[sig] = t.get("source_file", "UNKNOWN")
 
             if category == "DIVIDEND":
-                unique_records.append((t["date"], "DIVIDEND", t["ticker"], 0, 0, t["currency"], float(amount_val), 0, "Dividend"))
+                unique_records.append(
+                    (
+                        t["date"],
+                        "DIVIDEND",
+                        t["ticker"],
+                        0,
+                        0,
+                        t["currency"],
+                        float(amount_val),
+                        0,
+                        "Dividend",
+                    )
+                )
             elif category == "TAX":
-                unique_records.append((t["date"], "TAX", t["ticker"], 0, 0, t["currency"], float(amount_val), 0, "Tax"))
+                unique_records.append(
+                    (
+                        t["date"],
+                        "TAX",
+                        t["ticker"],
+                        0,
+                        0,
+                        t["currency"],
+                        float(amount_val),
+                        0,
+                        "Tax",
+                    )
+                )
             else:
-                unique_records.append((
-                    t["date"], t["type"], t["ticker"],
-                    float(qty_val), float(price_val), t["currency"],
-                    float(qty_val * price_val), float(t["commission"]),
-                    t["source"] # Preserves original description
-                ))
+                unique_records.append(
+                    (
+                        t["date"],
+                        t["type"],
+                        t["ticker"],
+                        float(qty_val),
+                        float(price_val),
+                        t["currency"],
+                        float(qty_val * price_val),
+                        float(t["commission"]),
+                        t["source"],  # Preserves original description
+                    )
+                )
 
     process_list(all_data["trades"], "TRADE")
     process_list(all_data["corp_actions"], "CORP")
@@ -367,7 +429,9 @@ def save_to_database(all_data):
     process_list(all_data["taxes"], "TAX")
 
     if duplicates_count > 0:
-        print(f"🧹 Deduplication: Skipped {duplicates_count} duplicate records across files.")
+        print(
+            f"🧹 Deduplication: Skipped {duplicates_count} duplicate records across files."
+        )
 
     if not unique_records:
         print("WARNING: No valid records to save.")

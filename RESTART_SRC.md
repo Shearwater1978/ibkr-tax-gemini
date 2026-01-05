@@ -856,8 +856,12 @@ def classify_trade_type(description: str, quantity: Decimal) -> str:
     """Classifies standard trades and transfers."""
     desc_upper = description.upper()
     transfer_keywords = [
-        "ACATS", "TRANSFER", "INTERNAL", "POSITION MOVEM",
-        "RECEIVE DELIVER", "CASH IN LIEU",
+        "ACATS",
+        "TRANSFER",
+        "INTERNAL",
+        "POSITION MOVEM",
+        "RECEIVE DELIVER",
+        "CASH IN LIEU",
     ]
     if any(k in desc_upper for k in transfer_keywords):
         return "TRANSFER"
@@ -870,7 +874,7 @@ def classify_trade_type(description: str, quantity: Decimal) -> str:
 
 def classify_corp_action(description: str, quantity: Decimal) -> str:
     """
-    Classifies corporate actions. 
+    Classifies corporate actions.
     Explicitly detects SPINOFF for better reporting.
     """
     desc_upper = description.upper()
@@ -905,17 +909,21 @@ def load_manual_fixes(filepath: str) -> List[Dict]:
                 if not row["Date"] or not row["Ticker"]:
                     continue
 
-                fixes.append({
-                    "ticker": row["Ticker"].strip(),
-                    "currency": row["Currency"].strip() if row["Currency"] else "USD",
-                    "date": row["Date"].strip(),
-                    "qty": parse_decimal(row["Quantity"]),
-                    "price": parse_decimal(row["Price"]),
-                    "commission": Decimal(0),
-                    "type": row["Type"].strip(),
-                    "source": "MANUAL_FIX",
-                    "source_file": "manual_fixes.csv",
-                })
+                fixes.append(
+                    {
+                        "ticker": row["Ticker"].strip(),
+                        "currency": (
+                            row["Currency"].strip() if row["Currency"] else "USD"
+                        ),
+                        "date": row["Date"].strip(),
+                        "qty": parse_decimal(row["Quantity"]),
+                        "price": parse_decimal(row["Price"]),
+                        "commission": Decimal(0),
+                        "type": row["Type"].strip(),
+                        "source": "MANUAL_FIX",
+                        "source_file": "manual_fixes.csv",
+                    }
+                )
     except Exception as e:
         print(f"❌ Error loading manual fixes: {e}")
     return fixes
@@ -958,8 +966,12 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     idx_cur = get_col_idx(headers, ["Currency"])
                     idx_sym = get_col_idx(headers, ["Symbol", "Ticker"])
                     idx_qty = get_col_idx(headers, ["Quantity"])
-                    idx_price = get_col_idx(headers, ["T. Price", "TradePrice", "Price"])
-                    idx_comm = get_col_idx(headers, ["Comm/Fee", "IBCommission", "Commission"])
+                    idx_price = get_col_idx(
+                        headers, ["T. Price", "TradePrice", "Price"]
+                    )
+                    idx_comm = get_col_idx(
+                        headers, ["Comm/Fee", "IBCommission", "Commission"]
+                    )
                     idx_desc = get_col_idx(headers, ["Description"])
 
                     if any(x is None for x in [idx_date, idx_qty, idx_price]):
@@ -968,26 +980,32 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
-                    if not date_norm: continue
+                    if not date_norm:
+                        continue
 
                     qty = parse_decimal(row[idx_qty])
-                    if qty == 0: continue
+                    if qty == 0:
+                        continue
 
                     sym_raw = row[idx_sym] if idx_sym else ""
                     desc_raw = row[idx_desc] if idx_desc else ""
                     ticker = extract_ticker(desc_raw, sym_raw, qty)
 
-                    data["trades"].append({
-                        "ticker": ticker,
-                        "currency": row[idx_cur],
-                        "date": date_norm,
-                        "qty": qty,
-                        "price": parse_decimal(row[idx_price]),
-                        "commission": parse_decimal(row[idx_comm]) if idx_comm else Decimal(0),
-                        "type": classify_trade_type(desc_raw, qty),
-                        "source": desc_raw or "IBKR Trade",
-                        "source_file": filename,
-                    })
+                    data["trades"].append(
+                        {
+                            "ticker": ticker,
+                            "currency": row[idx_cur],
+                            "date": date_norm,
+                            "qty": qty,
+                            "price": parse_decimal(row[idx_price]),
+                            "commission": (
+                                parse_decimal(row[idx_comm]) if idx_comm else Decimal(0)
+                            ),
+                            "type": classify_trade_type(desc_raw, qty),
+                            "source": desc_raw or "IBKR Trade",
+                            "source_file": filename,
+                        }
+                    )
 
                 # --- CORPORATE ACTIONS ---
                 elif section == "Corporate Actions":
@@ -1006,7 +1024,8 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
-                    if not date_norm: continue
+                    if not date_norm:
+                        continue
 
                     qty = parse_decimal(row[idx_qty])
                     desc = row[idx_desc]
@@ -1016,24 +1035,28 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     # Now explicitly handling SPINOFF
                     if action_type in ["STOCK_DIV", "MERGER", "SPINOFF"]:
                         real_ticker = extract_ticker(desc, sym_val, qty)
-                        data["corp_actions"].append({
-                            "ticker": real_ticker,
-                            "currency": "USD",
-                            "date": date_norm,
-                            "qty": qty,
-                            "price": Decimal(0),
-                            "commission": Decimal(0),
-                            "type": action_type,
-                            "source": desc, # Captures full spinoff description
-                            "source_file": filename,
-                        })
+                        data["corp_actions"].append(
+                            {
+                                "ticker": real_ticker,
+                                "currency": "USD",
+                                "date": date_norm,
+                                "qty": qty,
+                                "price": Decimal(0),
+                                "commission": Decimal(0),
+                                "type": action_type,
+                                "source": desc,  # Captures full spinoff description
+                                "source_file": filename,
+                            }
+                        )
 
                 # --- DIVIDENDS ---
                 elif section == "Dividends":
                     idx_date = get_col_idx(headers, ["Date", "PayDate"])
                     idx_cur = get_col_idx(headers, ["Currency"])
                     idx_desc = get_col_idx(headers, ["Description", "Label"])
-                    idx_amt = get_col_idx(headers, ["Amount", "Gross Rate", "Gross Amount"])
+                    idx_amt = get_col_idx(
+                        headers, ["Amount", "Gross Rate", "Gross Amount"]
+                    )
 
                     if any(x is None for x in [idx_date, idx_desc, idx_amt]):
                         continue
@@ -1041,16 +1064,19 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
-                    if not date_norm: continue
+                    if not date_norm:
+                        continue
 
                     ticker = extract_ticker(row[idx_desc], "", Decimal(0))
-                    data["dividends"].append({
-                        "ticker": ticker,
-                        "currency": row[idx_cur],
-                        "date": date_norm,
-                        "amount": parse_decimal(row[idx_amt]),
-                        "source_file": filename,
-                    })
+                    data["dividends"].append(
+                        {
+                            "ticker": ticker,
+                            "currency": row[idx_cur],
+                            "date": date_norm,
+                            "amount": parse_decimal(row[idx_amt]),
+                            "source_file": filename,
+                        }
+                    )
 
                 # --- WITHHOLDING TAXES ---
                 elif section == "Withholding Tax":
@@ -1065,16 +1091,21 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
-                    if not date_norm: continue
+                    if not date_norm:
+                        continue
 
-                    ticker = extract_ticker(row[idx_desc] if idx_desc else "", "", Decimal(0))
-                    data["taxes"].append({
-                        "ticker": ticker,
-                        "currency": row[idx_cur],
-                        "date": date_norm,
-                        "amount": parse_decimal(row[idx_amt]),
-                        "source_file": filename,
-                    })
+                    ticker = extract_ticker(
+                        row[idx_desc] if idx_desc else "", "", Decimal(0)
+                    )
+                    data["taxes"].append(
+                        {
+                            "ticker": ticker,
+                            "currency": row[idx_cur],
+                            "date": date_norm,
+                            "amount": parse_decimal(row[idx_amt]),
+                            "source_file": filename,
+                        }
+                    )
 
     except Exception as e:
         print(f"❌ Error parsing {filename}: {e}")
@@ -1119,16 +1150,47 @@ def save_to_database(all_data):
             seen_registry[sig] = t.get("source_file", "UNKNOWN")
 
             if category == "DIVIDEND":
-                unique_records.append((t["date"], "DIVIDEND", t["ticker"], 0, 0, t["currency"], float(amount_val), 0, "Dividend"))
+                unique_records.append(
+                    (
+                        t["date"],
+                        "DIVIDEND",
+                        t["ticker"],
+                        0,
+                        0,
+                        t["currency"],
+                        float(amount_val),
+                        0,
+                        "Dividend",
+                    )
+                )
             elif category == "TAX":
-                unique_records.append((t["date"], "TAX", t["ticker"], 0, 0, t["currency"], float(amount_val), 0, "Tax"))
+                unique_records.append(
+                    (
+                        t["date"],
+                        "TAX",
+                        t["ticker"],
+                        0,
+                        0,
+                        t["currency"],
+                        float(amount_val),
+                        0,
+                        "Tax",
+                    )
+                )
             else:
-                unique_records.append((
-                    t["date"], t["type"], t["ticker"],
-                    float(qty_val), float(price_val), t["currency"],
-                    float(qty_val * price_val), float(t["commission"]),
-                    t["source"] # Preserves original description
-                ))
+                unique_records.append(
+                    (
+                        t["date"],
+                        t["type"],
+                        t["ticker"],
+                        float(qty_val),
+                        float(price_val),
+                        t["currency"],
+                        float(qty_val * price_val),
+                        float(t["commission"]),
+                        t["source"],  # Preserves original description
+                    )
+                )
 
     process_list(all_data["trades"], "TRADE")
     process_list(all_data["corp_actions"], "CORP")
@@ -1136,7 +1198,9 @@ def save_to_database(all_data):
     process_list(all_data["taxes"], "TAX")
 
     if duplicates_count > 0:
-        print(f"🧹 Deduplication: Skipped {duplicates_count} duplicate records across files.")
+        print(
+            f"🧹 Deduplication: Skipped {duplicates_count} duplicate records across files."
+        )
 
     if not unique_records:
         print("WARNING: No valid records to save.")
@@ -1166,7 +1230,8 @@ if __name__ == "__main__":
         for k in combined:
             combined[k].extend(parsed[k])
 
-    save_to_database(combined)```
+    save_to_database(combined)
+```
 
 # --- FILE: src/processing.py ---
 ```python
@@ -1364,11 +1429,15 @@ def add_footer(canvas, doc):
     canvas.setFillColor(colors.grey)
     footer_text = f"Generated by {APP_NAME} {APP_VERSION}"
     canvas.drawString(10 * mm, 10 * mm, footer_text)
-    
+
     # Legend for the zero-cost warning marker
     canvas.setFont("Helvetica-Oblique", 7)
-    canvas.drawRightString(A4[0] - 10 * mm, 14 * mm, "(!) Warning: Acquisition price is 0.00. Check manual_fixes.csv.")
-    
+    canvas.drawRightString(
+        A4[0] - 10 * mm,
+        14 * mm,
+        "(!) Warning: Acquisition price is 0.00. Check manual_fixes.csv.",
+    )
+
     canvas.setFont("Helvetica", 8)
     page_num = f"Page {doc.page}"
     canvas.drawRightString(A4[0] - 10 * mm, 10 * mm, page_num)
@@ -1479,7 +1548,10 @@ def generate_pdf(json_data, filename="report.pdf"):
         if has_restricted:
             elements.append(Spacer(1, 10))
             elements.append(
-                Paragraph("* Assets held in special escrow accounts / sanctioned (RUB)", italic_small)
+                Paragraph(
+                    "* Assets held in special escrow accounts / sanctioned (RUB)",
+                    italic_small,
+                )
             )
     else:
         elements.append(Paragraph("No open positions found.", normal_style))
@@ -1488,7 +1560,9 @@ def generate_pdf(json_data, filename="report.pdf"):
     # PAGE 3: TRADES HISTORY
     elements.append(Paragraph(f"Trades History ({year})", h2_style))
     if data["trades_history"]:
-        trades_header = [["#", "Date", "Ticker", "Type", "Qty", "Price", "Comm", "Curr"]]
+        trades_header = [
+            ["#", "Date", "Ticker", "Type", "Qty", "Price", "Comm", "Curr"]
+        ]
         trades_rows = []
 
         for i, t in enumerate(data["trades_history"], 1):
@@ -1498,9 +1572,14 @@ def generate_pdf(json_data, filename="report.pdf"):
                 price_display += " (!)"
 
             row = [
-                str(i), t["date"], t["ticker"], t.get("type", "UNKNOWN"),
-                f"{abs(t['qty']):.4f}", price_display,
-                f"{t['commission']:.2f}", t["currency"]
+                str(i),
+                t["date"],
+                t["ticker"],
+                t.get("type", "UNKNOWN"),
+                f"{abs(t['qty']):.4f}",
+                price_display,
+                f"{t['commission']:.2f}",
+                t["currency"],
             ]
             trades_rows.append(row)
 
@@ -1509,7 +1588,7 @@ def generate_pdf(json_data, filename="report.pdf"):
         t_trades = Table(full_table_data, colWidths=col_widths, repeatRows=1)
         ts_trades = get_zebra_style(len(full_table_data))
         ts_trades.add("ALIGN", (4, 1), (-1, -1), "RIGHT")
-        
+
         for i, row in enumerate(trades_rows, 1):
             if "(!)" in row[5]:
                 ts_trades.add("TEXTCOLOR", (5, i), (5, i), colors.orange)
@@ -1529,11 +1608,14 @@ def generate_pdf(json_data, filename="report.pdf"):
         for i, act in enumerate(data["corp_actions"], 1):
             details = ""
             warning = " (!)" if act.get("price", 0) == 0 else ""
-            
+
             if act["type"] == "SPLIT":
                 ratio = act.get("ratio", 1)
                 details = f"Split Ratio: {ratio:.4f}"
-            elif act["type"] in ["STOCK_DIV", "SPINOFF"] or act.get("source") == "IBKR_CORP_ACTION":
+            elif (
+                act["type"] in ["STOCK_DIV", "SPINOFF"]
+                or act.get("source") == "IBKR_CORP_ACTION"
+            ):
                 details = f"Stock/Spin: +{act['qty']:.4f}{warning}"
             elif act["type"] == "MERGER":
                 details = f"Merger/Liq: {act['qty']:.4f}{warning}"
@@ -1558,9 +1640,18 @@ def generate_pdf(json_data, filename="report.pdf"):
     # PAGE 4: MONTHLY DIVIDENDS SUMMARY
     elements.append(Paragraph(f"Monthly Dividends Summary ({year})", h2_style))
     month_names = {
-        "01": "January", "02": "February", "03": "March", "04": "April",
-        "05": "May", "06": "June", "07": "July", "08": "August",
-        "09": "September", "10": "October", "11": "November", "12": "December",
+        "01": "January",
+        "02": "February",
+        "03": "March",
+        "04": "April",
+        "05": "May",
+        "06": "June",
+        "07": "July",
+        "08": "August",
+        "09": "September",
+        "10": "October",
+        "11": "November",
+        "12": "December",
     }
 
     if data["monthly_dividends"]:
@@ -1570,14 +1661,27 @@ def generate_pdf(json_data, filename="report.pdf"):
 
         for i, m in enumerate(sorted_months, 1):
             vals = data["monthly_dividends"][m]
-            m_data.append([
-                str(i), month_names.get(m, m),
-                f"{vals['gross_pln']:,.2f}", f"{vals['tax_pln']:,.2f}", f"{vals['net_pln']:,.2f}",
-            ])
+            m_data.append(
+                [
+                    str(i),
+                    month_names.get(m, m),
+                    f"{vals['gross_pln']:,.2f}",
+                    f"{vals['tax_pln']:,.2f}",
+                    f"{vals['net_pln']:,.2f}",
+                ]
+            )
             total_gross += vals["gross_pln"]
             total_tax += vals["tax_pln"]
 
-        m_data.append(["", "TOTAL", f"{total_gross:,.2f}", f"{total_tax:,.2f}", f"{total_gross - total_tax:,.2f}"])
+        m_data.append(
+            [
+                "",
+                "TOTAL",
+                f"{total_gross:,.2f}",
+                f"{total_tax:,.2f}",
+                f"{total_gross - total_tax:,.2f}",
+            ]
+        )
 
         t_months = Table(m_data, colWidths=[25, 90, 100, 100, 100], repeatRows=1)
         ts = get_zebra_style(len(m_data))
@@ -1590,31 +1694,50 @@ def generate_pdf(json_data, filename="report.pdf"):
         # --- DETAILED DIVIDENDS ---
         elements.append(PageBreak())
         elements.append(Paragraph(f"Dividend Details (Chronological)", h2_style))
-        elements.append(Paragraph("Detailed breakdown of every dividend payment received.", normal_style))
+        elements.append(
+            Paragraph(
+                "Detailed breakdown of every dividend payment received.", normal_style
+            )
+        )
         elements.append(Spacer(1, 10))
 
         sorted_divs = sorted(data["dividends"], key=lambda x: x["date"])
         is_first_month = True
         global_div_idx = 1
 
-        for month_key, group in itertools.groupby(sorted_divs, key=lambda x: x["date"][:7]):
-            if not is_first_month: elements.append(PageBreak())
+        for month_key, group in itertools.groupby(
+            sorted_divs, key=lambda x: x["date"][:7]
+        ):
+            if not is_first_month:
+                elements.append(PageBreak())
             is_first_month = False
 
             y, m = month_key.split("-")
             elements.append(Paragraph(f"{month_names.get(m, m)} {y}", h2_style))
 
-            det_header = [["#", "Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]]
+            det_header = [
+                ["#", "Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]
+            ]
             det_rows = []
             for d in group:
-                det_rows.append([
-                    str(global_div_idx), d["date"], d["ticker"],
-                    f"{d['amount']:.2f} {d['currency']}", f"{d['rate']:.4f}",
-                    f"{d['amount_pln']:.2f}", f"{d['tax_paid_pln']:.2f}",
-                ])
+                det_rows.append(
+                    [
+                        str(global_div_idx),
+                        d["date"],
+                        d["ticker"],
+                        f"{d['amount']:.2f} {d['currency']}",
+                        f"{d['rate']:.4f}",
+                        f"{d['amount_pln']:.2f}",
+                        f"{d['tax_paid_pln']:.2f}",
+                    ]
+                )
                 global_div_idx += 1
 
-            t_det = Table(det_header + det_rows, colWidths=[25, 60, 45, 80, 45, 65, 65], repeatRows=1)
+            t_det = Table(
+                det_header + det_rows,
+                colWidths=[25, 60, 45, 80, 45, 65, 65],
+                repeatRows=1,
+            )
             ts_det = get_zebra_style(len(det_header + det_rows))
             ts_det.add("ALIGN", (3, 1), (-1, -1), "RIGHT")
             t_det.setStyle(ts_det)
@@ -1706,7 +1829,8 @@ def generate_pdf(json_data, filename="report.pdf"):
     t_pit_div.setStyle(ts_pit_div)
     elements.append(t_pit_div)
 
-    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)```
+    doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
+```
 
 # --- FILE: src/utils.py ---
 ```python

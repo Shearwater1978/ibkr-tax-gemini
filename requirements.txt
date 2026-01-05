@@ -9,3 +9,4 @@ pre-commit
 cryptography
 python-decouple
 pandas
+black[d]
