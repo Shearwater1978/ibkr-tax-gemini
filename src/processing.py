@@ -125,7 +125,7 @@ def process_yearly_data(
             }
 
             if matcher_type == "SPLIT":
-                trade_record["ratio"] = Decimal("1")
+                trade_record["ratio"] = Decimal(str(trade.get("SplitRatio", 1)))
 
             fifo_input_list.append(trade_record)
 
