@@ -77,11 +77,11 @@ Given the Electron shell can start the local Python service, when the user opens
 
 - Database access now requires the SQLCipher-compatible driver and a non-empty key; installations must verify the native SQLCipher dependency before use.
 - Key rotation requires the current key, verifies reopening with the new key, and requires a manual `.env` update after success.
-- Import deletes all existing transactions before inserting the newly parsed set, despite documentation describing repeated imports as preserving history.
-- Corporate-action ingestion does not preserve split ratios, and `processing.py` hardcodes an imported split ratio to `1`.
-- FIFO accepts a sell after inventory is exhausted and records revenue without a diagnostic for the unmatched quantity.
-- NBP lookup and processing fall back to rate `1.0` after failures, which can silently produce incorrect PLN values.
-- Excel export catches failures and only prints them; API calculation can still report success for a partially completed export.
+- Import is now atomic and idempotent, preserving existing transactions and reporting inserted/skipped records.
+- Corporate-action ingestion now preserves supported split ratios through persistence and FIFO processing.
+- FIFO now raises a diagnostic when a sell exceeds available inventory.
+- NBP lookup now raises a diagnostic instead of silently using rate `1.0` after a failure.
+- Excel export now raises an observable export error instead of silently reporting failure.
 - The API converts a deliberate 404 from `/calculate/{year}` into a 500 through a broad exception handler.
 - There are no end-to-end tests for CSV-to-database import, database encryption/persistence, report generation, CLI behavior, FastAPI endpoints, or Electron readiness.
 - Electron runs with `nodeIntegration: true` and `contextIsolation: false`; the API allows unrestricted CORS.
