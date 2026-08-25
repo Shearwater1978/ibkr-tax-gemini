@@ -13,3 +13,4 @@ pandas
 black[d]
 fastapi
 uvicorn
+httpx2
