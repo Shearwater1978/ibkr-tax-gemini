@@ -31,7 +31,7 @@ src/excel_exporter.py     src/report_pdf.py
 output/tax_report_*.xlsx and output/tax_report_*.pdf
 ```
 
-The primary CLI entry point is `main.py`. Import mode scans `data/*.csv`; calculation mode reads transactions through `DBConnector`, runs `process_yearly_data`, and optionally exports Excel and PDF. `src/parser.py` also has a direct `--files` CLI. The desktop entry point is `gui/main.js`: it starts `gui/backend/api.py` as a child process and opens `gui/ui/index.html`. The FastAPI service provides `GET /years`, `POST /import`, `GET /calculate/{year}`, and file-opening endpoints for generated reports.
+The primary CLI entry point is `main.py`. Import mode scans `data/*.csv`; calculation mode reads transactions through `DBConnector`, runs `process_yearly_data`, and optionally exports Excel and PDF. `src/parser.py` also has a direct `--files` CLI. The desktop entry point is `gui/main.js`: it starts `gui/backend/api.py` as a child process and opens `gui/ui/index.html`. The FastAPI service provides `GET /health`, `GET /years`, `POST /import`, `GET /calculate/{year}`, and safe file-opening endpoints for generated reports.
 
 ## Components
 
@@ -71,7 +71,7 @@ Given the Electron shell can start the local Python service, when the user opens
 - NBP network access is required for non-PLN conversion; results depend on external availability and rate data.
 - FIFO and tax calculations use `Decimal` internally but export several values as floats.
 - The application assumes local filesystem access to `data/`, `db/`, and `output/`; several paths still depend on the process working directory.
-- The current GUI starts a fixed localhost port (`127.0.0.1:8000`) and uses broad CORS.
+- The GUI backend binds to `127.0.0.1:8000`; CORS is restricted to local desktop/browser origins and the renderer uses a preload boundary.
 
 ## Known Problems and Technical Debt
 
@@ -82,9 +82,10 @@ Given the Electron shell can start the local Python service, when the user opens
 - FIFO now raises a diagnostic when a sell exceeds available inventory.
 - NBP lookup now raises a diagnostic instead of silently using rate `1.0` after a failure.
 - Excel export now raises an observable export error instead of silently reporting failure.
+- GUI/API integration now exposes readiness and structured calculation errors; API and Electron integration tests cover the local workflow.
 - The API converts a deliberate 404 from `/calculate/{year}` into a 500 through a broad exception handler.
 - There are no end-to-end tests for CSV-to-database import, database encryption/persistence, report generation, CLI behavior, FastAPI endpoints, or Electron readiness.
-- Electron runs with `nodeIntegration: true` and `contextIsolation: false`; the API allows unrestricted CORS.
+- Electron renderer Node integration is disabled and context isolation is enabled through preload; the API uses restricted CORS.
 - Documentation claims, sprint history, restart snapshots, and implementation disagree on encryption, GUI completion, API endpoints, and version numbers.
 
 ## Baseline Delta Boundaries
