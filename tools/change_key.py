@@ -20,10 +20,7 @@ def main():
         print("Current password found in SQLCIPHER_KEY env variable.")
 
     # 2. Connect with old password
-    connector = DBConnector()
-    # Note: DBConnector automatically tries to load SQLCIPHER_KEY from env
-    # If it's not in env, we might need to set it manually or rely on input above,
-    # but DBConnector design assumes env usage.
+    connector = DBConnector(key=old_key)
 
     try:
         connector.connect()
@@ -31,6 +28,7 @@ def main():
         connector.conn.execute("SELECT count(*) FROM sqlite_master;")
     except Exception:
         print("ERROR: Could not open database with the current password.")
+        connector.close()
         return
 
     # 3. Request new password
@@ -51,10 +49,15 @@ def main():
     connector.close()
 
     if success:
-        print("\n!!! IMPORTANT !!!")
-        print(f"Please manually update your .env file now:")
-        print(f"SQLCIPHER_KEY={new_key}")
-        print("The old password will no longer work.")
+        verifier = DBConnector(key=new_key)
+        try:
+            verifier.connect()
+        except Exception:
+            print("ERROR: New password verification failed.")
+            return
+        finally:
+            verifier.close()
+        print("New password verified. Update SQLCIPHER_KEY in .env.")
 
 
 if __name__ == "__main__":
