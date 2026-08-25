@@ -10,6 +10,7 @@
 ## 🚀 Key Features
 
 * **Privacy First:** All financial data is stored in a local **SQLCipher (AES-256)** encrypted database.
+    The SQLCipher driver and a non-empty `SQLCIPHER_KEY` are required; the application refuses plaintext SQLite.
 * **Universal Parser:** Supports both **Activity Statements** and **Flex Queries**.
 * **Smart NBP Rates:** T-1 rule compliant, using **Batch Caching** logic.
 * **FIFO Algorithm:** Strictly follows tax laws for Cost Basis.
@@ -27,6 +28,8 @@
     ```bash
     pip install -r requirements.txt
     ```
+
+    This installs the `sqlcipher3` driver required for encrypted database access.
 
 3.  **Setup Security:**
     Create `.env`:

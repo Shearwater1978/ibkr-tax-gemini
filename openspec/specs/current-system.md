@@ -65,7 +65,7 @@ Given the Electron shell can start the local Python service, when the user opens
 
 ## Dependencies and Constraints
 
-- Python 3.10+ with `pandas`, `openpyxl`, `reportlab`, `requests`, `cryptography`, `fastapi`, and `uvicorn`; pytest tooling is used for verification.
+- Python 3.10+ with `pandas`, `openpyxl`, `reportlab`, `requests`, `cryptography`, `fastapi`, `uvicorn`, and `sqlcipher3`; pytest tooling is used for verification.
 - Electron 33 and vanilla JavaScript/HTML are used for the desktop UI; there is no frontend framework.
 - The database schema is a single `transactions` table with PascalCase columns and is addressed through SQLite APIs.
 - NBP network access is required for non-PLN conversion; results depend on external availability and rate data.
@@ -75,8 +75,8 @@ Given the Electron shell can start the local Python service, when the user opens
 
 ## Known Problems and Technical Debt
 
-- `sqlite3` is used with a `PRAGMA key` statement, but SQLCipher is not installed or selected, so the documented encryption guarantee is not established. Key values are interpolated into PRAGMA strings.
-- `tools/change_key.py` collects an old password but does not pass it to `DBConnector`, making the documented rotation flow unreliable.
+- Database access now requires the SQLCipher-compatible driver and a non-empty key; installations must verify the native SQLCipher dependency before use.
+- Key rotation requires the current key, verifies reopening with the new key, and requires a manual `.env` update after success.
 - Import deletes all existing transactions before inserting the newly parsed set, despite documentation describing repeated imports as preserving history.
 - Corporate-action ingestion does not preserve split ratios, and `processing.py` hardcodes an imported split ratio to `1`.
 - FIFO accepts a sell after inventory is exhausted and records revenue without a diagnostic for the unmatched quantity.
