@@ -236,9 +236,15 @@ def run_import_routine():
 
     if any(combined.values()):
         print("💾 Saving to database...")
-        save_to_database(combined)
+        result = save_to_database(combined)
+        print(
+            f"Import summary: {result['inserted']} inserted, "
+            f"{result['skipped']} skipped."
+        )
+        return result
     else:
         print("⚠️ No valid data found in files.")
+        return {"inserted": 0, "skipped": 0}
 
 
 def main():

@@ -5,6 +5,7 @@ import re
 import glob
 import argparse
 import os
+import hashlib
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Optional
@@ -13,7 +14,8 @@ from src.db_connector import DBConnector
 # --- CONFIGURATION ---
 # Leave empty to parse everything. Deduplication will handle overlaps.
 FILE_DATE_LIMITS = {}
-MANUAL_FIXES_FILE = "manual_fixes.csv"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MANUAL_FIXES_FILE = os.path.join(PROJECT_ROOT, "manual_fixes.csv")
 
 
 def parse_decimal(value: str) -> Decimal:
@@ -118,6 +120,19 @@ def classify_corp_action(description: str, quantity: Decimal) -> str:
     return "CORP_ACTION_INFO"
 
 
+def extract_split_ratio(description: str) -> Optional[Decimal]:
+    """Extracts ratios such as ``Split 2 for 1`` from an IBKR description."""
+    match = re.search(
+        r"\bSPLIT\s+(\d+(?:\.\d+)?)\s+FOR\s+(\d+(?:\.\d+)?)\b", description, re.I
+    )
+    if not match:
+        return None
+    denominator = Decimal(match.group(2))
+    if denominator == 0:
+        return None
+    return Decimal(match.group(1)) / denominator
+
+
 def get_col_idx(headers: Dict[str, int], possible_names: List[str]) -> Optional[int]:
     """Helper to find column index from a list of possible header names."""
     for name in possible_names:
@@ -190,7 +205,10 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                 # --- TRADES ---
                 if section == "Trades":
                     col_asset = get_col_idx(headers, ["Asset Category", "Asset Class"])
-                    if col_asset and row[col_asset] not in ["Stocks", "Equity"]:
+                    if col_asset is not None and row[col_asset] not in [
+                        "Stocks",
+                        "Equity",
+                    ]:
                         continue
 
                     idx_date = get_col_idx(headers, ["Date/Time", "Date", "TradeDate"])
@@ -207,7 +225,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
 
                     if any(x is None for x in [idx_date, idx_qty, idx_price]):
                         continue
-                    if idx_desc and "Total" in row[idx_desc]:
+                    if idx_desc is not None and "Total" in row[idx_desc]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
@@ -241,7 +259,10 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                 # --- CORPORATE ACTIONS ---
                 elif section == "Corporate Actions":
                     col_asset = get_col_idx(headers, ["Asset Category"])
-                    if col_asset and row[col_asset] not in ["Stocks", "Equity"]:
+                    if col_asset is not None and row[col_asset] not in [
+                        "Stocks",
+                        "Equity",
+                    ]:
                         continue
 
                     idx_date = get_col_idx(headers, ["Date/Time", "Report Date"])
@@ -262,9 +283,12 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     desc = row[idx_desc]
                     sym_val = row[idx_sym] if idx_sym else ""
                     action_type = classify_corp_action(desc, qty)
+                    split_ratio = extract_split_ratio(desc)
+                    if split_ratio is not None:
+                        action_type = "SPLIT"
 
                     # Now explicitly handling SPINOFF
-                    if action_type in ["STOCK_DIV", "MERGER", "SPINOFF"]:
+                    if action_type in ["SPLIT", "STOCK_DIV", "MERGER", "SPINOFF"]:
                         real_ticker = extract_ticker(desc, sym_val, qty)
                         data["corp_actions"].append(
                             {
@@ -275,6 +299,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                                 "price": Decimal(0),
                                 "commission": Decimal(0),
                                 "type": action_type,
+                                "ratio": split_ratio,
                                 "source": desc,  # Captures full spinoff description
                                 "source_file": filename,
                             }
@@ -318,7 +343,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
 
                     if any(x is None for x in [idx_date, idx_amt]):
                         continue
-                    if idx_desc and "Total" in row[idx_desc]:
+                    if idx_desc is not None and "Total" in row[idx_desc]:
                         continue
 
                     date_norm = check_date_and_parse(row, idx_date)
@@ -343,13 +368,29 @@ def parse_csv(filepath: str) -> Dict[str, List]:
     return data
 
 
+def _source_key(record):
+    values = [
+        str(record.get("date", "")),
+        str(record.get("type", "")),
+        str(record.get("ticker", "")),
+        str(record.get("qty", "")),
+        str(record.get("price", "")),
+        str(record.get("currency", "")),
+        str(record.get("amount", "")),
+        str(record.get("commission", "")),
+        str(record.get("source", "")),
+        str(record.get("ratio", "")),
+    ]
+    return hashlib.sha256("\x1f".join(values).encode("utf-8")).hexdigest()
+
+
 def save_to_database(all_data):
-    """Deduplicates records and saves them to the encrypted database."""
+    """Validates and atomically upserts normalized records."""
     manual_fixes = load_manual_fixes(MANUAL_FIXES_FILE)
     if manual_fixes:
         all_data["corp_actions"].extend(manual_fixes)
 
-    seen_registry = {}
+    seen_registry = set()
     unique_records = []
     duplicates_count = 0
 
@@ -360,25 +401,21 @@ def save_to_database(all_data):
             price_val = t.get("price", 0)
             amount_val = t.get("amount", 0)
 
-            # Hash signature for deduplication
-            qty_sig = f"{qty_val:.6f}"
-            price_sig = f"{price_val:.6f}"
-            amt_sig = f"{amount_val:.6f}"
+            record_type = t.get("type", category)
+            if not t.get("date") or not t.get("ticker") or not t.get("currency"):
+                raise ValueError("Import record is missing date, ticker, or currency")
+            if record_type == "UNKNOWN":
+                raise ValueError("Import record has an unknown event type")
 
-            sig = (
-                t["date"],
-                t["ticker"],
-                qty_sig,
-                price_sig,
-                amt_sig,
-                t.get("type", category),
-            )
+            key_record = dict(t)
+            key_record["type"] = record_type
+            sig = _source_key(key_record)
 
             if sig in seen_registry:
                 duplicates_count += 1
                 continue
 
-            seen_registry[sig] = t.get("source_file", "UNKNOWN")
+            seen_registry.add(sig)
 
             if category == "DIVIDEND":
                 unique_records.append(
@@ -392,6 +429,8 @@ def save_to_database(all_data):
                         float(amount_val),
                         0,
                         "Dividend",
+                        sig,
+                        None,
                     )
                 )
             elif category == "TAX":
@@ -406,6 +445,8 @@ def save_to_database(all_data):
                         float(amount_val),
                         0,
                         "Tax",
+                        sig,
+                        None,
                     )
                 )
             else:
@@ -419,7 +460,9 @@ def save_to_database(all_data):
                         t["currency"],
                         float(qty_val * price_val),
                         float(t["commission"]),
-                        t["source"],  # Preserves original description
+                        t["source"],
+                        sig,
+                        float(t.get("ratio")) if t.get("ratio") is not None else None,
                     )
                 )
 
@@ -435,17 +478,64 @@ def save_to_database(all_data):
 
     if not unique_records:
         print("WARNING: No valid records to save.")
-        return
+        return {"inserted": 0, "skipped": duplicates_count}
 
     with DBConnector() as db:
         db.initialize_schema()
-        db.conn.execute("DELETE FROM transactions")
-        db.conn.executemany(
-            "INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description) VALUES (?,?,?,?,?,?,?,?,?)",
-            unique_records,
-        )
-        db.conn.commit()
-    print(f"✅ Imported {len(unique_records)} unique records.")
+        legacy_rows = db.conn.execute(
+            "SELECT rowid, Date, EventType, Ticker, Quantity, Price, Currency, "
+            "Amount, Fee, Description, SplitRatio FROM transactions "
+            "WHERE SourceKey IS NULL"
+        ).fetchall()
+        for row in legacy_rows:
+            legacy_record = {
+                "date": row[1],
+                "type": row[2],
+                "ticker": row[3],
+                "qty": row[4] or 0,
+                "price": row[5] or 0,
+                "currency": row[6],
+                "amount": row[7] or 0,
+                "commission": row[8] or 0,
+                "source": row[9] or "",
+                "ratio": row[10],
+            }
+            db.conn.execute(
+                "UPDATE transactions SET SourceKey = ? WHERE rowid = ?",
+                (_source_key(legacy_record), row[0]),
+            )
+        existing_keys = {
+            row[0]
+            for row in db.conn.execute(
+                "SELECT SourceKey FROM transactions WHERE SourceKey IS NOT NULL"
+            ).fetchall()
+        }
+        records_to_insert = [
+            record for record in unique_records if record[-2] not in existing_keys
+        ]
+        skipped_existing = len(unique_records) - len(records_to_insert)
+        db.conn.execute("BEGIN")
+        try:
+            before_count = db.conn.execute(
+                "SELECT COUNT(*) FROM transactions"
+            ).fetchone()[0]
+            db.conn.executemany(
+                "INSERT OR IGNORE INTO transactions "
+                "(Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description, SourceKey, SplitRatio) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                records_to_insert,
+            )
+            after_count = db.conn.execute(
+                "SELECT COUNT(*) FROM transactions"
+            ).fetchone()[0]
+            inserted = after_count - before_count
+            db.conn.commit()
+        except Exception:
+            db.conn.rollback()
+            raise
+    skipped = duplicates_count + skipped_existing + len(records_to_insert) - inserted
+    print(f"✅ Imported {inserted} new records; skipped {skipped} duplicates.")
+    return {"inserted": inserted, "skipped": skipped}
 
 
 if __name__ == "__main__":

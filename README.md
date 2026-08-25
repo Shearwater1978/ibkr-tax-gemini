@@ -44,7 +44,8 @@ The `main.py` script is now the single entry point for all operations.
 
 ```bash
 # 1. Import Data
-# Automatically scans the 'data/' folder for CSV files and updates the DB.
+# Automatically scans the project 'data/' folder and adds only new records.
+# Repeated imports are idempotent and report inserted/skipped counts.
 python main.py --import-data
 
 # 2. Generate Report

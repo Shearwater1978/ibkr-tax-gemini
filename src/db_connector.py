@@ -109,6 +109,17 @@ class DBConnector:
         );
         """
         self.conn.execute(query)
+        columns = {
+            row[1] for row in self.conn.execute("PRAGMA table_info(transactions)")
+        }
+        if "SourceKey" not in columns:
+            self.conn.execute("ALTER TABLE transactions ADD COLUMN SourceKey TEXT")
+        if "SplitRatio" not in columns:
+            self.conn.execute("ALTER TABLE transactions ADD COLUMN SplitRatio REAL")
+        self.conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_source_key "
+            "ON transactions(SourceKey) WHERE SourceKey IS NOT NULL"
+        )
         self.conn.commit()
 
     def save_transaction(self, data):
@@ -136,7 +147,7 @@ class DBConnector:
     def get_trades_for_calculation(self, target_year=None, ticker=None):
         query = """
             SELECT rowid as TradeId, Date, EventType, Ticker, Quantity,
-                   Price, Currency, Amount, Fee, Description
+                 Price, Currency, Amount, Fee, Description, SplitRatio
             FROM transactions
             WHERE 1=1
         """
