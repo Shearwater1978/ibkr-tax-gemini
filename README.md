@@ -53,5 +53,9 @@ python main.py --import-data
 python main.py --target-year 2024 --export-pdf --export-excel
 ```
 
+Calculations stop with a diagnostic if an NBP rate is unavailable or a sale
+cannot be matched to inventory. Export failures are also reported as errors;
+the application does not present incomplete tax totals as valid reports.
+
 ## ⚠️ Disclaimer
 Educational purpose only. Not financial advice.

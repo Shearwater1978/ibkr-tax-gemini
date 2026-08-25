@@ -5,6 +5,7 @@ import requests
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from src.nbp import get_nbp_rate, _MONTHLY_CACHE
+from src.diagnostics import NBPRateError
 
 
 @pytest.fixture(autouse=True)
@@ -55,3 +56,16 @@ def test_weekend_lookback(mock_get):
 
 def test_pln_is_always_one():
     assert get_nbp_rate("PLN", "2025-01-01") == Decimal("1.0")
+
+
+@patch("src.nbp.requests.get")
+def test_missing_rate_raises_diagnostic(mock_get):
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+    mock_get.return_value = mock_response
+
+    with pytest.raises(NBPRateError) as error:
+        get_nbp_rate("USD", "2025-01-06")
+
+    assert error.value.diagnostic.code == "NBP_RATE_MISSING"
+    assert error.value.diagnostic.currency == "USD"

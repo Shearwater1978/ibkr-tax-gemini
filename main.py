@@ -13,6 +13,7 @@ from src.data_collector import collect_all_trade_data
 from src.excel_exporter import export_to_excel
 from src.db_connector import DBConnector
 from src.processing import process_yearly_data
+from src.diagnostics import CalculationError, ReportExportError
 
 # Import parser functions to enable data loading from main.py
 from src.parser import parse_csv, save_to_database
@@ -313,6 +314,10 @@ def main():
         realized_gains, dividends, inventory = process_yearly_data(
             raw_trades, args.target_year
         )
+    except CalculationError as e:
+        diagnostic = e.diagnostic
+        print(f"CRITICAL ERROR [{diagnostic.code}]: {diagnostic.message}")
+        sys.exit(1)
     except Exception as e:
         print(f"CRITICAL ERROR during processing: {e}")
         sys.exit(1)
@@ -351,7 +356,7 @@ def main():
                 sheets_dict, output_path_xlsx, summary_metrics, ticker_summary
             )
             print(f"SUCCESS: Excel report saved to {output_path_xlsx}")
-        except Exception as e:
+        except ReportExportError as e:
             print(f"ERROR exporting to Excel: {e}")
 
     # --- 4. Export to PDF ---

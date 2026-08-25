@@ -13,3 +13,4 @@ Make calculation uncertainty explicit and preserve correctness: missing FX rates
 - Replacing the NBP service or changing the legal T-1 rule.
 - Changing FIFO from first-in-first-out.
 - Adding tax advice or filing submission.
+- Changing or introducing the Electron/FastAPI GUI layer; API behavior belongs to a separate GUI integration change.

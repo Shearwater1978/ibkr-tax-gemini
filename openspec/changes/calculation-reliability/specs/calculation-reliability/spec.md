@@ -22,27 +22,15 @@ The FIFO calculation MUST detect and expose any sell quantity that cannot be mat
 - WHEN FIFO processing runs
 - THEN the calculation returns a blocking diagnostic containing ticker, date, and unmatched quantity
 
-### Requirement: Calculation completeness
+### Requirement: Report completeness
 
-CLI, API, Excel, and PDF outputs MUST share a completeness status and MUST distinguish a successfully generated report from a report with calculation or export errors.
+CLI, Excel, and PDF outputs MUST distinguish a successfully generated report from a report with calculation or export errors.
 
 #### Scenario: Export failure
 
 - GIVEN calculation succeeds but an exporter cannot write its output
-- WHEN the report endpoint completes
-- THEN the response indicates that export failed and MUST NOT claim that report as available
-
-## MODIFIED Requirements
-
-### Requirement: Calculation API errors
-
-The API MUST preserve intentional client errors such as no data found as their corresponding HTTP status instead of converting them to generic 500 responses.
-
-#### Scenario: No transactions for year
-
-- GIVEN no transactions exist through the requested year
-- WHEN `GET /calculate/{year}` is called
-- THEN the API returns 404 with a stable error body
+- WHEN report generation is requested
+- THEN the operation reports an export error and MUST NOT claim that report as successfully generated
 
 ## REMOVED Requirements
 

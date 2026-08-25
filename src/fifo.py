@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 
 from .nbp import get_rate_for_tax_date
 from .utils import money
+from .diagnostics import CalculationDiagnostic, UnmatchedInventoryError
 
 
 class TradeMatcher:
@@ -165,6 +166,20 @@ class TradeMatcher:
                 buy_batch["qty"] -= qty_to_sell
                 buy_batch["cost_pln"] -= part_cost
                 qty_to_sell = 0
+
+        if qty_to_sell > Decimal("0.00000001"):
+            raise UnmatchedInventoryError(
+                CalculationDiagnostic(
+                    code="UNMATCHED_SELL",
+                    message=(
+                        f"Sell exceeds available inventory for {ticker} on "
+                        f"{trade['date']} by {qty_to_sell}."
+                    ),
+                    ticker=ticker,
+                    date=trade["date"],
+                    quantity=float(qty_to_sell),
+                )
+            )
 
         if is_taxable:
             sell_comm_pln = money(abs(comm) * sell_rate)

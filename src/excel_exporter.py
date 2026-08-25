@@ -2,6 +2,7 @@
 
 import pandas as pd
 from typing import Dict, Any
+from src.diagnostics import ReportExportError
 
 
 def export_to_excel(
@@ -72,5 +73,5 @@ def export_to_excel(
         writer.close()
         print(f"SUCCESS: Data exported to Excel at {file_path}")
 
-    except Exception as e:
-        print(f"ERROR: Failed to export Excel file at {file_path}. Reason: {e}")
+    except Exception as exc:
+        raise ReportExportError(f"Failed to export Excel file at {file_path}.") from exc
