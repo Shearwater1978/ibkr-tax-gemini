@@ -3,6 +3,7 @@
 import pytest
 from decimal import Decimal
 from src.fifo import TradeMatcher
+from src.diagnostics import UnmatchedInventoryError
 
 
 @pytest.fixture
@@ -101,3 +102,34 @@ def test_fifo_multiple_buys(matcher):
 
     # Profit: 4500 - 2000 = 2500
     assert res["profit_loss"] == 2500.0
+
+
+def test_fifo_rejects_sell_exceeding_inventory(matcher):
+    trades = [
+        {
+            "type": "BUY",
+            "date": "2024-01-01",
+            "ticker": "AAPL",
+            "qty": Decimal(1),
+            "price": Decimal(100),
+            "commission": Decimal(0),
+            "currency": "PLN",
+            "rate": Decimal(1),
+        },
+        {
+            "type": "SELL",
+            "date": "2024-01-02",
+            "ticker": "AAPL",
+            "qty": Decimal(-2),
+            "price": Decimal(150),
+            "commission": Decimal(0),
+            "currency": "PLN",
+            "rate": Decimal(1),
+        },
+    ]
+
+    with pytest.raises(UnmatchedInventoryError) as error:
+        matcher.process_trades(trades)
+
+    assert error.value.diagnostic.code == "UNMATCHED_SELL"
+    assert error.value.diagnostic.quantity == 1.0

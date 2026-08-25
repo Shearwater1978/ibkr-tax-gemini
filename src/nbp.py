@@ -5,6 +5,7 @@ import calendar
 from datetime import datetime, timedelta, date
 from decimal import Decimal
 from typing import Dict, Optional
+from src.diagnostics import CalculationDiagnostic, NBPRateError
 
 # Глобальный кэш: {(currency, year, month): {date_str: rate_decimal}}
 _MONTHLY_CACHE: Dict[tuple, Dict[str, Decimal]] = {}
@@ -55,15 +56,26 @@ def fetch_month_rates(currency: str, year: int, month: int) -> None:
             # Это нормально, сохраняем пустой словарь
             pass
         else:
-            print(f"⚠️ NBP API Warning: HTTP {response.status_code} for {url}")
+            raise NBPRateError(
+                CalculationDiagnostic(
+                    code="NBP_HTTP_ERROR",
+                    message=f"NBP returned HTTP {response.status_code} for {currency}.",
+                    currency=currency,
+                )
+            )
 
         _MONTHLY_CACHE[cache_key] = rates_map
 
-    except Exception as e:
-        print(f"❌ NBP Network Error for {fmt_start}: {e}")
-        # Не сохраняем в кэш, чтобы при следующем вызове попробовать снова?
-        # Или сохраняем пустоту, чтобы не ддосить? Лучше не сохранять, вдруг сеть моргнула.
-        pass
+    except NBPRateError:
+        raise
+    except Exception as exc:
+        raise NBPRateError(
+            CalculationDiagnostic(
+                code="NBP_NETWORK_ERROR",
+                message=f"Could not fetch NBP rates for {currency}.",
+                currency=currency,
+            )
+        ) from exc
 
 
 def get_nbp_rate(currency: str, date_str: str) -> Decimal:
@@ -77,9 +89,15 @@ def get_nbp_rate(currency: str, date_str: str) -> Decimal:
 
     try:
         event_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except ValueError:
-        print(f"⚠️ NBP: Invalid date format {date_str}, using 1.0")
-        return Decimal("1.0")
+    except ValueError as exc:
+        raise NBPRateError(
+            CalculationDiagnostic(
+                code="NBP_INVALID_DATE",
+                message=f"Invalid exchange-rate date: {date_str}.",
+                date=date_str,
+                currency=currency,
+            )
+        ) from exc
 
     # Начинаем поиск с T-1
     target_date = event_date - timedelta(days=1)
@@ -104,10 +122,14 @@ def get_nbp_rate(currency: str, date_str: str) -> Decimal:
         # Если не нашли, идем на день назад (и на следующей итерации проверим кэш)
         target_date -= timedelta(days=1)
 
-    print(
-        f"❌ NBP FATAL: Could not find rate for {currency} around {date_str}. Using 1.0 fallback."
+    raise NBPRateError(
+        CalculationDiagnostic(
+            code="NBP_RATE_MISSING",
+            message=f"No NBP rate found for {currency} before {date_str}.",
+            date=date_str,
+            currency=currency,
+        )
     )
-    return Decimal("1.0")
 
 
 def get_rate_for_tax_date(currency, trade_date):

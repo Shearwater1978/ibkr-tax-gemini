@@ -73,13 +73,7 @@ def process_yearly_data(
         # --- 2. Get Exchange Rate (NBP) ---
         rate = Decimal("1.0")
         if currency != "PLN":
-            try:
-                rate = get_nbp_rate(currency, date_str)
-            except Exception as e:
-                print(
-                    f"WARNING: Could not fetch NBP rate for {currency} on {date_str}. Using 1.0. Error: {e}"
-                )
-                rate = Decimal("1.0")
+            rate = get_nbp_rate(currency, date_str)
 
         # --- 3. Event Routing ---
 
