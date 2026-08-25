@@ -57,5 +57,18 @@ Calculations stop with a diagnostic if an NBP rate is unavailable or a sale
 cannot be matched to inventory. Export failures are also reported as errors;
 the application does not present incomplete tax totals as valid reports.
 
+### Desktop GUI
+
+Install Python dependencies, then start the Electron dashboard:
+
+```bash
+cd gui
+npm install
+npm start
+```
+
+The GUI starts a local backend on `127.0.0.1:8000`, waits for its `/health`
+endpoint, and uses the same encrypted database and report output as the CLI.
+
 ## ⚠️ Disclaimer
 Educational purpose only. Not financial advice.

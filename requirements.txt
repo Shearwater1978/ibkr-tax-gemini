@@ -11,3 +11,6 @@ python-decouple
 sqlcipher3>=0.5.4
 pandas
 black[d]
+fastapi
+uvicorn
+httpx2

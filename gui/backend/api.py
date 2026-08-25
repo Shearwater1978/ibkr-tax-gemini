@@ -1,0 +1,199 @@
+import os
+import platform
+import subprocess
+import sys
+from pathlib import Path
+from typing import List
+
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+current_dir = Path(__file__).resolve().parent
+project_root = current_dir.parents[1]
+sys.path.insert(0, str(project_root))
+
+from main import prepare_data_for_pdf, run_import_routine
+from src.data_collector import collect_all_trade_data
+from src.db_connector import DBConnector
+from src.diagnostics import CalculationError, ReportExportError
+from src.excel_exporter import export_to_excel
+from src.processing import process_yearly_data
+
+try:
+    from src.report_pdf import generate_pdf
+except ImportError:
+    generate_pdf = None
+
+
+class YearResponse(BaseModel):
+    years: List[int]
+
+
+class ImportResponse(BaseModel):
+    status: str
+    message: str
+    count: int
+    inserted: int
+    skipped: int
+
+
+app = FastAPI(title="IBKR Tax Calculator API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["null", "http://localhost", "http://127.0.0.1"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
+
+
+def get_file_paths(year: int):
+    if year < 1900 or year > 2200:
+        raise HTTPException(status_code=422, detail="Invalid report year")
+    output_dir = project_root / "output"
+    return output_dir / f"tax_report_{year}.xlsx", output_dir / f"tax_report_{year}.pdf"
+
+
+def open_file_system(filepath: Path):
+    if not filepath.is_file():
+        raise HTTPException(status_code=404, detail="Report file not found")
+    try:
+        if platform.system() == "Darwin":
+            subprocess.call(("open", str(filepath)))
+        elif platform.system() == "Windows":
+            os.startfile(str(filepath))
+        else:
+            subprocess.call(("xdg-open", str(filepath)))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500, detail="Could not open report file"
+        ) from exc
+
+
+@app.get("/health")
+def health_check():
+    try:
+        with DBConnector() as db:
+            db.initialize_schema()
+        return {"status": "ready"}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Backend is not ready") from exc
+
+
+@app.get("/years", response_model=YearResponse)
+def get_available_years():
+    try:
+        with DBConnector() as db:
+            rows = db.conn.execute(
+                "SELECT DISTINCT SUBSTR(Date, 1, 4) FROM transactions "
+                "WHERE Date IS NOT NULL"
+            ).fetchall()
+        years = sorted(
+            {int(row[0]) for row in rows if row[0] and str(row[0]).isdigit()},
+            reverse=True,
+        )
+        return {"years": years}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Database is unavailable") from exc
+
+
+@app.post("/import", response_model=ImportResponse)
+def run_import():
+    try:
+        result = run_import_routine() or {"inserted": 0, "skipped": 0}
+        with DBConnector() as db:
+            count = db.conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+        return {
+            "status": "success",
+            "message": "Import finished",
+            "count": count,
+            "inserted": result["inserted"],
+            "skipped": result["skipped"],
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Import failed") from exc
+
+
+@app.get("/calculate/{year}")
+def calculate_report(year: int):
+    try:
+        with DBConnector() as db:
+            raw_trades = db.get_trades_for_calculation(target_year=year)
+        if not raw_trades:
+            raise HTTPException(status_code=404, detail="No data found")
+
+        realized_gains, dividends, inventory = process_yearly_data(raw_trades, year)
+        output_dir = project_root / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        excel_path, pdf_path = get_file_paths(year)
+        errors = []
+
+        excel_generated = False
+        try:
+            sheets, ticker_summary = collect_all_trade_data(
+                realized_gains, dividends, inventory
+            )
+            export_to_excel(sheets, str(excel_path), {"Year": year}, ticker_summary)
+            excel_generated = excel_path.is_file()
+        except ReportExportError as exc:
+            errors.append({"type": "excel", "message": str(exc)})
+
+        pdf_generated = False
+        if generate_pdf is not None:
+            try:
+                pdf_data = prepare_data_for_pdf(
+                    year, raw_trades, realized_gains, dividends, inventory
+                )
+                generate_pdf(pdf_data, str(pdf_path))
+                pdf_generated = pdf_path.is_file()
+            except Exception:
+                errors.append({"type": "pdf", "message": "PDF export failed"})
+
+        return {
+            "status": "success",
+            "complete": not errors,
+            "errors": errors,
+            "pdf_available": pdf_generated,
+            "excel_available": excel_generated,
+            "summary": {
+                "pln_profit": sum(r["profit_loss"] for r in realized_gains),
+                "pln_dividend_gross": sum(d["gross_amount_pln"] for d in dividends),
+                "open_positions_count": len(inventory),
+            },
+        }
+    except HTTPException:
+        raise
+    except CalculationError as exc:
+        diagnostic = exc.diagnostic
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": diagnostic.code,
+                "message": diagnostic.message,
+                "ticker": diagnostic.ticker,
+                "date": diagnostic.date,
+                "currency": diagnostic.currency,
+                "quantity": diagnostic.quantity,
+            },
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Calculation failed") from exc
+
+
+@app.get("/open/excel/{year}")
+def open_excel(year: int):
+    excel_path, _ = get_file_paths(year)
+    open_file_system(excel_path)
+    return {"status": "success"}
+
+
+@app.get("/open/pdf/{year}")
+def open_pdf(year: int):
+    _, pdf_path = get_file_paths(year)
+    open_file_system(pdf_path)
+    return {"status": "success"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8000)
