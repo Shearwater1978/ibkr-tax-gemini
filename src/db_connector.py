@@ -8,6 +8,7 @@ except ImportError:
 try:
     from decouple import config
 except ImportError:
+
     def config(name, default=None):
         return os.getenv(name, default)
 
@@ -116,11 +117,20 @@ class DBConnector:
             (Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        self.conn.execute(query, (
-            data["date"], data["type"], data["ticker"], data["qty"],
-            data["price"], data["currency"], data.get("amount", 0),
-            data["fee"], data["desc"],
-        ))
+        self.conn.execute(
+            query,
+            (
+                data["date"],
+                data["type"],
+                data["ticker"],
+                data["qty"],
+                data["price"],
+                data["currency"],
+                data.get("amount", 0),
+                data["fee"],
+                data["desc"],
+            ),
+        )
         self.conn.commit()
 
     def get_trades_for_calculation(self, target_year=None, ticker=None):

@@ -81,7 +81,8 @@ def test_change_password_escapes_password_for_pragma(mock_db_connection):
     assert connector.change_password("new-secret") is True
 
     rekey_call = next(
-        call for call in mock_conn.execute.call_args_list
+        call
+        for call in mock_conn.execute.call_args_list
         if call.args[0].startswith("PRAGMA rekey")
     )
     assert rekey_call.args[0] == "PRAGMA rekey = 'new-secret'"
@@ -94,7 +95,8 @@ def test_change_password_escapes_single_quotes(mock_db_connection):
 
     assert connector.change_password("new'password") is True
     rekey_call = next(
-        call for call in mock_conn.execute.call_args_list
+        call
+        for call in mock_conn.execute.call_args_list
         if call.args[0].startswith("PRAGMA rekey")
     )
     assert rekey_call.args[0] == "PRAGMA rekey = 'new''password'"
