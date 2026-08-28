@@ -1,186 +1,235 @@
-# Project Documentation (v2.1.0)
+# IBKR Tax Calculator (PIT-38 Poland)
 
-Welcome to the **IBKR Tax Calculator (Poland / PIT-38)** project.
-Current Release: **v2.1.0** (Stable).
+**Current release: v2.2.0**
 
-This tool processes **Interactive Brokers** reports to calculate Capital Gains (FIFO) and Dividends for Polish tax residents.
-It features **military-grade security** (SQLCipher encryption) and generates professional reports ready for tax filing.
+Local Python and Electron application for importing Interactive Brokers
+Activity Statements or Flex Query reports, calculating FIFO capital gains and
+dividends for Polish tax residents, and producing Excel/PDF reports.
 
----
+This file is the source draft for the project GitHub Wiki. After review and
+merge, copy its content to the Wiki manually.
 
-## 🚀 What's New in v2.1.0?
-* **Full Encryption:** SQLCipher integration (AES-256).
-* **Universal Parser:** Added support for **Activity Statements** (CSV).
-* **Smart NBP:** Reduced API load by 95% via Batch Caching.
-* **Unified CLI:** `main.py` now handles both data import and reporting.
+## Features
 
----
+- Local SQLCipher database with AES-256 encryption.
+- Parser for IBKR Activity Statements and Flex Query CSV reports.
+- Idempotent imports with duplicate detection and import summaries.
+- FIFO matching for buys, sells, transfers, splits, and supported corporate actions.
+- Official NBP exchange rates using the previous-working-day rule.
+- Excel and PDF report generation.
+- FIFO coverage preflight for checking planned sales before a real sale is recorded.
+- Electron desktop dashboard backed by a local FastAPI service.
 
-## 🎯 Purpose
+## Installation
 
-This project is designed to automate the complex requirements of the Polish Tax Office (Urząd Skarbowy) regarding foreign assets.
-
-The tool:
-- **Secures Data:** Stores all financial history in an AES-256 encrypted database.
-- **Calculates FIFO:** Matches Sells against the oldest Buys (First-In-First-Out) to optimize Cost Basis.
-- **Converts Currency:** Fetches official **NBP (National Bank of Poland)** rates for the day preceding the event (T-1).
-- **Checks Sanctions:** Highlights restricted assets (e.g., Russian ADRs like SBER, YNDX) in the portfolio.
-- **Prepares PIT-38:** Aggregates data into "Revenue" (Przychód) and "Costs" (Koszty).
-
----
-
-## 📂 Folder Structure
-
-```text
-project-root
-│
-├── .env                       # Stores SQLCIPHER_KEY and DB path (Private!)
-├── main.py                    # Entry point for Import and Reporting
-├── requirements.txt           # Python dependencies
-│
-├── data/                      # Data storage
-│   ├── ibkr_history.db.enc    # Encrypted SQLCipher Database
-│   └── *.csv                  # Raw broker reports (Activity Statements / Flex Queries)
-│
-├── output/                    # Generated Reports
-│   ├── tax_report_2024.pdf
-│   └── tax_report_2024.xlsx
-│
-├── src/                       # Source Code
-│   ├── db_connector.py        # Database Manager (Encryption)
-│   ├── parser.py              # CSV Importer (Universal Parser)
-│   ├── processing.py          # Logic Orchestrator (Tax Linking)
-│   ├── fifo.py                # TradeMatcher Engine
-│   ├── nbp.py                 # NBP API Client (Batch Caching)
-│   ├── report_pdf.py          # PDF Generator
-│   └── excel_exporter.py      # Excel Generator
-│
-└── tests/                     # Pytest suite
-```
-
----
-
-## 📥 Input: IBKR Reports
-
-The system supports CSV files generated via **IBKR Activity Statements** (Default) or **Flex Queries**.
-
-**Important Columns Detected (Dynamic Mapping):**
-* **Trades:** `Date`, `Symbol`, `Buy/Sell`, `Quantity`, `TradePrice`, `Commission`
-* **Dividends:** `PayDate`, `Amount`, `Currency`, `Description`
-* **Withholding Tax:** `Date`, `Amount` (Negative value)
-
-**Example Trade Row (Activity Statement):**
-```csv
-Trades,Data,Order,Stocks,USD,AAPL,2024-01-15,10,150.0, ..., -1.0, ...
-```
-
-**Example Dividend Row:**
-```csv
-Dividends,Data,USD,2024-03-01,AAPL Cash Div, 0.24, ...
-```
-
----
-
-## 🔄 Workflow
-
-The application works in two distinct steps: **Import** and **Report**. Both are handled by `main.py`.
-
-### Step 1: Import Data
-Parse raw CSV files into the secure database. You can run this multiple times; the system handles duplicates.
-The script automatically looks for `.csv` files in the `data/` directory.
+Requirements: Python 3.10+, a working SQLCipher driver, and Node.js for the
+desktop GUI.
 
 ```bash
-# Import all CSVs from the data folder
+git clone https://github.com/Shearwater1978/ibkr-tax-gemini.git
+cd ibkr-tax-gemini
+pip install -r requirements.txt
+```
+
+Create a `.env` file in the project root:
+
+```ini
+SQLCIPHER_KEY=your_secret_key
+DATABASE_PATH=db/ibkr_history.db.enc
+```
+
+The key must be non-empty. The application refuses to use a plaintext SQLite
+database in place of the configured encrypted database.
+
+## Project Structure
+
+```text
+project-root/
+|- main.py                         CLI entry point
+|- WIKI_CONTENT.md                 Wiki source draft
+|- requirements.txt                Python dependencies
+|- data/                           Imported broker CSV files and fixtures
+|- db/                             Encrypted local database files
+|- output/                         Generated Excel/PDF reports
+|- src/
+|  |- parser.py                    CSV parsing and normalization
+|  |- db_connector.py              SQLCipher database access
+|  |- processing.py                Tax and event processing
+|  |- fifo.py                      FIFO inventory and realized gains
+|  |- fifo_coverage.py             Non-destructive coverage preflight
+|  |- nbp.py                       NBP exchange-rate lookup and caching
+|  |- excel_exporter.py            Excel output
+|  `- report_pdf.py                PDF output
+|- gui/
+|  |- backend/api.py               FastAPI adapter
+|  `- ui/index.html                Electron dashboard
+`- tests/                          Pytest suite
+```
+
+## Import Data
+
+Place IBKR CSV reports in `data/`, then import them from the project root:
+
+```bash
 python main.py --import-data
 ```
 
-### Step 2: Generate Report
-Run the calculation for a specific tax year. This pulls data from the DB, fetches NBP rates, runs FIFO, and outputs files.
+The import scans `data/*.csv`, normalizes supported records, ignores duplicate
+records, and stores transactions in the encrypted database. Keep all historical
+reports: FIFO cost basis may require purchases from earlier years.
+
+## Calculate Reports
+
+Run a tax calculation for a year:
 
 ```bash
-# Generate PDF and Excel for 2024
 python main.py --target-year 2024 --export-pdf --export-excel
 ```
 
----
+The calculation reads imported transactions through the requested year,
+applies FIFO matching and NBP conversion, and writes reports under `output/`.
+If an NBP rate is unavailable or a sale cannot be matched, the calculation
+returns a diagnostic rather than presenting incomplete tax totals as valid.
 
-## 🧮 Logic & Math
+## FIFO Coverage Preflight
 
-### 1. FIFO (First-In-First-Out)
-When you sell a stock, the engine searches for the oldest available "Buy" lot.
-* **Cost Basis** = (Buy Price * Buy Rate) + (Buy Commission * Buy Rate).
-* **Revenue** = (Sell Price * Sell Rate) - (Sell Commission * Sell Rate).
-* **Profit** = Revenue - Cost Basis.
+Coverage is evidence for planning a possible sale. It does **not** calculate
+tax, calculate profit, create a simulated sale, or persist a `SELL` transaction.
 
-### 2. NBP FX Rates
-Rates are fetched from `api.nbp.pl`.
-* **Rule:** The rate used is from the **last working day before** the event (D-1).
-* **Optimization:** Uses Batch Caching to fetch monthly rates in one go.
-* **Fallback:** If the API fails, it defaults to 1.0 (with a warning).
+### CLI
 
-### 3. Tax Linking
-IBKR reports Withholding Tax as a separate transaction. The logic maps these taxes to dividends based on **Date** and **Ticker**.
-* *Dividend:* +10.00 USD
-* *Tax Row:* -1.50 USD
-* *Result:* Gross = 10.00, Tax Paid = 1.50.
+Check one asset using a repeated structured argument:
 
----
+```bash
+python main.py --planned-sale AAPL:10:2024-12-31
+```
 
-## 📄 Output Formats
+Check multiple assets and request machine-readable JSON:
 
-### 1. Excel Report (`.xlsx`)
-Designed for deep analysis and verification.
-* **Summary:** Top-level metrics.
-* **Sales P&L:** Every closed trade, exploded by tax lot. Shows `Holding_Days`.
-* **Dividends:** List of all payments and taxes paid abroad.
-* **Open Positions:** What is currently in your inventory (FIFO queue).
+```bash
+python main.py \
+  --planned-sale AAPL:10:2024-12-31 \
+  --planned-sale MSFT:5:2024-12-31 \
+  --coverage-output json
+```
 
-### 2. PDF Report (`.pdf`)
-Designed for printing and filing.
-| Page | Content |
-|-----:|---------|
-| 1 | **Cover** (Year + Period) |
-| 2 | **Portfolio:** Aggregated holdings. <br>⚠️ **Red Flag:** Marks sanctioned assets (SBER, YNDX, RUB). |
-| 3 | **Trades History:** Clean list of BUY/SELL events (filtered). |
-| 4 | **Dividends:** Monthly summary table (Gross vs Net). |
-| 5 | **PIT-38 Helper:** Exact figures for "Przychód" and "Koszty". |
+Alternatively, provide a JSON file containing an array of objects:
 
----
+```json
+[
+  {"ticker": "AAPL", "quantity": 10, "as_of": "2024-12-31"},
+  {"ticker": "MSFT", "quantity": 5, "as_of": "2024-12-31"}
+]
+```
 
-## 🧾 PIT-38 Mapping
+```bash
+python main.py --coverage-file planned-sales.json --coverage-output json
+```
 
-Use the **PDF Page 5** to fill your tax form:
+Each result contains the ticker, requested quantity, available quantity,
+missing quantity, as-of date, status, history indicator, and FIFO lot evidence.
+Statuses are:
 
-| PIT-38 Field | Source in Report | Logic |
-|:--- |:--- |:--- |
-| **Sekcja C, Poz. 20** <br>(Przychód) | **Capital Gains -> Revenue** | Sum of all Sales converted to PLN. |
-| **Sekcja C, Poz. 21** <br>(Koszty uzyskania) | **Capital Gains -> Cost** | Sum of matched Buy Costs + Commissions. |
-| **Sekcja G** <br>(Podatek zapłacony) | **Dividends -> Tax Paid** | Total Withholding Tax paid abroad (PLN). |
+- `COVERED`: available quantity is at least the requested quantity.
+- `PARTIAL`: some quantity is available, but the request is not fully covered.
+- `NOT_COVERED`: no quantity is available.
 
----
+`history_found: false` distinguishes missing broker history from imported
+history that simply has no remaining holdings. Lot evidence is listed oldest
+first and includes acquisition date, quantity contribution, and source identity
+when available.
 
-## 🔒 Security (SQLCipher)
+### API
 
-This project does not store financial data in plain text.
-* **Encryption:** AES-256.
-* **Key:** Stored in `.env` as `SQLCIPHER_KEY`.
-* **Safety:** If you lose the key, the database is unreadable. If you delete `.env`, you must re-import data.
+The local backend exposes `POST /coverage`:
 
----
+```json
+{
+  "planned_sales": [
+    {"ticker": "AAPL", "quantity": 10, "as_of": "2024-12-31"}
+  ]
+}
+```
 
-## 💡 Best Practices
+The response contains an overall status and one structured result per ticker.
+The endpoint only reads imported history and does not modify calculation data.
 
-1.  **Keep History:** Do not delete old CSVs. Import them all to build a full FIFO history.
-2.  **Check Sanctions:** If the PDF highlights a ticker in RED, consult a tax advisor regarding "Blocked Assets".
-3.  **Verify NBP:** Occasionally check if the NBP API is reachable (no firewall blocks).
+### Desktop GUI
 
----
+The dashboard includes a FIFO Coverage Preflight section. Enter the same JSON
+array of planned sales, run the check, and review requested, available, missing,
+as-of, status, and FIFO lot columns. Empty-history and incomplete-result states
+are shown explicitly.
 
-## 🤝 Troubleshooting
+## Calculation Logic
 
-* **"PDF generator module not found":** Ensure `reportlab` is installed.
-* **"SQLCipher connection failed":** Check if `SQLCIPHER_KEY` is present in `.env`.
-* **"Zero Profit":** Ensure you imported the *entire* history, not just the current year (FIFO needs purchase dates).
+### FIFO
 
----
-End of documentation.
+The engine consumes the oldest available acquisition lots first. Splits adjust
+lot quantity and unit price while preserving total cost. Transfers and
+supported corporate actions adjust inventory without treating them as ordinary
+taxable sales.
+
+### NBP Rates
+
+For non-PLN events, the application uses the official NBP rate from the last
+working day before the event and caches rate lookups where possible.
+
+### Dividends and Withholding Tax
+
+Dividend and withholding-tax rows are linked by date and ticker. Reports show
+gross dividend amounts and tax withheld in PLN when the required data is present.
+
+## Reports
+
+### Excel
+
+The Excel workbook includes summary metrics, realized sales and FIFO lot
+matches, dividends, and open inventory lots.
+
+### PDF
+
+The PDF contains a cover, portfolio holdings, filtered trade history, dividend
+summary, and PIT-38 helper figures. It is an analysis and preparation aid, not
+a guarantee that a tax filing is legally correct.
+
+## Desktop GUI
+
+Install and start the Electron dashboard:
+
+```bash
+cd gui
+npm install
+npm start
+```
+
+The Electron shell starts the local backend at `127.0.0.1:8000`, waits for the
+health endpoint, and uses the same encrypted database and report files as the
+CLI.
+
+## Security and Data Handling
+
+- Financial history is stored in the configured SQLCipher database.
+- Keep `.env`, `SQLCIPHER_KEY`, and database backups private.
+- Do not commit real broker reports, keys, or unredacted financial output.
+- Losing the encryption key makes the database unreadable; re-importing files
+  requires the original reports.
+
+## Troubleshooting
+
+- **SQLCipher connection failed:** verify the SQLCipher dependency, `DATABASE_PATH`,
+  and a non-empty `SQLCIPHER_KEY`.
+- **No data found:** place reports in `data/` and run `python main.py --import-data`.
+- **Unmatched sale:** import the complete acquisition history, not only the
+  current tax year; use FIFO coverage preflight before relying on a planned sale.
+- **Missing NBP rate:** verify network access to the NBP API and retry the
+  calculation.
+- **PDF generator unavailable:** install the dependencies from `requirements.txt`.
+- **GUI backend unavailable:** start the GUI from the repository's `gui/`
+  directory and check that port `8000` is free.
+
+## Disclaimer
+
+Educational purpose only. This project is not financial, legal, or tax advice.
+Review imported data, calculations, and generated reports with a qualified tax
+professional before filing.
