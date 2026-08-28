@@ -109,3 +109,44 @@ def test_calculation_marks_failed_export_unavailable():
 def test_missing_report_returns_404():
     response = TestClient(api.app).get("/open/excel/2099")
     assert response.status_code == 404
+
+
+def test_coverage_returns_one_result_per_planned_sale():
+    database = FakeDatabase(
+        [
+            {
+                "TradeId": 1,
+                "Date": "2024-01-01",
+                "EventType": "BUY",
+                "Ticker": "AAPL",
+                "Quantity": 5,
+                "Currency": "PLN",
+            }
+        ]
+    )
+    with patch.object(api, "DBConnector", return_value=database):
+        response = TestClient(api.app).post(
+            "/coverage",
+            json={
+                "planned_sales": [
+                    {"ticker": "AAPL", "quantity": 2, "as_of": "2024-02-01"},
+                    {"ticker": "MSFT", "quantity": 1, "as_of": "2024-02-01"},
+                ]
+            },
+        )
+
+    assert response.status_code == 200
+    assert [item["ticker"] for item in response.json()["results"]] == ["AAPL", "MSFT"]
+    assert response.json()["results"][0]["status"] == "COVERED"
+    assert response.json()["results"][1]["status"] == "NOT_COVERED"
+
+
+def test_coverage_rejects_invalid_planned_sale():
+    response = TestClient(api.app).post(
+        "/coverage",
+        json={
+            "planned_sales": [{"ticker": "AAPL", "quantity": 0, "as_of": "2024-02-01"}]
+        },
+    )
+
+    assert response.status_code == 422

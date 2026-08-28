@@ -70,6 +70,12 @@
         
         /* Hidden sections */
         .hidden { display: none; }
+        textarea { width: 100%; min-height: 90px; box-sizing: border-box; padding: 10px; font-family: monospace; }
+        .coverage-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .coverage-table th, .coverage-table td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
+        .coverage-covered { color: #198754; }
+        .coverage-partial { color: #b26a00; }
+        .coverage-missing { color: #b42318; }
     </style>
 </head>
 <body>
@@ -101,6 +107,17 @@
                 <span id="loader-text">Calculating FIFO & NBP Rates...</span>
             </div>
             <div id="status"></div>
+        </div>
+
+        <div class="card">
+            <h3>FIFO Coverage Preflight</h3>
+            <p>Check imported lots before a planned sale. This does not calculate tax or persist a sale.</p>
+            <textarea id="coverageInput">[{"ticker":"AAPL","quantity":10,"as_of":"2024-12-31"}]</textarea>
+            <div class="controls" style="margin-top:10px">
+                <button class="btn btn-outline" onclick="checkCoverage()">Check coverage</button>
+                <span id="coverage-status" style="font-size: 14px; color: #666;"></span>
+            </div>
+            <div id="coverage-results" class="hidden"></div>
         </div>
 
         
@@ -265,6 +282,31 @@
                 // 4. Очистка (выполняется всегда)
                 loader.classList.add('hidden'); // Скрываем спиннер
                 calcBtn.disabled = false;       // Разблокируем кнопку
+            }
+        }
+
+        async function checkCoverage() {
+            const status = document.getElementById('coverage-status');
+            const results = document.getElementById('coverage-results');
+            try {
+                const planned_sales = JSON.parse(document.getElementById('coverageInput').value);
+                const res = await fetch(`${API_URL}/coverage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ planned_sales })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Coverage check failed');
+                status.innerText = `Overall: ${data.status}`;
+                results.innerHTML = `<table class="coverage-table"><thead><tr><th>Ticker</th><th>Status</th><th>Requested</th><th>Available</th><th>Missing</th><th>As of</th><th>FIFO lots</th></tr></thead><tbody>${data.results.map(item => {
+                    const statusClass = item.status === 'COVERED' ? 'coverage-covered' : item.status === 'PARTIAL' ? 'coverage-partial' : 'coverage-missing';
+                    const lots = item.lots.length ? item.lots.map(lot => `${lot.acquisition_date}: ${lot.quantity}`).join('<br>') : (item.history_found ? 'No available lots' : 'No broker history');
+                    return `<tr><td>${item.ticker}</td><td class="${statusClass}">${item.status}</td><td>${item.requested}</td><td>${item.available}</td><td>${item.missing}</td><td>${item.as_of}</td><td>${lots}</td></tr>`;
+                }).join('')}</tbody></table>`;
+                results.classList.remove('hidden');
+            } catch (error) {
+                status.innerText = error.message;
+                results.classList.add('hidden');
             }
         }
 
