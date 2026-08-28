@@ -1,6 +1,7 @@
 # main.py
 
 import argparse
+import json
 from datetime import date
 from collections import defaultdict
 import sys
@@ -14,6 +15,7 @@ from src.excel_exporter import export_to_excel
 from src.db_connector import DBConnector
 from src.processing import process_yearly_data
 from src.diagnostics import CalculationError, ReportExportError
+from src.fifo_coverage import PlannedSale, check_coverage
 
 # Import parser functions to enable data loading from main.py
 from src.parser import parse_csv, save_to_database
@@ -248,6 +250,42 @@ def run_import_routine():
         return {"inserted": 0, "skipped": 0}
 
 
+def load_planned_sales(arguments, json_path=None):
+    items = []
+    if json_path:
+        with open(json_path, encoding="utf-8") as input_file:
+            items.extend(json.load(input_file))
+    for item in arguments:
+        ticker, quantity, as_of = item.split(":", 2)
+        items.append({"ticker": ticker, "quantity": quantity, "as_of": as_of})
+    return [PlannedSale(**item) for item in items]
+
+
+def run_coverage(args):
+    try:
+        planned_sales = load_planned_sales(args.planned_sale, args.coverage_file)
+        as_of = max(sale.as_of for sale in planned_sales)
+        with DBConnector() as db:
+            db.initialize_schema()
+            raw_trades = db.get_trades_for_calculation()
+        report = check_coverage(raw_trades, planned_sales)
+        if args.coverage_output == "json":
+            print(json.dumps(report, indent=2))
+        else:
+            print("--- FIFO Coverage Preflight (no sale persisted) ---")
+            for result in report["results"]:
+                print(
+                    f"{result['ticker']}: {result['status']} | "
+                    f"requested {result['requested']}, available {result['available']}, "
+                    f"missing {result['missing']} | as of {result['as_of']}"
+                )
+            print(f"Overall: {report['status']} (history through {as_of})")
+    except (ValueError, OSError, json.JSONDecodeError) as exc:
+        print(f"COVERAGE ERROR: {exc}")
+        return 2
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description="IBKR Tax Calculator")
 
@@ -276,6 +314,22 @@ def main():
     parser.add_argument(
         "--export-pdf", action="store_true", help="Export tax report to PDF."
     )
+    parser.add_argument(
+        "--coverage-file", help="JSON file containing planned sales for FIFO preflight."
+    )
+    parser.add_argument(
+        "--planned-sale",
+        action="append",
+        default=[],
+        metavar="TICKER:QUANTITY:DATE",
+        help="Planned sale, repeat for multiple assets (e.g. AAPL:10:2024-12-31).",
+    )
+    parser.add_argument(
+        "--coverage-output",
+        choices=("text", "json"),
+        default="text",
+        help="FIFO coverage report format.",
+    )
 
     args = parser.parse_args()
 
@@ -283,6 +337,12 @@ def main():
     if args.import_data:
         run_import_routine()
         return  # Stop here if we are just importing
+
+    if args.coverage_file or args.planned_sale:
+        return_code = run_coverage(args)
+        if return_code:
+            sys.exit(return_code)
+        return
 
     # --- 2. Calculation Mode ---
     print(f"Starting tax calculation for year {args.target_year}...")

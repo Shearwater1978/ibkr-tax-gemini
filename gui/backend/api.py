@@ -3,6 +3,8 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
+from datetime import date
+from decimal import Decimal
 from typing import List
 
 import uvicorn
@@ -20,6 +22,7 @@ from src.db_connector import DBConnector
 from src.diagnostics import CalculationError, ReportExportError
 from src.excel_exporter import export_to_excel
 from src.processing import process_yearly_data
+from src.fifo_coverage import PlannedSale, check_coverage
 
 try:
     from src.report_pdf import generate_pdf
@@ -37,6 +40,16 @@ class ImportResponse(BaseModel):
     count: int
     inserted: int
     skipped: int
+
+
+class PlannedSaleRequest(BaseModel):
+    ticker: str
+    quantity: Decimal
+    as_of: date
+
+
+class CoverageRequest(BaseModel):
+    planned_sales: List[PlannedSaleRequest]
 
 
 app = FastAPI(title="IBKR Tax Calculator API")
@@ -113,6 +126,26 @@ def run_import():
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail="Import failed") from exc
+
+
+@app.post("/coverage")
+def coverage_check(request: CoverageRequest):
+    if not request.planned_sales:
+        raise HTTPException(
+            status_code=422, detail="At least one planned sale is required"
+        )
+    try:
+        planned_sales = [
+            PlannedSale(item.ticker, item.quantity, item.as_of.isoformat())
+            for item in request.planned_sales
+        ]
+        with DBConnector() as db:
+            raw_trades = db.get_trades_for_calculation()
+        return check_coverage(raw_trades, planned_sales)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Database is unavailable") from exc
 
 
 @app.get("/calculate/{year}")

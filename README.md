@@ -53,6 +53,23 @@ python main.py --import-data
 python main.py --target-year 2024 --export-pdf --export-excel
 ```
 
+### FIFO coverage preflight
+
+Check whether imported history contains enough FIFO inventory for planned sales.
+This is evidence for a preflight review only: it does not calculate tax, create a
+sale, or persist any transaction.
+
+```bash
+python main.py --planned-sale AAPL:10:2024-12-31 --coverage-output json
+python main.py --coverage-file planned-sales.json
+```
+
+The JSON file contains an array of objects with `ticker`, `quantity`, and `as_of`.
+The report includes per-asset status, available and missing quantity, and FIFO
+lot evidence. `NOT_COVERED` with `history_found: false` means no broker history
+was imported for that asset; it is distinct from an imported history with zero
+remaining holdings.
+
 Calculations stop with a diagnostic if an NBP rate is unavailable or a sale
 cannot be matched to inventory. Export failures are also reported as errors;
 the application does not present incomplete tax totals as valid reports.
