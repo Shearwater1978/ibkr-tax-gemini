@@ -7,7 +7,6 @@ from typing import Any, Dict, Iterable, List
 
 from src.fifo import TradeMatcher
 
-
 TICKER_ALIASES = {"TOT": "TTE", "FB": "META"}
 EPSILON = Decimal("0.00000001")
 

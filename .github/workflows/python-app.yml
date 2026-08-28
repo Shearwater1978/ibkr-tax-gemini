@@ -28,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         # Install linters/formatters if not present in requirements.txt
-        pip install flake8 black pytest
+        pip install flake8 black==26.5.1 pytest
 
     - name: Lint with flake8
       run: |
