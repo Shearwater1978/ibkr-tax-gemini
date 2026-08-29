@@ -114,17 +114,22 @@ def get_available_years():
 @app.post("/import", response_model=ImportResponse)
 def run_import():
     try:
-        result = run_import_routine() or {"inserted": 0, "skipped": 0}
+        result = run_import_routine()
         with DBConnector() as db:
-            count = db.conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+            count_row = db.conn.execute("SELECT COUNT(*) FROM transactions").fetchone()
+            count = count_row[0] if count_row else 0
         return {
             "status": "success",
             "message": "Import finished",
             "count": count,
-            "inserted": result["inserted"],
-            "skipped": result["skipped"],
+            "inserted": result.get("inserted", 0),
+            "skipped": result.get("skipped", 0),
         }
     except Exception as exc:
+        import traceback
+
+        print(f"Import error: {exc}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Import failed") from exc
 
 

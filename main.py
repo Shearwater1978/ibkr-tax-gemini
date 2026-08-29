@@ -212,7 +212,7 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
 
 def run_import_routine():
     """Helper function to find and parse CSV files from data/ directory."""
-    print("--- 📥 DATA IMPORT (via main.py) ---")
+    print("--- DATA IMPORT (via main.py) ---")
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(base_dir, "data")
@@ -223,8 +223,8 @@ def run_import_routine():
     files = [f for f in files if "manual_" not in os.path.basename(f)]
 
     if not files:
-        print(f"❌ No CSV files found in {data_dir}")
-        return
+        print(f"ERROR: No CSV files found in {data_dir}")
+        return {"inserted": 0, "skipped": 0}
 
     combined = {"trades": [], "dividends": [], "taxes": [], "corp_actions": []}
     print(f"Found {len(files)} files to process.")
@@ -238,7 +238,7 @@ def run_import_routine():
             print(f"Error reading {fp}: {e}")
 
     if any(combined.values()):
-        print("💾 Saving to database...")
+        print("Saving to database...")
         result = save_to_database(combined)
         print(
             f"Import summary: {result['inserted']} inserted, "
@@ -246,7 +246,7 @@ def run_import_routine():
         )
         return result
     else:
-        print("⚠️ No valid data found in files.")
+        print("WARNING: No valid data found in files.")
         return {"inserted": 0, "skipped": 0}
 
 
