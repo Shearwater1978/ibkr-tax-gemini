@@ -69,6 +69,20 @@ def test_split_changes_available_quantity_and_partial_status():
     assert result["results"][0]["lots"][0]["quantity"] == 40.0
 
 
+def test_coverage_ignores_rows_with_blank_or_invalid_tickers():
+    rows = [
+        row("BUY", "2024-01-01", ticker="AAPL", quantity=5),
+        {**row("BUY", "2024-01-02", ticker="", quantity=7), "Ticker": ""},
+        {**row("BUY", "2024-01-03", ticker="MSFT", quantity=2), "Ticker": None},
+    ]
+
+    result = check_coverage(rows, [PlannedSale("AAPL", 5, "2024-02-01")])
+
+    assert result["status"] == "COVERED"
+    assert result["results"][0]["available"] == 5.0
+    assert result["results"][0]["missing"] == 0.0
+
+
 def test_alias_and_empty_history_are_explicit():
     result = check_coverage(
         [row("BUY", "2024-01-01", ticker="FB", quantity=3)],
