@@ -36,6 +36,22 @@ The repository already imports IBKR activity data from CSV files and normalizes 
 3. Run focused tests for normalization, invalid configuration, and connection failure handling.
 4. Merge as a feature branch; CSV import remains the baseline path and the live connector is enabled only when configured.
 
+## Confirmed Target Environment (Task 1.1)
+
+- **Integration mode:** IB Gateway (headless), not the full TWS desktop client. Gateway is the recommended mode for unattended/API-only integrations and has a smaller footprint.
+- **Account type:** Paper trading account for development and testing. Default paper Gateway port is `4002` (vs `4001` for live Gateway, `7497`/`7496` for paper/live TWS).
+- **Client ID:** A fixed, configurable `client_id` (default `1`) is required per socket connection; each concurrent connection to the same Gateway instance must use a distinct client ID.
+- **Client library:** `ib_insync` (maintained fork: `ib_async`) will be used instead of the raw `ibapi` package. It wraps the official socket protocol with an asyncio-friendly, higher-level API, reducing boilerplate for connection management and request/response handling.
+- **Configuration surface:** host, port, and client ID must be externally configurable (e.g., via `python-decouple` `.env` settings, consistent with existing project conventions) rather than hardcoded, so the same code can target paper vs live endpoints later.
+- **Supported read-only requests:** account summary, positions, executed trades/fills, and open orders (informational only) — no order placement or account modification calls will be implemented.
+
+## CSV/Live Compatibility Verification (Task 1.2)
+
+- `src/parser.py::save_to_database()` already accepts a source-agnostic `{"trades": [], "dividends": [], "taxes": [], "corp_actions": []}` dict and only relies on normalized record fields (date, ticker, currency, qty, price, type, commission, source, ratio). It has no CSV-specific coupling.
+- A live IB connector can therefore build the same dict shape from Gateway payloads and call `save_to_database()` directly, without touching `parse_csv()` or any CSV-specific code path.
+- `main.py::run_import_routine()` (CSV path) and a future live-sync entry point can coexist as separate functions that both terminate at `save_to_database()`; neither needs to know about the other's data source.
+- Conclusion: no changes to the existing CSV import workflow are required to add the live-API path. The live connector is purely additive.
+
 ## Open Questions
 
 - Should the live data sync be a manual “connect and import” action, or should it also support periodic refresh in the GUI?
