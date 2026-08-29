@@ -68,6 +68,14 @@ class TradeMatcher:
         ticker = trade["ticker"]
         ratio = trade.get("ratio", Decimal(1))
 
+        # IBKR represents reverse splits (e.g., "1 for 8") as TWO records:
+        # - One with positive qty and the split ratio (e.g., +1)
+        # - One with negative qty that should be ignored (e.g., -8)
+        # Skip processing for the negative qty record
+        qty = trade.get("qty", Decimal(0))
+        if qty < 0:
+            return
+
         if ticker not in self.inventory or not self.inventory[ticker]:
             return
 
