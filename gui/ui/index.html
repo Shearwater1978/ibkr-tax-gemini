@@ -223,10 +223,19 @@
             try {
                 const res = await fetch(`${API_URL}/import`, { method: 'POST' });
                 const data = await res.json();
-                importStatusEl.innerText = data.message + ` (${data.count} records)`;
-                loadYears(); 
+                if (!res.ok) {
+                    importStatusEl.innerText = `Import Error: ${data.detail || "Unknown error"}`;
+                    return;
+                }
+                if (data.message && data.count !== undefined) {
+                    importStatusEl.innerText = data.message + ` (${data.count} records)`;
+                    loadYears();
+                } else {
+                    importStatusEl.innerText = "Import completed, but response was invalid.";
+                }
             } catch (e) {
-                importStatusEl.innerText = "Import Failed.";
+                importStatusEl.innerText = `Import Failed: ${e.message}`;
+                console.error("Import error:", e);
             }
         }
 

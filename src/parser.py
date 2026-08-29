@@ -147,7 +147,7 @@ def load_manual_fixes(filepath: str) -> List[Dict]:
     if not os.path.exists(filepath):
         return fixes
 
-    print(f"🔧 Loading manual fixes from {filepath}...")
+    print(f"Loading manual fixes from {filepath}...")
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
@@ -171,7 +171,7 @@ def load_manual_fixes(filepath: str) -> List[Dict]:
                     }
                 )
     except Exception as e:
-        print(f"❌ Error loading manual fixes: {e}")
+        print(f"ERROR loading manual fixes: {e}")
     return fixes
 
 
@@ -180,7 +180,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
     data = {"trades": [], "dividends": [], "taxes": [], "corp_actions": []}
     section_headers = {}
     filename = os.path.basename(filepath)
-    print(f"📂 Parsing file: {filename}")
+    print(f"Parsing file: {filename}")
 
     try:
         with open(filepath, "r", encoding="utf-8-sig") as f:
@@ -364,7 +364,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     )
 
     except Exception as e:
-        print(f"❌ Error parsing {filename}: {e}")
+        print(f"ERROR parsing {filename}: {e}")
     return data
 
 
@@ -473,7 +473,7 @@ def save_to_database(all_data):
 
     if duplicates_count > 0:
         print(
-            f"🧹 Deduplication: Skipped {duplicates_count} duplicate records across files."
+            f"Deduplication: Skipped {duplicates_count} duplicate records across files."
         )
 
     if not unique_records:
@@ -534,7 +534,9 @@ def save_to_database(all_data):
             db.conn.rollback()
             raise
     skipped = duplicates_count + skipped_existing + len(records_to_insert) - inserted
-    print(f"✅ Imported {inserted} new records; skipped {skipped} duplicates.")
+    print(
+        f"Successfully imported {inserted} new records; skipped {skipped} duplicates."
+    )
     return {"inserted": inserted, "skipped": skipped}
 
 
