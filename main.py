@@ -19,6 +19,8 @@ from src.fifo_coverage import PlannedSale, check_coverage
 
 # Import parser functions to enable data loading from main.py
 from src.parser import parse_csv, save_to_database
+from src.ib_connector import IBConnector, IBConnectionError
+from src.ib_normalizer import normalize_snapshot
 
 # Attempt to import PDF generator
 try:
@@ -248,6 +250,46 @@ def run_import_routine():
     else:
         print("WARNING: No valid data found in files.")
         return {"inserted": 0, "skipped": 0}
+
+
+def run_ib_sync_routine():
+    """Connects to IB Gateway/TWS, pulls a read-only account snapshot, and
+    saves normalized fills into the database. Optional and separate from
+    run_import_routine(): failures here must never affect CSV import.
+
+    Returns a dict with keys: status ("success" | "error"), message,
+    inserted, skipped.
+    """
+    print("--- IB LIVE SYNC (via main.py) ---")
+    try:
+        with IBConnector() as ib:
+            ib.health_check()
+            snapshot = ib.fetch_account_snapshot()
+    except IBConnectionError as exc:
+        print(f"ERROR: IB live sync failed: {exc}")
+        return {"status": "error", "message": str(exc), "inserted": 0, "skipped": 0}
+
+    normalized = normalize_snapshot(snapshot)
+    if not any(normalized.values()):
+        print("WARNING: No new trade data returned from IB Gateway/TWS.")
+        return {
+            "status": "success",
+            "message": "No new live data to import",
+            "inserted": 0,
+            "skipped": 0,
+        }
+
+    result = save_to_database(normalized)
+    print(
+        f"IB sync summary: {result['inserted']} inserted, "
+        f"{result['skipped']} skipped."
+    )
+    return {
+        "status": "success",
+        "message": "IB live sync finished",
+        "inserted": result["inserted"],
+        "skipped": result["skipped"],
+    }
 
 
 def load_planned_sales(arguments, json_path=None):

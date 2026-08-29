@@ -14,3 +14,4 @@ black[d]
 fastapi
 uvicorn
 httpx2
+ib_insync

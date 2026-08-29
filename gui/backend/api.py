@@ -16,13 +16,21 @@ current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parents[1]
 sys.path.insert(0, str(project_root))
 
-from main import prepare_data_for_pdf, run_import_routine
+from main import prepare_data_for_pdf, run_import_routine, run_ib_sync_routine
 from src.data_collector import collect_all_trade_data
 from src.db_connector import DBConnector
 from src.diagnostics import CalculationError, ReportExportError
 from src.excel_exporter import export_to_excel
 from src.processing import process_yearly_data
 from src.fifo_coverage import PlannedSale, check_coverage
+from src.ib_connector import (
+    IBConnector,
+    IBConnectionError,
+    IB_HOST,
+    IB_PORT,
+    IB_CLIENT_ID,
+    IB_LIVE_ENABLED,
+)
 
 try:
     from src.report_pdf import generate_pdf
@@ -50,6 +58,22 @@ class PlannedSaleRequest(BaseModel):
 
 class CoverageRequest(BaseModel):
     planned_sales: List[PlannedSaleRequest]
+
+
+class IBStatusResponse(BaseModel):
+    configured: bool
+    host: str
+    port: int
+    client_id: int
+    connected: bool
+    error: str | None = None
+
+
+class IBSyncResponse(BaseModel):
+    status: str
+    message: str
+    inserted: int
+    skipped: int
 
 
 app = FastAPI(title="IBKR Tax Calculator API")
@@ -92,6 +116,54 @@ def health_check():
         return {"status": "ready"}
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Backend is not ready") from exc
+
+
+@app.get("/ib/status", response_model=IBStatusResponse)
+def ib_status():
+    """Report IB Gateway/TWS configuration and connectivity.
+
+    This is a diagnostic, best-effort check: it never raises, so a
+    missing/unreachable Gateway cannot block the CSV import workflow.
+    """
+    base = {
+        "configured": IB_LIVE_ENABLED,
+        "host": IB_HOST,
+        "port": IB_PORT,
+        "client_id": IB_CLIENT_ID,
+    }
+    try:
+        with IBConnector(timeout=3) as ib:
+            ib.health_check()
+        return {**base, "connected": True, "error": None}
+    except IBConnectionError as exc:
+        return {**base, "connected": False, "error": str(exc)}
+    except Exception as exc:
+        return {**base, "connected": False, "error": f"Unexpected error: {exc}"}
+
+
+@app.post("/ib/sync", response_model=IBSyncResponse)
+def ib_sync():
+    """Manually trigger a read-only IB Gateway/TWS live sync.
+
+    Reports success or failure consistently in the response body (status
+    200 either way) instead of raising, since a Gateway connection issue
+    is an expected, actionable condition rather than a server bug. This
+    never touches the CSV import workflow.
+    """
+    try:
+        result = run_ib_sync_routine()
+        return result
+    except Exception as exc:
+        import traceback
+
+        print(f"IB sync error: {exc}")
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": f"IB live sync failed unexpectedly: {exc}",
+            "inserted": 0,
+            "skipped": 0,
+        }
 
 
 @app.get("/years", response_model=YearResponse)

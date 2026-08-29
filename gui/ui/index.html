@@ -92,6 +92,15 @@
             </div>
         </div>
 
+        <div class="card">
+            <h3>🔌 IB Live Connection (optional)</h3>
+            <div class="controls">
+                <button class="btn btn-outline" onclick="checkIBStatus()">Check IB Connection</button>
+                <button class="btn btn-outline" onclick="runIBSync()">🔄 Live Sync</button>
+                <span id="ib-status" style="font-size: 14px; color: #666;">Not checked yet</span>
+            </div>
+        </div>
+
         
         <div class="card">
             <h3>🧮 Tax Calculation</h3>
@@ -152,6 +161,7 @@
         const API_URL = window.taxApi?.baseUrl || 'http://127.0.0.1:8000';
         const statusEl = document.getElementById('status');
         const importStatusEl = document.getElementById('import-status');
+        const ibStatusEl = document.getElementById('ib-status');
 
         window.onload = async () => {
             if (await waitForBackend()) {
@@ -236,6 +246,40 @@
             } catch (e) {
                 importStatusEl.innerText = `Import Failed: ${e.message}`;
                 console.error("Import error:", e);
+            }
+        }
+
+        async function checkIBStatus() {
+            ibStatusEl.innerText = "Checking IB Gateway/TWS...";
+            try {
+                const res = await fetch(`${API_URL}/ib/status`);
+                const data = await res.json();
+                const target = `${data.host}:${data.port} (clientId=${data.client_id})`;
+                if (data.connected) {
+                    ibStatusEl.innerText = `Connected to ${target}`;
+                } else {
+                    ibStatusEl.innerText = `Not connected (${target}): ${data.error}`;
+                }
+            } catch (e) {
+                ibStatusEl.innerText = `IB status check failed: ${e.message}`;
+                console.error("IB status error:", e);
+            }
+        }
+
+        async function runIBSync() {
+            ibStatusEl.innerText = "Starting IB live sync...";
+            try {
+                const res = await fetch(`${API_URL}/ib/sync`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok || data.status !== "success") {
+                    ibStatusEl.innerText = `Live sync failed: ${data.message || "Unknown error"}`;
+                    return;
+                }
+                ibStatusEl.innerText = data.message + ` (${data.inserted} inserted, ${data.skipped} skipped)`;
+                loadYears();
+            } catch (e) {
+                ibStatusEl.innerText = `Live sync failed: ${e.message}`;
+                console.error("IB sync error:", e);
             }
         }
 

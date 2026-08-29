@@ -87,5 +87,46 @@ npm start
 The GUI starts a local backend on `127.0.0.1:8000`, waits for its `/health`
 endpoint, and uses the same encrypted database and report output as the CLI.
 
+### IB Live API (optional)
+
+CSV import from `data/` remains the default and required workflow. A
+read-only live connection to Interactive Brokers TWS/IB Gateway is available
+as an **opt-in** alternative/supplement for pulling recent executed trades
+directly from a running Gateway session.
+
+**Setup requirements:**
+
+1. Install and run **IB Gateway** (recommended) or TWS, and log in to a
+   **paper trading** account (recommended for testing) or live account.
+2. In IB Gateway/TWS, enable API access: *Configure → Settings → API →
+   Enable ActiveX and Socket Clients*, and add `127.0.0.1` to trusted IPs.
+3. Note the socket port shown in the API settings. Defaults used by this
+   project: `4002` (paper Gateway), `4001` (live Gateway), `7497` (paper
+   TWS), `7496` (live TWS).
+4. Add to your `.env` to opt in (live sync is disabled unless set):
+   ```ini
+   IB_LIVE_ENABLED=True
+   IB_HOST=127.0.0.1
+   IB_PORT=4002
+   IB_CLIENT_ID=1
+   ```
+   Each concurrent connection to the same Gateway must use a distinct
+   `IB_CLIENT_ID`.
+5. In the desktop GUI, use **Check IB Connection** to verify connectivity
+   and **Live Sync** to pull and store new executions. Both actions report
+   success/failure in place; neither blocks CSV import if Gateway is down.
+
+**Operational limits of read-only access:**
+
+* Only executed trades (fills), positions, account summary, and open orders
+  are requested. The connector never places, modifies, or cancels orders.
+* Dividends, withholding taxes, and corporate actions are **not** available
+  through this live path; they still require CSV/Flex Query import.
+* Fills reflect executions visible to the current API session. For full
+  historical trade history, use CSV import instead.
+* If IB Gateway/TWS is not running, not configured, or the session is lost,
+  the live sync reports a clear error and CSV import continues to work
+  unaffected.
+
 ## ⚠️ Disclaimer
 Educational purpose only. Not financial advice.

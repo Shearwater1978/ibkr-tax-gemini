@@ -70,6 +70,116 @@ def test_missing_year_data_preserves_404():
     assert response.json()["detail"] == "No data found"
 
 
+def test_ib_status_not_configured_by_default_without_mocking_connector():
+    """No .env / IB_LIVE_ENABLED set: the real IBConnector must refuse to
+    connect immediately (no socket attempt), so this must return fast and
+    report configured=False without needing a live IB Gateway."""
+    with patch.object(api, "IB_LIVE_ENABLED", False), patch(
+        "src.ib_connector.IB_LIVE_ENABLED", False
+    ):
+        response = TestClient(api.app).get("/ib/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["configured"] is False
+    assert data["connected"] is False
+    assert "not enabled" in data["error"]
+
+
+def test_ib_status_reports_connected_when_gateway_reachable():
+    with patch.object(api, "IBConnector") as mock_connector_cls:
+        mock_ib = mock_connector_cls.return_value.__enter__.return_value
+        mock_ib.health_check.return_value = None
+        response = TestClient(api.app).get("/ib/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["connected"] is True
+    assert data["error"] is None
+    assert data["port"] == api.IB_PORT
+
+
+def test_ib_status_reports_error_without_raising_when_gateway_unreachable():
+    with patch.object(api, "IBConnector") as mock_connector_cls:
+        mock_connector_cls.return_value.__enter__.side_effect = api.IBConnectionError(
+            "Could not connect to IB Gateway/TWS at 127.0.0.1:4002"
+        )
+        response = TestClient(api.app).get("/ib/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["connected"] is False
+    assert "Could not connect" in data["error"]
+
+
+def test_ib_status_does_not_block_csv_import_flow():
+    database = FakeDatabase([("2025-01-01",)])
+    with patch.object(api, "IBConnector") as mock_connector_cls, patch.object(
+        api, "run_import_routine", return_value={"inserted": 1, "skipped": 0}
+    ), patch.object(api, "DBConnector", return_value=database):
+        mock_connector_cls.return_value.__enter__.side_effect = api.IBConnectionError(
+            "Gateway unreachable"
+        )
+        client = TestClient(api.app)
+
+        ib_response = client.get("/ib/status")
+        import_response = client.post("/import")
+
+    assert ib_response.status_code == 200
+    assert ib_response.json()["connected"] is False
+    assert import_response.status_code == 200
+    assert import_response.json()["inserted"] == 1
+
+
+def test_ib_sync_reports_success():
+    with patch.object(
+        api,
+        "run_ib_sync_routine",
+        return_value={
+            "status": "success",
+            "message": "IB live sync finished",
+            "inserted": 3,
+            "skipped": 1,
+        },
+    ):
+        response = TestClient(api.app).post("/ib/sync")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["inserted"] == 3
+    assert data["skipped"] == 1
+
+
+def test_ib_sync_reports_failure_without_raising():
+    with patch.object(
+        api,
+        "run_ib_sync_routine",
+        return_value={
+            "status": "error",
+            "message": "Could not connect to IB Gateway/TWS",
+            "inserted": 0,
+            "skipped": 0,
+        },
+    ):
+        response = TestClient(api.app).post("/ib/sync")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert "Could not connect" in data["message"]
+
+
+def test_ib_sync_unexpected_exception_is_reported_not_raised():
+    with patch.object(api, "run_ib_sync_routine", side_effect=RuntimeError("boom")):
+        response = TestClient(api.app).post("/ib/sync")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert "boom" in data["message"]
+
+
 def test_calculation_diagnostic_is_structured():
     diagnostic = CalculationDiagnostic(
         code="NBP_RATE_MISSING",
