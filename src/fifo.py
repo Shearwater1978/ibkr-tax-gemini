@@ -67,7 +67,7 @@ class TradeMatcher:
     def _process_split(self, trade):
         ticker = trade["ticker"]
         ratio = trade.get("ratio", Decimal(1))
-        
+
         # IBKR represents reverse splits (e.g., "1 for 8") as TWO records:
         # - One with positive qty and the split ratio (e.g., +1)
         # - One with negative qty that should be ignored (e.g., -8)
