@@ -105,11 +105,21 @@ def _normalize_event(row: Dict[str, Any]) -> Dict[str, Any]:
     event_type = row.get("EventType", row.get("type"))
     if event_type in {"DIVIDEND", "TAX"}:
         return {}
+
+    raw_ticker = row.get("Ticker", row.get("ticker", ""))
+    if raw_ticker is None:
+        return {}
+
+    try:
+        ticker = normalize_ticker(raw_ticker)
+    except ValueError:
+        return {}
+
     quantity = Decimal(str(row.get("Quantity", row.get("qty", 0)) or 0))
     return {
         "type": event_type,
         "date": row.get("Date", row.get("date")),
-        "ticker": normalize_ticker(row.get("Ticker", row.get("ticker", ""))),
+        "ticker": ticker,
         "qty": quantity,
         "price": Decimal(0),
         "commission": Decimal(0),
