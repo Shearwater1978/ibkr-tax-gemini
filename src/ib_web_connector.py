@@ -8,6 +8,9 @@ this module never attempts to automate that login.
 """
 
 import os
+from dataclasses import dataclass
+from typing import Optional
+from urllib.parse import urlparse
 
 try:
     import requests
@@ -37,6 +40,29 @@ IB_WEB_API_ENABLED = config("IB_WEB_API_ENABLED", default=False, cast=bool)
 
 class IBWebConnectionError(RuntimeError):
     """Raised when a Client Portal Gateway session cannot be established or verified."""
+
+    def __init__(self, message, diagnostic=None):
+        self.diagnostic = diagnostic
+        super().__init__(message)
+
+
+WEB_API_ERROR_CATEGORIES = {
+    401: "session_expired",
+    403: "permission",
+    429: "rate_limit",
+}
+
+
+@dataclass(frozen=True)
+class IBWebDiagnostic:
+    code: Optional[int]
+    category: str
+    message: str
+
+
+def classify_web_api_error(status_code):
+    """Map a CPGW HTTP status to an actionable diagnostic category."""
+    return WEB_API_ERROR_CATEGORIES.get(status_code, "connection")
 
 
 class IBWebConnector:
@@ -72,12 +98,23 @@ class IBWebConnector:
                 "IB Web API is not enabled. Set IB_WEB_API_ENABLED=True in your "
                 "environment/.env to opt in; CSV import does not require this."
             )
+        parsed_url = urlparse(self.base_url)
+        if (
+            parsed_url.scheme != "https"
+            or not parsed_url.netloc
+            or not parsed_url.path.rstrip("/").endswith("/v1/api")
+        ):
+            raise IBWebConnectionError(
+                "IB Web API base URL is invalid. Set IB_WEB_BASE_URL to an HTTPS "
+                "CPGW API URL such as https://localhost:5000/v1/api."
+            )
         if requests is None:
             raise IBWebConnectionError(
                 "requests is unavailable. Install dependencies from requirements.txt."
             )
 
         self.session = requests.Session()
+        response = None
         try:
             response = self.session.post(
                 f"{self.base_url}/iserver/auth/ssodh/init",
@@ -88,11 +125,13 @@ class IBWebConnector:
             response.raise_for_status()
         except Exception as exc:
             self.session = None
-            raise IBWebConnectionError(
+            error = self._request_error(
                 f"Could not initialize a brokerage session at {self.base_url}. "
                 "Is the Client Portal Gateway running and are you logged in via "
-                "the browser at its base URL?"
-            ) from exc
+                "the browser at its base URL?",
+                response,
+            )
+            raise error from exc
 
     def disconnect(self):
         if self.session is not None:
@@ -101,6 +140,33 @@ class IBWebConnector:
 
     def is_connected(self) -> bool:
         return self.session is not None
+
+    def _request_error(self, error_message, response=None):
+        status_code = getattr(response, "status_code", None)
+        if not isinstance(status_code, int):
+            diagnostic = IBWebDiagnostic(None, "connection", error_message)
+            return IBWebConnectionError(error_message, diagnostic=diagnostic)
+
+        category = classify_web_api_error(status_code)
+        if category == "session_expired":
+            message = (
+                "Client Portal Gateway session expired or was rejected (HTTP 401). "
+                f"Log in via the browser at {self.base_url.split('/v1/api')[0]} and retry."
+            )
+        elif category == "permission":
+            message = (
+                "Client Portal Gateway denied this request (HTTP 403). Confirm that "
+                "the logged-in account has permission for this read-only endpoint."
+            )
+        elif category == "rate_limit":
+            message = (
+                "Client Portal Gateway rate-limited this request (HTTP 429). Wait "
+                "before retrying the sync."
+            )
+        else:
+            message = f"{error_message} (HTTP {status_code})."
+        diagnostic = IBWebDiagnostic(status_code, category, message)
+        return IBWebConnectionError(message, diagnostic=diagnostic)
 
     def _require_session(self):
         if not self.is_connected():
@@ -115,6 +181,7 @@ class IBWebConnector:
         just whether this process opened an HTTP session.
         """
         self._require_session()
+        response = None
         try:
             response = self.session.post(
                 f"{self.base_url}/iserver/auth/status",
@@ -125,9 +192,10 @@ class IBWebConnector:
             response.raise_for_status()
             return response.json()
         except Exception as exc:
-            raise IBWebConnectionError(
-                "Failed to check Client Portal Gateway auth status."
-            ) from exc
+            error = self._request_error(
+                "Failed to check Client Portal Gateway auth status.", response
+            )
+            raise error from exc
 
     def health_check(self) -> dict:
         """Verify the CPGW session is authenticated and ready for requests.
@@ -138,15 +206,18 @@ class IBWebConnector:
         """
         status = self.auth_status()
         if not status.get("authenticated"):
-            raise IBWebConnectionError(
+            message = (
                 f"Client Portal Gateway session is not authenticated. Log in via "
                 f"the browser at {self.base_url.split('/v1/api')[0]} and retry."
             )
+            diagnostic = IBWebDiagnostic(None, "session_not_authenticated", message)
+            raise IBWebConnectionError(message, diagnostic=diagnostic)
         return status
 
     def tickle(self) -> dict:
         """Send a keep-alive request so the CPGW session does not expire."""
         self._require_session()
+        response = None
         try:
             response = self.session.post(
                 f"{self.base_url}/tickle",
@@ -157,14 +228,17 @@ class IBWebConnector:
             response.raise_for_status()
             return response.json()
         except Exception as exc:
-            raise IBWebConnectionError(
+            error = self._request_error(
                 "Client Portal Gateway keep-alive (tickle) request failed; "
-                "the session may have expired."
-            ) from exc
+                "the session may have expired.",
+                response,
+            )
+            raise error from exc
 
     def _get_json_list(self, path: str, error_message: str):
         """GET a JSON array endpoint and validate the shape before returning."""
         self._require_session()
+        response = None
         try:
             response = self.session.get(
                 f"{self.base_url}{path}",
@@ -174,7 +248,8 @@ class IBWebConnector:
             response.raise_for_status()
             payload = response.json()
         except Exception as exc:
-            raise IBWebConnectionError(error_message) from exc
+            error = self._request_error(error_message, response)
+            raise error from exc
         if not isinstance(payload, list):
             raise IBWebConnectionError(
                 f"{error_message} (expected a JSON array, got {type(payload).__name__})"
@@ -241,3 +316,20 @@ class IBWebConnector:
             }
             for row in rows
         ]
+
+    def fetch_account_snapshot(self) -> dict:
+        """Collect read-only Web API data needed for a manual live sync."""
+        self.health_check()
+        self.tickle()
+        accounts = self.get_accounts()
+        positions = [
+            position
+            for account in accounts
+            if account["account_id"]
+            for position in self.get_positions(account["account_id"])
+        ]
+        return {
+            "accounts": accounts,
+            "positions": positions,
+            "trades": self.get_trades(),
+        }

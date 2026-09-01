@@ -52,3 +52,10 @@
     * [ ] **Frontend Core:** Setup Electron with IPC bridge.
     * [ ] **Dashboard:** Visual summary of Portfolio, P&L, and Dividends.
     * [ ] **Packaging:** Build executables (.exe / .app).
+
+## Sprint 6: IB Web API Integration (Completed - 2026-09-01)
+* **CPGW Connector:** Added an optional, read-only Client Portal Gateway connector with browser-session authentication, health checks, keep-alive, and actionable connection diagnostics.
+* **Data Safety:** Normalized Web API trades into the existing import schema and reused `SourceKey` deduplication for idempotent syncs.
+* **GUI/API:** Added independent CPGW status and manual sync endpoints plus dashboard controls, without affecting CSV import or TWS/Gateway sync.
+* **Documentation:** Documented CPGW setup, browser login/2FA, local TLS configuration, and read-only operational limits in `README.md`.
+* **Verification:** Added focused coverage for session errors, normalization, deduplication, sync workflow, and connector independence; full suite passed (147 tests).

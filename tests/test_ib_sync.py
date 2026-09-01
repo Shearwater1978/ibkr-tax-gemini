@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 
 import main
 from src.ib_connector import IBConnectionError
+from src.ib_web_connector import IBWebConnectionError
 
 
 def _mock_connector(snapshot):
@@ -69,3 +70,39 @@ def test_run_ib_sync_routine_does_not_import_parser_csv_path():
     ), patch.object(main, "parse_csv") as mock_parse_csv:
         main.run_ib_sync_routine()
         mock_parse_csv.assert_not_called()
+
+
+def test_run_ib_web_sync_routine_success():
+    snapshot = {"trades": [], "positions": [], "accounts": []}
+    normalized = {
+        "trades": [{"ticker": "AAPL"}],
+        "dividends": [],
+        "taxes": [],
+        "corp_actions": [],
+    }
+
+    with patch.object(
+        main, "IBWebConnector", return_value=_mock_connector(snapshot)
+    ), patch.object(
+        main, "normalize_web_snapshot", return_value=normalized
+    ), patch.object(
+        main, "save_to_database", return_value={"inserted": 1, "skipped": 0}
+    ):
+        result = main.run_ib_web_sync_routine()
+
+    assert result == {
+        "status": "success",
+        "message": "IB Web API sync finished",
+        "inserted": 1,
+        "skipped": 0,
+    }
+
+
+def test_run_ib_web_sync_routine_reports_connection_failure():
+    with patch.object(
+        main, "IBWebConnector", side_effect=IBWebConnectionError("Log in via CPGW")
+    ):
+        result = main.run_ib_web_sync_routine()
+
+    assert result["status"] == "error"
+    assert result["message"] == "Log in via CPGW"

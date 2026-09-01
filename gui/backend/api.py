@@ -16,7 +16,12 @@ current_dir = Path(__file__).resolve().parent
 project_root = current_dir.parents[1]
 sys.path.insert(0, str(project_root))
 
-from main import prepare_data_for_pdf, run_import_routine, run_ib_sync_routine
+from main import (
+    prepare_data_for_pdf,
+    run_import_routine,
+    run_ib_sync_routine,
+    run_ib_web_sync_routine,
+)
 from src.data_collector import collect_all_trade_data
 from src.db_connector import DBConnector
 from src.diagnostics import CalculationError, ReportExportError
@@ -30,6 +35,12 @@ from src.ib_connector import (
     IB_PORT,
     IB_CLIENT_ID,
     IB_LIVE_ENABLED,
+)
+from src.ib_web_connector import (
+    IBWebConnector,
+    IBWebConnectionError,
+    IB_WEB_API_ENABLED,
+    IB_WEB_BASE_URL,
 )
 
 try:
@@ -74,6 +85,13 @@ class IBSyncResponse(BaseModel):
     message: str
     inserted: int
     skipped: int
+
+
+class IBWebStatusResponse(BaseModel):
+    configured: bool
+    base_url: str
+    connected: bool
+    error: str | None = None
 
 
 app = FastAPI(title="IBKR Tax Calculator API")
@@ -161,6 +179,33 @@ def ib_sync():
         return {
             "status": "error",
             "message": f"IB live sync failed unexpectedly: {exc}",
+            "inserted": 0,
+            "skipped": 0,
+        }
+
+
+@app.get("/ib/web/status", response_model=IBWebStatusResponse)
+def ib_web_status():
+    base = {"configured": IB_WEB_API_ENABLED, "base_url": IB_WEB_BASE_URL}
+    try:
+        with IBWebConnector(timeout=3) as ib:
+            ib.health_check()
+        return {**base, "connected": True, "error": None}
+    except IBWebConnectionError as exc:
+        return {**base, "connected": False, "error": str(exc)}
+    except Exception as exc:
+        return {**base, "connected": False, "error": f"Unexpected error: {exc}"}
+
+
+@app.post("/ib/web/sync", response_model=IBSyncResponse)
+def ib_web_sync():
+    try:
+        return run_ib_web_sync_routine()
+    except Exception as exc:
+        print(f"IB Web API sync error: {exc}")
+        return {
+            "status": "error",
+            "message": f"IB Web API sync failed unexpectedly: {exc}",
             "inserted": 0,
             "skipped": 0,
         }

@@ -180,6 +180,110 @@ def test_ib_sync_unexpected_exception_is_reported_not_raised():
     assert "boom" in data["message"]
 
 
+def test_ib_web_status_reports_login_required_without_raising():
+    with patch.object(api, "IBWebConnector") as mock_connector_cls:
+        mock_connector_cls.return_value.__enter__.side_effect = api.IBWebConnectionError(
+            "Client Portal Gateway session is not authenticated. Log in via the browser."
+        )
+        response = TestClient(api.app).get("/ib/web/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["connected"] is False
+    assert "Log in via the browser" in data["error"]
+
+
+def test_ib_web_status_reports_connected():
+    with patch.object(api, "IBWebConnector") as mock_connector_cls:
+        mock_ib = mock_connector_cls.return_value.__enter__.return_value
+        mock_ib.health_check.return_value = None
+        response = TestClient(api.app).get("/ib/web/status")
+
+    assert response.status_code == 200
+    assert response.json()["connected"] is True
+
+
+def test_ib_web_sync_reports_success():
+    with patch.object(
+        api,
+        "run_ib_web_sync_routine",
+        return_value={
+            "status": "success",
+            "message": "IB Web API sync finished",
+            "inserted": 3,
+            "skipped": 1,
+        },
+    ):
+        response = TestClient(api.app).post("/ib/web/sync")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+
+
+def test_ib_web_sync_reports_failure_without_raising():
+    with patch.object(
+        api,
+        "run_ib_web_sync_routine",
+        return_value={
+            "status": "error",
+            "message": "Log in via the browser at https://localhost:5000",
+            "inserted": 0,
+            "skipped": 0,
+        },
+    ):
+        response = TestClient(api.app).post("/ib/web/sync")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "error"
+    assert "Log in via the browser" in data["message"]
+
+
+def test_ib_web_status_does_not_depend_on_tws_configuration():
+    with patch.object(api, "IB_LIVE_ENABLED", False), patch.object(
+        api, "IB_WEB_API_ENABLED", True
+    ), patch.object(api, "IBWebConnector") as mock_web_connector_cls:
+        mock_ib = mock_web_connector_cls.return_value.__enter__.return_value
+        mock_ib.health_check.return_value = None
+        response = TestClient(api.app).get("/ib/web/status")
+
+    data = response.json()
+    assert data["configured"] is True
+    assert data["connected"] is True
+
+
+def test_ib_status_does_not_depend_on_web_api_configuration():
+    with patch.object(api, "IB_LIVE_ENABLED", True), patch.object(
+        api, "IB_WEB_API_ENABLED", False
+    ), patch.object(api, "IBConnector") as mock_connector_cls:
+        mock_ib = mock_connector_cls.return_value.__enter__.return_value
+        mock_ib.health_check.return_value = None
+        response = TestClient(api.app).get("/ib/status")
+
+    data = response.json()
+    assert data["configured"] is True
+    assert data["connected"] is True
+
+
+def test_ib_web_status_does_not_block_csv_import_flow():
+    database = FakeDatabase([("2025-01-01",)])
+    with patch.object(api, "IBWebConnector") as mock_web_connector_cls, patch.object(
+        api, "run_import_routine", return_value={"inserted": 1, "skipped": 0}
+    ), patch.object(api, "DBConnector", return_value=database):
+        mock_web_connector_cls.return_value.__enter__.side_effect = (
+            api.IBWebConnectionError("CPGW unavailable")
+        )
+        client = TestClient(api.app)
+
+        web_response = client.get("/ib/web/status")
+        import_response = client.post("/import")
+
+    assert web_response.status_code == 200
+    assert web_response.json()["connected"] is False
+    assert import_response.status_code == 200
+    assert import_response.json()["inserted"] == 1
+
+
 def test_calculation_diagnostic_is_structured():
     diagnostic = CalculationDiagnostic(
         code="NBP_RATE_MISSING",
