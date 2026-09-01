@@ -270,8 +270,8 @@ def test_ib_web_status_does_not_block_csv_import_flow():
     with patch.object(api, "IBWebConnector") as mock_web_connector_cls, patch.object(
         api, "run_import_routine", return_value={"inserted": 1, "skipped": 0}
     ), patch.object(api, "DBConnector", return_value=database):
-        mock_web_connector_cls.return_value.__enter__.side_effect = api.IBWebConnectionError(
-            "CPGW unavailable"
+        mock_web_connector_cls.return_value.__enter__.side_effect = (
+            api.IBWebConnectionError("CPGW unavailable")
         )
         client = TestClient(api.app)
 

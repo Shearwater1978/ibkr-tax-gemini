@@ -167,7 +167,9 @@ def test_health_check_raises_when_not_authenticated(mock_requests):
         raise_for_status=lambda: None, json=lambda: {"authenticated": False}
     )
 
-    with pytest.raises(IBWebConnectionError, match="Log in via the browser") as exc_info:
+    with pytest.raises(
+        IBWebConnectionError, match="Log in via the browser"
+    ) as exc_info:
         connector.health_check()
 
     assert exc_info.value.diagnostic.category == "session_not_authenticated"
