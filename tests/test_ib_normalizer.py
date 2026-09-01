@@ -4,7 +4,12 @@ import datetime
 import sqlite3
 from decimal import Decimal
 
-from src.ib_normalizer import normalize_fill, normalize_snapshot
+from src.ib_normalizer import (
+    normalize_fill,
+    normalize_snapshot,
+    normalize_web_snapshot,
+    normalize_web_trade,
+)
 from src.parser import save_to_database
 
 
@@ -22,6 +27,21 @@ def _make_fill(**overrides):
     }
     fill.update(overrides)
     return fill
+
+
+def _make_web_trade(**overrides):
+    trade = {
+        "execution_id": "web-exec-1",
+        "symbol": "AAPL",
+        "side": "B",
+        "size": 10,
+        "price": 190.5,
+        "currency": "USD",
+        "commission": 1.25,
+        "trade_time": "20260829-14:30:00",
+    }
+    trade.update(overrides)
+    return trade
 
 
 def test_normalize_fill_buy_maps_to_trade_schema():
@@ -54,6 +74,59 @@ def test_normalize_fill_missing_required_field_returns_none():
     assert normalize_fill(_make_fill(currency=None)) is None
     assert normalize_fill(_make_fill(time=None)) is None
     assert normalize_fill(_make_fill(exec_id=None)) is None
+
+
+def test_normalize_web_trade_maps_to_common_trade_schema():
+    record = normalize_web_trade(
+        {
+            "execution_id": "web-exec-1",
+            "symbol": "AAPL",
+            "side": "B",
+            "size": "10",
+            "price": "190.50",
+            "currency": "USD",
+            "commission": "1.25",
+            "trade_time": "20260829-14:30:00",
+        }
+    )
+
+    assert record == {
+        "ticker": "AAPL",
+        "currency": "USD",
+        "date": "2026-08-29",
+        "qty": Decimal("10"),
+        "price": Decimal("190.50"),
+        "commission": Decimal("1.25"),
+        "type": "BUY",
+        "source": "IB Web Trade web-exec-1",
+        "source_file": "ib_web_api",
+    }
+
+
+def test_normalize_web_snapshot_returns_the_common_import_shape():
+    normalized = normalize_web_snapshot(
+        {
+            "trades": [
+                {
+                    "execution_id": "web-exec-1",
+                    "symbol": "AAPL",
+                    "side": "S",
+                    "size": 4,
+                    "price": 200,
+                    "currency": "USD",
+                    "commission": 1,
+                    "trade_time": "2026-08-29 14:30:00",
+                }
+            ],
+            "positions": [],
+        }
+    )
+
+    assert normalized["trades"][0]["type"] == "SELL"
+    assert normalized["trades"][0]["qty"] == Decimal("-4")
+    assert normalized["dividends"] == []
+    assert normalized["taxes"] == []
+    assert normalized["corp_actions"] == []
 
 
 def test_normalize_snapshot_skips_invalid_fills_and_fills_other_lists():
@@ -130,6 +203,26 @@ def test_distinct_fills_with_same_price_and_qty_are_both_inserted(mocker):
     total_rows = real_conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
     assert result["inserted"] == 2
     assert total_rows == 2
+
+
+def test_duplicate_web_trade_is_not_reinserted_on_repeat_sync(mocker):
+    real_conn = sqlite3.connect(":memory:")
+    real_conn.row_factory = sqlite3.Row
+
+    mock_db_connector = mocker.patch("src.parser.DBConnector")
+    mock_instance = mock_db_connector.return_value.__enter__.return_value
+    mock_instance.conn = real_conn
+    mock_instance.initialize_schema = lambda: _init_schema(real_conn)
+
+    normalized = normalize_web_snapshot({"trades": [_make_web_trade()]})
+    first = save_to_database(normalized)
+    second = save_to_database(normalized)
+
+    total_rows = real_conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+    assert normalized["trades"][0]["source"] == "IB Web Trade web-exec-1"
+    assert first["inserted"] == 1
+    assert second["inserted"] == 0
+    assert total_rows == 1
 
 
 def _init_schema(conn):

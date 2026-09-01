@@ -3,7 +3,11 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from src.ib_web_connector import IBWebConnector, IBWebConnectionError
+from src.ib_web_connector import (
+    IBWebConnector,
+    IBWebConnectionError,
+    classify_web_api_error,
+)
 
 
 @pytest.fixture
@@ -66,6 +70,18 @@ def test_connect_when_web_api_not_enabled():
         connector = IBWebConnector()
         with pytest.raises(IBWebConnectionError, match="not enabled"):
             connector.connect()
+
+
+@pytest.mark.parametrize(
+    "base_url", ["", "localhost:5000/v1/api", "http://localhost:5000/v1/api"]
+)
+def test_connect_rejects_invalid_cpgw_base_url(mock_requests, base_url):
+    mock_requests_module, mock_session = mock_requests
+
+    with pytest.raises(IBWebConnectionError, match="base URL is invalid"):
+        IBWebConnector(base_url=base_url).connect()
+
+    mock_requests_module.Session.assert_not_called()
 
 
 def test_connect_without_requests_installed():
@@ -151,8 +167,10 @@ def test_health_check_raises_when_not_authenticated(mock_requests):
         raise_for_status=lambda: None, json=lambda: {"authenticated": False}
     )
 
-    with pytest.raises(IBWebConnectionError, match="Log in via the browser"):
+    with pytest.raises(IBWebConnectionError, match="Log in via the browser") as exc_info:
         connector.health_check()
+
+    assert exc_info.value.diagnostic.category == "session_not_authenticated"
 
 
 def test_tickle_requires_connection():
@@ -326,3 +344,69 @@ def test_get_trades_raises_clear_error_on_request_failure(mock_requests):
 
     with pytest.raises(IBWebConnectionError, match="Failed to request trades"):
         connector.get_trades()
+
+
+def test_fetch_account_snapshot_returns_all_read_only_web_data(mock_requests):
+    mock_requests_module, mock_session = mock_requests
+    connector = _connected_connector(mock_session)
+    connector.health_check = MagicMock()
+    connector.tickle = MagicMock()
+    connector.get_accounts = MagicMock(return_value=[{"account_id": "U123"}])
+    connector.get_positions = MagicMock(return_value=[{"symbol": "AAPL"}])
+    connector.get_trades = MagicMock(return_value=[{"execution_id": "web-exec-1"}])
+
+    snapshot = connector.fetch_account_snapshot()
+
+    connector.health_check.assert_called_once()
+    connector.tickle.assert_called_once()
+    connector.get_positions.assert_called_once_with("U123")
+    assert snapshot == {
+        "accounts": [{"account_id": "U123"}],
+        "positions": [{"symbol": "AAPL"}],
+        "trades": [{"execution_id": "web-exec-1"}],
+    }
+
+
+@pytest.mark.parametrize(
+    ("status_code", "expected_category", "expected_message"),
+    [
+        (401, "session_expired", "Log in via the browser"),
+        (403, "permission", "has permission"),
+        (429, "rate_limit", "Wait before retrying"),
+    ],
+)
+def test_http_failures_produce_actionable_diagnostics(
+    mock_requests, status_code, expected_category, expected_message
+):
+    mock_requests_module, mock_session = mock_requests
+    connector = _connected_connector(mock_session)
+
+    def raise_for_status():
+        raise Exception(f"HTTP {status_code}")
+
+    mock_session.get.return_value = MagicMock(
+        status_code=status_code,
+        raise_for_status=raise_for_status,
+    )
+
+    with pytest.raises(IBWebConnectionError, match=expected_message) as exc_info:
+        connector.get_accounts()
+
+    assert exc_info.value.diagnostic.code == status_code
+    assert exc_info.value.diagnostic.category == expected_category
+
+
+def test_unreachable_cpgw_produces_connection_diagnostic(mock_requests):
+    mock_requests_module, mock_session = mock_requests
+    mock_session.post.side_effect = ConnectionError("refused")
+
+    with pytest.raises(IBWebConnectionError) as exc_info:
+        IBWebConnector().connect()
+
+    assert exc_info.value.diagnostic.category == "connection"
+
+
+def test_classify_web_api_error_maps_required_http_statuses():
+    assert classify_web_api_error(401) == "session_expired"
+    assert classify_web_api_error(403) == "permission"
+    assert classify_web_api_error(429) == "rate_limit"

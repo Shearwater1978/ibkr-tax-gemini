@@ -128,5 +128,47 @@ directly from a running Gateway session.
   the live sync reports a clear error and CSV import continues to work
   unaffected.
 
+### IB Web API via Client Portal Gateway (optional)
+
+The Client Portal Web API is a separate, HTTPS-based alternative to the
+socket connector above. It is disabled by default and requires a locally
+running **Client Portal Gateway (CPGW)** with a manually authenticated IBKR
+browser session.
+
+**Setup requirements:**
+
+1. Download and unpack the Client Portal Gateway from Interactive Brokers.
+   Install a supported Java runtime if the Gateway does not include one.
+2. Start CPGW using its bundled launch script and configuration. Its default
+   local URL is `https://localhost:5000`.
+3. Open that URL in a browser, log in with IBKR credentials, and complete 2FA.
+   The application does not handle credentials, start CPGW, or automate 2FA.
+4. Add the following to `.env` to opt in:
+   ```ini
+   IB_WEB_API_ENABLED=True
+   IB_WEB_BASE_URL=https://localhost:5000/v1/api
+   IB_WEB_VERIFY_SSL=False
+   IB_WEB_REQUEST_TIMEOUT=10
+   ```
+   CPGW uses a local self-signed certificate by default. Keep
+   `IB_WEB_VERIFY_SSL=False` only for that local default; set it to `True`
+   when CPGW is configured with a trusted certificate.
+5. In the desktop GUI, use **Check CPGW Connection** to inspect the browser
+   session, then **Web API Sync** to import the available recent executions.
+   A "log in via the browser" message means CPGW needs a fresh manual login.
+
+**Operational limits of read-only access:**
+
+* The connector requests account data, open positions, and recent trade
+  confirmations only. It never creates, modifies, or cancels orders.
+* The Web API trade endpoint is not a complete historical statement. Use the
+  CSV/Flex Query import for historical executions, dividends, withholding tax,
+  and corporate actions.
+* CPGW sessions expire and must be kept alive; a later expiry requires another
+  browser login with 2FA. Permission and rate-limit responses are reported as
+  actionable sync errors.
+* The Web API connector, the TWS/Gateway connector, and CSV import are
+  independent. A failure in one does not block either of the others.
+
 ## ⚠️ Disclaimer
 Educational purpose only. Not financial advice.

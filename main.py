@@ -20,7 +20,8 @@ from src.fifo_coverage import PlannedSale, check_coverage
 # Import parser functions to enable data loading from main.py
 from src.parser import parse_csv, save_to_database
 from src.ib_connector import IBConnector, IBConnectionError
-from src.ib_normalizer import normalize_snapshot
+from src.ib_normalizer import normalize_snapshot, normalize_web_snapshot
+from src.ib_web_connector import IBWebConnector, IBWebConnectionError
 
 # Attempt to import PDF generator
 try:
@@ -287,6 +288,34 @@ def run_ib_sync_routine():
     return {
         "status": "success",
         "message": "IB live sync finished",
+        "inserted": result["inserted"],
+        "skipped": result["skipped"],
+    }
+
+
+def run_ib_web_sync_routine():
+    """Run an optional read-only sync through Client Portal Gateway."""
+    print("--- IB WEB API SYNC (via main.py) ---")
+    try:
+        with IBWebConnector() as ib:
+            snapshot = ib.fetch_account_snapshot()
+    except IBWebConnectionError as exc:
+        print(f"ERROR: IB Web API sync failed: {exc}")
+        return {"status": "error", "message": str(exc), "inserted": 0, "skipped": 0}
+
+    normalized = normalize_web_snapshot(snapshot)
+    if not any(normalized.values()):
+        return {
+            "status": "success",
+            "message": "No new trade data returned from Client Portal Gateway",
+            "inserted": 0,
+            "skipped": 0,
+        }
+
+    result = save_to_database(normalized)
+    return {
+        "status": "success",
+        "message": "IB Web API sync finished",
         "inserted": result["inserted"],
         "skipped": result["skipped"],
     }

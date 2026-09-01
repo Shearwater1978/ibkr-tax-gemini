@@ -19,6 +19,7 @@ def _normalize_execution_date(raw_time):
         for fmt in (
             "%Y%m%d  %H:%M:%S",
             "%Y%m%d %H:%M:%S",
+            "%Y%m%d-%H:%M:%S",
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%d",
         ):
@@ -77,6 +78,37 @@ def normalize_fill(fill: dict):
     }
 
 
+def normalize_web_trade(trade: dict):
+    """Convert one IBWebConnector.get_trades() row into a trade record."""
+    symbol = trade.get("symbol")
+    currency = trade.get("currency")
+    execution_id = trade.get("execution_id")
+    date_norm = _normalize_execution_date(trade.get("trade_time"))
+    if not symbol or not currency or not date_norm or not execution_id:
+        return None
+
+    side = (trade.get("side") or "").upper()
+    size = _to_decimal(trade.get("size"))
+    if side in ("B", "BUY", "BOT"):
+        qty, trade_type = size, "BUY"
+    elif side in ("S", "SELL", "SLD"):
+        qty, trade_type = -size, "SELL"
+    else:
+        qty, trade_type = size, "UNKNOWN"
+
+    return {
+        "ticker": symbol,
+        "currency": currency,
+        "date": date_norm,
+        "qty": qty,
+        "price": _to_decimal(trade.get("price")),
+        "commission": _to_decimal(trade.get("commission")),
+        "type": trade_type,
+        "source": f"IB Web Trade {execution_id}",
+        "source_file": "ib_web_api",
+    }
+
+
 def normalize_snapshot(snapshot: dict) -> dict:
     """Convert an IBConnector.fetch_account_snapshot() payload into the
     {"trades", "dividends", "taxes", "corp_actions"} shape expected by
@@ -90,6 +122,22 @@ def normalize_snapshot(snapshot: dict) -> dict:
     """
     fills = snapshot.get("fills", [])
     trades = [record for fill in fills if (record := normalize_fill(fill)) is not None]
+    return {
+        "trades": trades,
+        "dividends": [],
+        "taxes": [],
+        "corp_actions": [],
+    }
+
+
+def normalize_web_snapshot(snapshot: dict) -> dict:
+    """Convert IBWebConnector Web API data into the common import schema."""
+    web_trades = snapshot.get("trades", [])
+    trades = [
+        record
+        for trade in web_trades
+        if (record := normalize_web_trade(trade)) is not None
+    ]
     return {
         "trades": trades,
         "dividends": [],
