@@ -79,7 +79,14 @@ def normalize_fill(fill: dict):
 
 
 def normalize_web_trade(trade: dict):
-    """Convert one IBWebConnector.get_trades() row into a trade record."""
+    """Convert one IBWebConnector.get_trades() row into a trade record.
+
+    Returns None for currency conversions (sec_type "CASH", e.g. buying USD
+    with PLN): these are FX movements, not taxable securities trades, and
+    must not enter the FIFO tax calculation.
+    """
+    if trade.get("sec_type") == "CASH":
+        return None
     symbol = trade.get("symbol")
     currency = trade.get("currency")
     execution_id = trade.get("execution_id")

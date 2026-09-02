@@ -103,6 +103,21 @@ def test_normalize_web_trade_maps_to_common_trade_schema():
     }
 
 
+def test_normalize_web_trade_skips_cash_fx_conversions():
+    trade = {
+        "execution_id": "web-exec-fx",
+        "symbol": "USD",
+        "side": "B",
+        "size": "938",
+        "price": "3.7313",
+        "currency": "PLN",
+        "commission": "7.49",
+        "trade_time": "20260831-09:12:32",
+        "sec_type": "CASH",
+    }
+    assert normalize_web_trade(trade) is None
+
+
 def test_normalize_web_snapshot_returns_the_common_import_shape():
     normalized = normalize_web_snapshot(
         {

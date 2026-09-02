@@ -1,7 +1,10 @@
 # tests/test_ib_web_connector.py
 
 import pytest
+import warnings
 from unittest.mock import patch, MagicMock
+
+from urllib3.exceptions import InsecureRequestWarning
 
 from src.ib_web_connector import (
     IBWebConnector,
@@ -34,6 +37,25 @@ def test_connect_initializes_brokerage_session(mock_requests):
         timeout=connector.timeout,
     )
     assert connector.is_connected()
+
+
+def test_connect_suppresses_expected_unverified_tls_warning(mock_requests):
+    mock_requests_module, mock_session = mock_requests
+
+    def post_with_warning(*args, **kwargs):
+        warnings.warn("self-signed local certificate", InsecureRequestWarning)
+        return MagicMock(raise_for_status=lambda: None)
+
+    mock_session.post.side_effect = post_with_warning
+    connector = IBWebConnector(base_url="https://localhost:5000/v1/api")
+
+    with warnings.catch_warnings(record=True) as captured:
+        warnings.simplefilter("always")
+        connector.connect()
+
+    assert not [
+        warning for warning in captured if warning.category is InsecureRequestWarning
+    ]
 
 
 def test_connect_fails_clearly_when_cpgw_unreachable(mock_requests):
@@ -235,6 +257,7 @@ def test_get_accounts_returns_structured_rows(mock_requests):
 
     mock_session.get.assert_called_once_with(
         f"{connector.base_url}/portfolio/accounts",
+        params=None,
         verify=connector.verify_ssl,
         timeout=connector.timeout,
     )
@@ -281,6 +304,7 @@ def test_get_positions_returns_structured_rows(mock_requests):
 
     mock_session.get.assert_called_once_with(
         f"{connector.base_url}/portfolio/U123/positions/0",
+        params=None,
         verify=connector.verify_ssl,
         timeout=connector.timeout,
     )
@@ -313,6 +337,7 @@ def test_get_trades_returns_structured_rows(mock_requests):
                 "currency": "USD",
                 "commission": "1.00",
                 "trade_time": "20260829-14:30:00",
+                "sec_type": "STK",
             }
         ],
     )
@@ -321,6 +346,7 @@ def test_get_trades_returns_structured_rows(mock_requests):
 
     mock_session.get.assert_called_once_with(
         f"{connector.base_url}/iserver/account/trades",
+        params={"days": 7},
         verify=connector.verify_ssl,
         timeout=connector.timeout,
     )
@@ -335,6 +361,7 @@ def test_get_trades_returns_structured_rows(mock_requests):
             "currency": "USD",
             "commission": "1.00",
             "trade_time": "20260829-14:30:00",
+            "sec_type": "STK",
         }
     ]
 
@@ -353,6 +380,7 @@ def test_fetch_account_snapshot_returns_all_read_only_web_data(mock_requests):
     connector = _connected_connector(mock_session)
     connector.health_check = MagicMock()
     connector.tickle = MagicMock()
+    connector.prime_iserver_session = MagicMock()
     connector.get_accounts = MagicMock(return_value=[{"account_id": "U123"}])
     connector.get_positions = MagicMock(return_value=[{"symbol": "AAPL"}])
     connector.get_trades = MagicMock(return_value=[{"execution_id": "web-exec-1"}])
@@ -361,6 +389,7 @@ def test_fetch_account_snapshot_returns_all_read_only_web_data(mock_requests):
 
     connector.health_check.assert_called_once()
     connector.tickle.assert_called_once()
+    connector.prime_iserver_session.assert_called_once()
     connector.get_positions.assert_called_once_with("U123")
     assert snapshot == {
         "accounts": [{"account_id": "U123"}],

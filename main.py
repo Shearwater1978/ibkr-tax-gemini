@@ -253,13 +253,29 @@ def run_import_routine():
         return {"inserted": 0, "skipped": 0}
 
 
+def _summarize_trades(trades):
+    """Convert normalized trade records into a JSON-serializable summary
+    (Decimal fields as strings) for display in the sync result."""
+    return [
+        {
+            "ticker": trade["ticker"],
+            "date": trade["date"],
+            "type": trade["type"],
+            "qty": str(trade["qty"]),
+            "price": str(trade["price"]),
+            "currency": trade["currency"],
+        }
+        for trade in trades
+    ]
+
+
 def run_ib_sync_routine():
     """Connects to IB Gateway/TWS, pulls a read-only account snapshot, and
     saves normalized fills into the database. Optional and separate from
     run_import_routine(): failures here must never affect CSV import.
 
     Returns a dict with keys: status ("success" | "error"), message,
-    inserted, skipped.
+    inserted, skipped, trades (imported trade summary).
     """
     print("--- IB LIVE SYNC (via main.py) ---")
     try:
@@ -278,6 +294,7 @@ def run_ib_sync_routine():
             "message": "No new live data to import",
             "inserted": 0,
             "skipped": 0,
+            "trades": [],
         }
 
     result = save_to_database(normalized)
@@ -290,6 +307,7 @@ def run_ib_sync_routine():
         "message": "IB live sync finished",
         "inserted": result["inserted"],
         "skipped": result["skipped"],
+        "trades": _summarize_trades(normalized["trades"]),
     }
 
 
@@ -310,6 +328,7 @@ def run_ib_web_sync_routine():
             "message": "No new trade data returned from Client Portal Gateway",
             "inserted": 0,
             "skipped": 0,
+            "trades": [],
         }
 
     result = save_to_database(normalized)
@@ -318,6 +337,7 @@ def run_ib_web_sync_routine():
         "message": "IB Web API sync finished",
         "inserted": result["inserted"],
         "skipped": result["skipped"],
+        "trades": _summarize_trades(normalized["trades"]),
     }
 
 
