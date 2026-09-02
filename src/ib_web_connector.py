@@ -11,6 +11,9 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 from urllib.parse import urlparse
+import warnings
+
+from urllib3.exceptions import InsecureRequestWarning
 
 try:
     import requests
@@ -79,6 +82,13 @@ class IBWebConnector:
         self.timeout = timeout if timeout is not None else IB_WEB_REQUEST_TIMEOUT
         self.session = None
 
+    def _request(self, method, url, **kwargs):
+        if self.verify_ssl:
+            return getattr(self.session, method)(url, **kwargs)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", InsecureRequestWarning)
+            return getattr(self.session, method)(url, **kwargs)
+
     def __enter__(self):
         self.connect()
         return self
@@ -116,7 +126,8 @@ class IBWebConnector:
         self.session = requests.Session()
         response = None
         try:
-            response = self.session.post(
+            response = self._request(
+                "post",
                 f"{self.base_url}/iserver/auth/ssodh/init",
                 json={},
                 verify=self.verify_ssl,
@@ -183,7 +194,8 @@ class IBWebConnector:
         self._require_session()
         response = None
         try:
-            response = self.session.post(
+            response = self._request(
+                "post",
                 f"{self.base_url}/iserver/auth/status",
                 json={},
                 verify=self.verify_ssl,
@@ -219,7 +231,8 @@ class IBWebConnector:
         self._require_session()
         response = None
         try:
-            response = self.session.post(
+            response = self._request(
+                "post",
                 f"{self.base_url}/tickle",
                 json={},
                 verify=self.verify_ssl,
@@ -235,13 +248,17 @@ class IBWebConnector:
             )
             raise error from exc
 
-    def _get_json_list(self, path: str, error_message: str):
+    def _get_json_list(
+        self, path: str, error_message: str, params: Optional[dict] = None
+    ):
         """GET a JSON array endpoint and validate the shape before returning."""
         self._require_session()
         response = None
         try:
-            response = self.session.get(
+            response = self._request(
+                "get",
                 f"{self.base_url}{path}",
+                params=params,
                 verify=self.verify_ssl,
                 timeout=self.timeout,
             )
@@ -271,6 +288,31 @@ class IBWebConnector:
             for row in rows
         ]
 
+    def prime_iserver_session(self) -> None:
+        """Call GET /iserver/accounts once per session before other iserver/*
+        endpoints (e.g. /iserver/account/trades) are queried.
+
+        CPGW quirk: without this call, iserver endpoints can silently return
+        an empty list even when the brokerage session is authenticated.
+        Response shape is a JSON object (not a list), so it is only
+        validated/discarded here rather than reused via _get_json_list.
+        """
+        self._require_session()
+        response = None
+        try:
+            response = self._request(
+                "get",
+                f"{self.base_url}/iserver/accounts",
+                verify=self.verify_ssl,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+        except Exception as exc:
+            error = self._request_error(
+                "Failed to prime the Web API iserver session.", response
+            )
+            raise error from exc
+
     def get_positions(self, account_id: str, page: int = 0) -> list:
         """Return current open positions for an account as plain dicts.
 
@@ -296,12 +338,21 @@ class IBWebConnector:
     def get_trades(self) -> list:
         """Return recent trade confirmations as plain dicts (GET /iserver/account/trades).
 
-        IBKR limits this endpoint to a recent trading window (not full
-        history); use CSV/Flex Query import for historical trades.
+        IBKR limits this endpoint to a recent trading window and defaults to
+        only the current day's trades unless "days" is supplied; request the
+        maximum lookback (7 days) so trades from earlier in the week are not
+        silently dropped. Use CSV/Flex Query import for anything older.
+
+        The trades payload does not reliably include a "currency" field, so
+        it is backfilled per-conid via GET /iserver/contract/{conid}/info;
+        without it, normalize_web_trade() would silently drop every row.
         """
         rows = self._get_json_list(
-            "/iserver/account/trades", "Failed to request trades from the Web API."
+            "/iserver/account/trades",
+            "Failed to request trades from the Web API.",
+            params={"days": 7},
         )
+        currency_cache: dict = {}
         return [
             {
                 "execution_id": row.get("execution_id"),
@@ -310,17 +361,45 @@ class IBWebConnector:
                 "side": row.get("side"),
                 "size": row.get("size"),
                 "price": row.get("price"),
-                "currency": row.get("currency"),
+                "currency": row.get("currency")
+                or self._get_contract_currency(row.get("conid"), currency_cache),
                 "commission": row.get("commission"),
                 "trade_time": row.get("trade_time"),
+                "sec_type": row.get("sec_type"),
             }
             for row in rows
         ]
+
+    def _get_contract_currency(self, conid, cache: dict) -> Optional[str]:
+        """Look up a contract's trading currency (GET /iserver/contract/{conid}/info).
+
+        Results are cached per conid for the lifetime of the call site since
+        the same instrument commonly appears in multiple trades.
+        """
+        if conid is None:
+            return None
+        if conid in cache:
+            return cache[conid]
+        response = None
+        try:
+            response = self._request(
+                "get",
+                f"{self.base_url}/iserver/contract/{conid}/info",
+                verify=self.verify_ssl,
+                timeout=self.timeout,
+            )
+            response.raise_for_status()
+            currency = response.json().get("currency")
+        except Exception:
+            currency = None
+        cache[conid] = currency
+        return currency
 
     def fetch_account_snapshot(self) -> dict:
         """Collect read-only Web API data needed for a manual live sync."""
         self.health_check()
         self.tickle()
+        self.prime_iserver_session()
         accounts = self.get_accounts()
         positions = [
             position

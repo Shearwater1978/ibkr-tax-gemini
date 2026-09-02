@@ -108,6 +108,7 @@
                 <button class="btn btn-outline" onclick="runIBWebSync()">🔄 Web API Sync</button>
                 <span id="ib-web-status" style="font-size: 14px; color: #666;">Not checked yet</span>
             </div>
+            <ul id="ib-web-trades" style="font-size: 13px; color: #444; margin: 8px 0 0; padding-left: 18px;"></ul>
         </div>
 
         
@@ -172,6 +173,7 @@
         const importStatusEl = document.getElementById('import-status');
         const ibStatusEl = document.getElementById('ib-status');
         const ibWebStatusEl = document.getElementById('ib-web-status');
+        const ibWebTradesEl = document.getElementById('ib-web-trades');
 
         window.onload = async () => {
             if (await waitForBackend()) {
@@ -311,6 +313,7 @@
 
         async function runIBWebSync() {
             ibWebStatusEl.innerText = "Starting IB Web API sync...";
+            ibWebTradesEl.innerHTML = "";
             try {
                 const res = await fetch(`${API_URL}/ib/web/sync`, { method: 'POST' });
                 const data = await res.json();
@@ -319,6 +322,9 @@
                     return;
                 }
                 ibWebStatusEl.innerText = data.message + ` (${data.inserted} inserted, ${data.skipped} skipped)`;
+                ibWebTradesEl.innerHTML = (data.trades || [])
+                    .map(t => `<li>${t.date} ${t.ticker} ${t.type} ${t.qty} @ ${t.price} ${t.currency}</li>`)
+                    .join("");
                 loadYears();
             } catch (e) {
                 ibWebStatusEl.innerText = `Web API sync failed: ${e.message}`;

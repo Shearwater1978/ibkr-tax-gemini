@@ -19,7 +19,16 @@ def _mock_connector(snapshot):
 def test_run_ib_sync_routine_success():
     snapshot = {"fills": [], "positions": [], "account_summary": [], "open_orders": []}
     normalized = {
-        "trades": [{"ticker": "AAPL"}],
+        "trades": [
+            {
+                "ticker": "AAPL",
+                "date": "2026-08-29",
+                "type": "BUY",
+                "qty": 10,
+                "price": 190.5,
+                "currency": "USD",
+            }
+        ],
         "dividends": [],
         "taxes": [],
         "corp_actions": [],
@@ -35,6 +44,16 @@ def test_run_ib_sync_routine_success():
     assert result["status"] == "success"
     assert result["inserted"] == 1
     assert result["skipped"] == 0
+    assert result["trades"] == [
+        {
+            "ticker": "AAPL",
+            "date": "2026-08-29",
+            "type": "BUY",
+            "qty": "10",
+            "price": "190.5",
+            "currency": "USD",
+        }
+    ]
 
 
 def test_run_ib_sync_routine_no_new_data():
@@ -75,7 +94,16 @@ def test_run_ib_sync_routine_does_not_import_parser_csv_path():
 def test_run_ib_web_sync_routine_success():
     snapshot = {"trades": [], "positions": [], "accounts": []}
     normalized = {
-        "trades": [{"ticker": "AAPL"}],
+        "trades": [
+            {
+                "ticker": "AAPL",
+                "date": "2026-08-29",
+                "type": "BUY",
+                "qty": 10,
+                "price": 190.5,
+                "currency": "USD",
+            }
+        ],
         "dividends": [],
         "taxes": [],
         "corp_actions": [],
@@ -95,6 +123,16 @@ def test_run_ib_web_sync_routine_success():
         "message": "IB Web API sync finished",
         "inserted": 1,
         "skipped": 0,
+        "trades": [
+            {
+                "ticker": "AAPL",
+                "date": "2026-08-29",
+                "type": "BUY",
+                "qty": "10",
+                "price": "190.5",
+                "currency": "USD",
+            }
+        ],
     }
 
 

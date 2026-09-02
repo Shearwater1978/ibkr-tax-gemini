@@ -80,11 +80,21 @@ class IBStatusResponse(BaseModel):
     error: str | None = None
 
 
+class IBTradeSummary(BaseModel):
+    ticker: str
+    date: str
+    type: str
+    qty: str
+    price: str
+    currency: str
+
+
 class IBSyncResponse(BaseModel):
     status: str
     message: str
     inserted: int
     skipped: int
+    trades: List[IBTradeSummary] = []
 
 
 class IBWebStatusResponse(BaseModel):
