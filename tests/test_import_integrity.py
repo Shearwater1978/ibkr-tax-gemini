@@ -230,3 +230,40 @@ def test_ogn_spinoff_lot_matches_sale_under_child_isin(
     realized, _, _, _ = process_yearly_data(rows, 2021, include_diagnostics=True)
     assert len(realized) == 1
     assert realized[0]["matched_buys"][0]["date"] == "2021-06-02"
+
+
+def test_sber_adr_tender_uses_adr_purchase_not_common_share_identity(
+    encrypted_database, monkeypatch
+):
+    from src.processing import process_yearly_data
+
+    monkeypatch.setattr(
+        "src.processing.get_nbp_rate", lambda currency, trade_date: Decimal("1")
+    )
+    statement = parse_csv("data/U1601_U7701_20220103_20221230.csv")
+    selected_tickers = {"SBER", "SBER.CNV4"}
+    save_to_database(
+        {
+            "trades": [
+                record
+                for record in statement["trades"]
+                if record["ticker"] in selected_tickers
+            ],
+            "corp_actions": [
+                record
+                for record in statement["corp_actions"]
+                if record["ticker"] in selected_tickers
+            ],
+            "dividends": [],
+            "taxes": [],
+        }
+    )
+
+    with DBConnector(encrypted_database, key="test-key") as db:
+        rows = db.get_trades_for_calculation(target_year=2022)
+
+    sber_buy = next(
+        row for row in rows if row["Ticker"] == "SBER" and row["EventType"] == "BUY"
+    )
+    assert sber_buy["ISIN"] == "US80585Y3080"
+    _, _, _, _ = process_yearly_data(rows, 2022, include_diagnostics=True)

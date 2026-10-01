@@ -292,6 +292,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     idx_date = get_col_idx(headers, ["Date/Time", "Report Date"])
+                    idx_cur = get_col_idx(headers, ["Currency"])
                     idx_desc = get_col_idx(headers, ["Description"])
                     idx_qty = get_col_idx(headers, ["Quantity"])
                     idx_sym = get_col_idx(headers, ["Symbol", "Ticker"])
@@ -322,7 +323,9 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                                 "isin": extract_isin(desc, real_ticker),
                                 "conid": "",
                                 "instrument_description": "",
-                                "currency": "USD",
+                                "currency": (
+                                    row[idx_cur] if idx_cur is not None else "USD"
+                                ),
                                 "date": date_norm,
                                 "qty": qty,
                                 "price": Decimal(0),
@@ -413,7 +416,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     security_id = (
                         row[idx_security_id].strip() if idx_security_id is not None else ""
                     )
-                    financial_instruments[symbol] = {
+                    financial_instruments.setdefault(symbol, []).append({
                         "isin": extract_isin(f"{symbol}({security_id})"),
                         "conid": row[idx_conid].strip() if idx_conid is not None else "",
                         "instrument_description": (
@@ -421,16 +424,49 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                             if idx_description is not None
                             else ""
                         ),
-                    }
+                    })
+
+        observed_identities = {}
+        for records in data.values():
+            for record in records:
+                ticker = str(record.get("ticker", "")).strip().upper()
+                currency = str(record.get("currency", "")).strip().upper()
+                isin = record.get("isin", "")
+                if ticker and currency and isin:
+                    observed_identities.setdefault((ticker, currency), set()).add(isin)
 
         for records in data.values():
             for record in records:
-                instrument = financial_instruments.get(
-                    str(record.get("ticker", "")).strip().upper(), {}
-                )
-                for field in ("isin", "conid", "instrument_description"):
-                    if not record.get(field):
-                        record[field] = instrument.get(field, "")
+                ticker = str(record.get("ticker", "")).strip().upper()
+                currency = str(record.get("currency", "")).strip().upper()
+                candidates = financial_instruments.get(ticker, [])
+                isin = record.get("isin", "")
+
+                if isin:
+                    instrument = next(
+                        (item for item in candidates if item["isin"] == isin), None
+                    )
+                else:
+                    observed = observed_identities.get((ticker, currency), set())
+                    matching = [
+                        item for item in candidates if item["isin"] in observed
+                    ]
+                    if len(observed) == 1:
+                        isin = next(iter(observed))
+                        instrument = next(
+                            (item for item in matching if item["isin"] == isin), None
+                        )
+                        record["isin"] = isin
+                    elif not observed and len(candidates) == 1:
+                        instrument = candidates[0]
+                        record["isin"] = instrument["isin"]
+                    else:
+                        instrument = None
+
+                if instrument:
+                    for field in ("conid", "instrument_description"):
+                        if not record.get(field):
+                            record[field] = instrument.get(field, "")
 
     except Exception as e:
         print(f"ERROR parsing {filename}: {e}")

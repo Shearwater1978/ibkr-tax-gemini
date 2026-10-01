@@ -97,6 +97,32 @@ def test_real_statement_supplies_identity_and_narrow_variant_parses():
     assert ogn_spinoff["isin"] == ogn_sale["isin"] == "US68622V1061"
 
 
+def test_duplicate_symbol_identity_uses_currency_context_from_statement():
+    data_dir = Path(__file__).parent.parent / "data"
+    parsed = parse_csv(str(data_dir / "U1601_U7701_20220103_20221230.csv"))
+
+    sber_buy = next(
+        record
+        for record in parsed["trades"]
+        if record["ticker"] == "SBER" and record["date"] == "2022-01-14"
+    )
+    sber_adr_tender = next(
+        record
+        for record in parsed["corp_actions"]
+        if record["ticker"] == "SBER" and record["qty"] < 0
+    )
+    sber_rub_addition = next(
+        record
+        for record in parsed["corp_actions"]
+        if record["ticker"] == "SBER" and record["qty"] > 0
+    )
+
+    assert sber_buy["isin"] == sber_adr_tender["isin"] == "US80585Y3080"
+    assert sber_buy["conid"] == "90581067"
+    assert sber_rub_addition["isin"] == "RU0009029540"
+    assert sber_rub_addition["currency"] == "RUB"
+
+
 # --- DECIMAL PARSING TESTS ---
 @pytest.mark.parametrize(
     "input_str, expected",
