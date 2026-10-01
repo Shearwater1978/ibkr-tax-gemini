@@ -122,3 +122,32 @@ def test_real_sqlcipher_key_rotation(tmp_path):
     connector = DBConnector(database_path, key="new-secret")
     connector.connect()
     connector.close()
+
+
+def test_existing_encrypted_schema_adds_identity_columns_without_rekey(tmp_path):
+    pytest.importorskip("sqlcipher3")
+    database_path = str(tmp_path / "legacy-encrypted.db")
+    connector = DBConnector(database_path, key="existing-secret")
+    connector.connect()
+    connector.conn.execute(
+        "CREATE TABLE transactions ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT, EventType TEXT, "
+        "Ticker TEXT, Quantity REAL, Price REAL, Currency TEXT, Amount REAL, "
+        "Fee REAL, Description TEXT, SourceKey TEXT, SplitRatio REAL)"
+    )
+    connector.conn.execute(
+        "INSERT INTO transactions (Date, EventType, Ticker, Quantity, Price, Currency) "
+        "VALUES ('2024-01-01', 'BUY', 'AAPL', 1, 10, 'USD')"
+    )
+    connector.conn.commit()
+    connector.close()
+
+    connector = DBConnector(database_path, key="existing-secret")
+    connector.connect()
+    connector.initialize_schema()
+    row = connector.get_trades_for_calculation()[0]
+    assert row["Ticker"] == "AAPL"
+    assert row["ISIN"] is None
+    assert row["Conid"] is None
+    assert row["InstrumentDescription"] is None
+    connector.close()

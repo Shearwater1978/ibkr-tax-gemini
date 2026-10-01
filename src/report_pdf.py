@@ -174,9 +174,12 @@ def generate_pdf(json_data, filename="report.pdf"):
     # PAGE 3: TRADES HISTORY
     elements.append(Paragraph(f"Trades History ({year})", h2_style))
     if data["trades_history"]:
-        trades_header = [
-            ["#", "Date", "Ticker", "Type", "Qty", "Price", "Comm", "Curr"]
-        ]
+        has_identity_changes = bool(data.get("identity_changes"))
+        columns = ["#", "Date", "Ticker"]
+        if has_identity_changes:
+            columns.append("ISIN")
+        columns.extend(["Type", "Qty", "Price", "Comm", "Curr"])
+        trades_header = [columns]
         trades_rows = []
 
         for i, t in enumerate(data["trades_history"], 1):
@@ -195,13 +198,21 @@ def generate_pdf(json_data, filename="report.pdf"):
                 f"{t['commission']:.2f}",
                 t["currency"],
             ]
+            if has_identity_changes:
+                row.insert(3, t.get("isin", ""))
             trades_rows.append(row)
 
         full_table_data = trades_header + trades_rows
-        col_widths = [25, 60, 50, 50, 50, 50, 50, 40]
+        col_widths = (
+            [25, 60, 55, 75, 45, 45, 45, 45, 35]
+            if has_identity_changes
+            else [25, 60, 55, 55, 45, 45, 45, 35]
+        )
         t_trades = Table(full_table_data, colWidths=col_widths, repeatRows=1)
         ts_trades = get_zebra_style(len(full_table_data))
-        ts_trades.add("ALIGN", (4, 1), (-1, -1), "RIGHT")
+        ts_trades.add(
+            "ALIGN", (5 if has_identity_changes else 4, 1), (-1, -1), "RIGHT"
+        )
 
         for i, row in enumerate(trades_rows, 1):
             if "(!)" in row[5]:
@@ -266,7 +277,11 @@ def generate_pdf(json_data, filename="report.pdf"):
     if data["corp_actions"]:
         elements.append(PageBreak())
         elements.append(Paragraph(f"Corporate Actions & Splits ({year})", h2_style))
-        corp_header = [["#", "Date", "Ticker", "Type", "Details"]]
+        has_identity_changes = bool(data.get("identity_changes"))
+        corp_header = [["#", "Date", "Ticker"]]
+        if has_identity_changes:
+            corp_header[0].append("ISIN")
+        corp_header[0].extend(["Type", "Details"])
         corp_rows = []
 
         for i, act in enumerate(data["corp_actions"], 1):
@@ -288,14 +303,24 @@ def generate_pdf(json_data, filename="report.pdf"):
             else:
                 details = f"Other Adjustment{warning}"
 
-            corp_rows.append([str(i), act["date"], act["ticker"], act["type"], details])
+            row = [str(i), act["date"], act["ticker"]]
+            if has_identity_changes:
+                row.append(act.get("isin", ""))
+            row.extend([act["type"], details])
+            corp_rows.append(row)
 
         full_corp_data = corp_header + corp_rows
-        t_corp = Table(full_corp_data, colWidths=[25, 75, 60, 70, 200], repeatRows=1)
+        col_widths = (
+            [25, 65, 55, 75, 55, 155]
+            if has_identity_changes
+            else [25, 65, 55, 65, 220]
+        )
+        t_corp = Table(full_corp_data, colWidths=col_widths, repeatRows=1)
         ts_corp = get_zebra_style(len(full_corp_data))
         for i, row in enumerate(corp_rows, 1):
-            if "(!)" in row[4]:
-                ts_corp.add("TEXTCOLOR", (4, i), (4, i), colors.orange)
+            details_col = 5 if has_identity_changes else 4
+            if "(!)" in row[details_col]:
+                ts_corp.add("TEXTCOLOR", (details_col, i), (details_col, i), colors.orange)
         t_corp.setStyle(ts_corp)
         elements.append(t_corp)
 
@@ -379,13 +404,14 @@ def generate_pdf(json_data, filename="report.pdf"):
             y, m = month_key.split("-")
             elements.append(Paragraph(f"{month_names.get(m, m)} {y}", h2_style))
 
-            det_header = [
-                ["#", "Date", "Ticker", "Gross", "Rate", "Gross PLN", "Tax PLN"]
-            ]
+            has_identity_changes = bool(data.get("identity_changes"))
+            det_header = [["#", "Date", "Ticker"]]
+            if has_identity_changes:
+                det_header[0].append("ISIN")
+            det_header[0].extend(["Gross", "Rate", "Gross PLN", "Tax PLN"])
             det_rows = []
             for d in group:
-                det_rows.append(
-                    [
+                row = [
                         str(global_div_idx),
                         d["date"],
                         d["ticker"],
@@ -394,16 +420,24 @@ def generate_pdf(json_data, filename="report.pdf"):
                         f"{d['amount_pln']:.2f}",
                         f"{d['tax_paid_pln']:.2f}",
                     ]
-                )
+                if has_identity_changes:
+                    row.insert(3, d.get("isin", ""))
+                det_rows.append(row)
                 global_div_idx += 1
 
             t_det = Table(
                 det_header + det_rows,
-                colWidths=[25, 60, 45, 80, 45, 65, 65],
+                colWidths=(
+                    [25, 55, 45, 75, 70, 40, 60, 60]
+                    if has_identity_changes
+                    else [25, 55, 45, 80, 45, 65, 65]
+                ),
                 repeatRows=1,
             )
             ts_det = get_zebra_style(len(det_header + det_rows))
-            ts_det.add("ALIGN", (3, 1), (-1, -1), "RIGHT")
+            ts_det.add(
+                "ALIGN", (4 if has_identity_changes else 3, 1), (-1, -1), "RIGHT"
+            )
             t_det.setStyle(ts_det)
             elements.append(t_det)
     else:
@@ -446,6 +480,22 @@ def generate_pdf(json_data, filename="report.pdf"):
     ts_diag.add("ALIGN", (1, 1), (-1, -1), "CENTER")
     t_diag.setStyle(ts_diag)
     elements.append(t_diag)
+
+    identity_changes = data.get("identity_changes", [])
+    if identity_changes:
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph("Instrument Identity Changes", h3_style))
+        change_data = [["Ticker", "Previous ISIN", "New ISIN", "Change Date"]]
+        for change in identity_changes:
+            change_data.append(
+                [
+                    change.get("ticker", ""),
+                    change.get("previous_isin", ""),
+                    change.get("new_isin", ""),
+                    change.get("date", ""),
+                ]
+            )
+        elements.append(Table(change_data, colWidths=[70, 130, 130, 100], repeatRows=1))
 
     # PER-CURRENCY
     elements.append(Spacer(1, 20))

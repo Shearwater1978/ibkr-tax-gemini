@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 import sys
+from dataclasses import asdict
 from pathlib import Path
 from datetime import date
 from decimal import Decimal
@@ -59,6 +60,8 @@ class ImportResponse(BaseModel):
     count: int
     inserted: int
     skipped: int
+    identity_resolved: int = 0
+    identity_unresolved: int = 0
 
 
 class PlannedSaleRequest(BaseModel):
@@ -251,6 +254,8 @@ def run_import():
             "count": count,
             "inserted": result.get("inserted", 0),
             "skipped": result.get("skipped", 0),
+            "identity_resolved": result.get("identity_resolved", 0),
+            "identity_unresolved": result.get("identity_unresolved", 0),
         }
     except Exception as exc:
         import traceback
@@ -288,7 +293,9 @@ def calculate_report(year: int):
         if not raw_trades:
             raise HTTPException(status_code=404, detail="No data found")
 
-        realized_gains, dividends, inventory = process_yearly_data(raw_trades, year)
+        realized_gains, dividends, inventory, diagnostics = process_yearly_data(
+            raw_trades, year, include_diagnostics=True
+        )
         output_dir = project_root / "output"
         output_dir.mkdir(parents=True, exist_ok=True)
         excel_path, pdf_path = get_file_paths(year)
@@ -297,7 +304,7 @@ def calculate_report(year: int):
         excel_generated = False
         try:
             sheets, ticker_summary = collect_all_trade_data(
-                realized_gains, dividends, inventory
+                realized_gains, dividends, inventory, diagnostics
             )
             export_to_excel(sheets, str(excel_path), {"Year": year}, ticker_summary)
             excel_generated = excel_path.is_file()
@@ -308,14 +315,19 @@ def calculate_report(year: int):
         if generate_pdf is not None:
             try:
                 pdf_data = prepare_data_for_pdf(
-                    year, raw_trades, realized_gains, dividends, inventory
+                    year,
+                    raw_trades,
+                    realized_gains,
+                    dividends,
+                    inventory,
+                    diagnostics,
                 )
                 generate_pdf(pdf_data, str(pdf_path))
                 pdf_generated = pdf_path.is_file()
             except Exception:
                 errors.append({"type": "pdf", "message": "PDF export failed"})
 
-        return {
+        response = {
             "status": "success",
             "complete": not errors,
             "errors": errors,
@@ -327,6 +339,9 @@ def calculate_report(year: int):
                 "open_positions_count": len(inventory),
             },
         }
+        if diagnostics:
+            response["diagnostics"] = [asdict(diagnostic) for diagnostic in diagnostics]
+        return response
     except HTTPException:
         raise
     except CalculationError as exc:
@@ -340,6 +355,9 @@ def calculate_report(year: int):
                 "date": diagnostic.date,
                 "currency": diagnostic.currency,
                 "quantity": diagnostic.quantity,
+                "isin": diagnostic.isin,
+                "previous_isin": diagnostic.previous_isin,
+                "new_isin": diagnostic.new_isin,
             },
         ) from exc
     except Exception as exc:

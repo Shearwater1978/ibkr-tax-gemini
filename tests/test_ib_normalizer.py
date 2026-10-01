@@ -3,6 +3,7 @@
 import datetime
 import sqlite3
 from decimal import Decimal
+from pathlib import Path
 
 from src.ib_normalizer import (
     normalize_fill,
@@ -10,7 +11,7 @@ from src.ib_normalizer import (
     normalize_web_snapshot,
     normalize_web_trade,
 )
-from src.parser import save_to_database
+from src.parser import parse_csv, save_to_database
 
 
 def _make_fill(**overrides):
@@ -190,13 +191,72 @@ def test_duplicate_live_fill_is_not_reinserted_on_repeat_sync(mocker):
     snapshot = {"fills": [_make_fill()]}
     normalized = normalize_snapshot(snapshot)
 
-    first = save_to_database(normalized)
-    second = save_to_database(normalized)
+    first = save_to_database(normalized, include_identity_counts=True)
+    second = save_to_database(normalized, include_identity_counts=True)
 
     total_rows = real_conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
     assert first["inserted"] == 1
     assert second["inserted"] == 0
     assert total_rows == 1
+
+
+def test_repeat_import_updates_identity_without_changing_source_key(mocker):
+    real_conn = sqlite3.connect(":memory:")
+    real_conn.row_factory = sqlite3.Row
+
+    mock_db_connector = mocker.patch("src.parser.DBConnector")
+    mock_instance = mock_db_connector.return_value.__enter__.return_value
+    mock_instance.conn = real_conn
+    mock_instance.initialize_schema = lambda: _init_schema(real_conn)
+
+    normalized = normalize_snapshot({"fills": [_make_fill()]})
+    first = save_to_database(normalized, include_identity_counts=True)
+    source_key = real_conn.execute(
+        "SELECT SourceKey FROM transactions"
+    ).fetchone()[0]
+    normalized["trades"][0].update(
+        isin="US0378331005",
+        conid="265598",
+        instrument_description="APPLE INC",
+    )
+
+    second = save_to_database(normalized, include_identity_counts=True)
+    row = real_conn.execute(
+        "SELECT SourceKey, ISIN, Conid, InstrumentDescription FROM transactions"
+    ).fetchone()
+    assert first["inserted"] == 1
+    assert first["identity_unresolved"] == 1
+    assert second["inserted"] == 0
+    assert second["identity_resolved"] == 1
+    assert row["SourceKey"] == source_key
+    assert row["ISIN"] == "US0378331005"
+    assert row["Conid"] == "265598"
+    assert row["InstrumentDescription"] == "APPLE INC"
+
+
+def test_real_statement_identity_is_persisted_by_import(mocker):
+    real_conn = sqlite3.connect(":memory:")
+    real_conn.row_factory = sqlite3.Row
+
+    mock_db_connector = mocker.patch("src.parser.DBConnector")
+    mock_instance = mock_db_connector.return_value.__enter__.return_value
+    mock_instance.conn = real_conn
+    mock_instance.initialize_schema = lambda: _init_schema(real_conn)
+
+    statement = Path(__file__).parent.parent / "data" / "U1601_2024_2024.csv"
+    parsed = parse_csv(str(statement))
+    oke_dividends = [record for record in parsed["dividends"] if record["ticker"] == "OKE"]
+    imported = save_to_database(
+        {"trades": [], "corp_actions": [], "dividends": oke_dividends, "taxes": []}
+    )
+
+    row = real_conn.execute(
+        "SELECT ISIN, Conid, InstrumentDescription FROM transactions WHERE Ticker = 'OKE'"
+    ).fetchone()
+    assert imported["inserted"] == len(oke_dividends)
+    assert row["ISIN"] == "US6826801036"
+    assert row["Conid"] == "10794"
+    assert row["InstrumentDescription"] == "ONEOK INC"
 
 
 def test_distinct_fills_with_same_price_and_qty_are_both_inserted(mocker):
@@ -254,7 +314,10 @@ def _init_schema(conn):
             Fee REAL,
             Description TEXT,
             SourceKey TEXT,
-            SplitRatio REAL
+            SplitRatio REAL,
+            ISIN TEXT,
+            Conid TEXT,
+            InstrumentDescription TEXT
         );
         """)
     conn.execute(

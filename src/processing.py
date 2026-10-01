@@ -8,16 +8,13 @@ import logging
 # Project imports
 from src.nbp import get_nbp_rate
 from src.fifo import TradeMatcher
+from src.diagnostics import CalculationDiagnostic
+from src.instrument_identity import TICKER_ALIASES, resolve_instrument_identities
 
 
 def process_yearly_data(
-    raw_trades: List[Dict[str, Any]], target_year: int
-) -> Tuple[List[Dict], List[Dict], List[Dict]]:
-    # Ticker Aliases Mapping (Normalization)
-    TICKER_MAP = {
-        "TOT": "TTE",  # TotalEnergies old ticker
-        "FB": "META",  # Facebook old ticker
-    }
+    raw_trades: List[Dict[str, Any]], target_year: int, include_diagnostics=False
+):
 
     """
     Main Processing Pipeline:
@@ -27,6 +24,8 @@ def process_yearly_data(
     4. Returns calculated Realized Gains, Dividends, and Inventory.
     """
 
+    raw_trades, identity_changes = resolve_instrument_identities(raw_trades)
+    changed_tickers = {change["ticker"] for change in identity_changes}
     matcher = TradeMatcher()
 
     dividends = []
@@ -43,7 +42,8 @@ def process_yearly_data(
         if t["EventType"] == "TAX":
             # Tax amount in DB is usually negative. We store the absolute magnitude.
             amt = Decimal(str(t["Amount"])) if t["Amount"] else Decimal(0)
-            key = (t["Date"], t["Ticker"])
+            isin = t.get("ISIN", "") or ""
+            key = (t["Date"], t["Ticker"], isin)
             tax_map[key] += abs(amt)
 
     # Sort trades chronologically to ensure correct processing order
@@ -54,7 +54,8 @@ def process_yearly_data(
         date_str = trade["Date"]
         ticker = trade["Ticker"]
         # Apply normalization (e.g., TOT -> TTE)
-        ticker = TICKER_MAP.get(ticker, ticker)
+        ticker = TICKER_ALIASES.get(ticker, ticker)
+        isin = trade.get("ISIN", "") or ""
         event_type = trade[
             "EventType"
         ]  # BUY, SELL, SPLIT, DIVIDEND, STOCK_DIV, MERGER, etc.
@@ -82,7 +83,9 @@ def process_yearly_data(
             gross_pln = amount_currency * rate
 
             # Find matching tax
-            tax_in_original_currency = tax_map.get((date_str, ticker), Decimal(0))
+            tax_in_original_currency = tax_map.get(
+                (date_str, trade["Ticker"], isin), Decimal(0)
+            )
             tax_pln = tax_in_original_currency * rate
 
             div_record = {
@@ -93,6 +96,8 @@ def process_yearly_data(
                 "currency": currency,
                 "rate": float(rate),
             }
+            if ticker in changed_tickers:
+                div_record["isin"] = isin
             # Only include dividends from the target year in the report
             if date_str.startswith(str(target_year)):
                 dividends.append(div_record)
@@ -116,6 +121,7 @@ def process_yearly_data(
                 "currency": currency,
                 "rate": rate,
                 "source": "DB",
+                "isin": isin,
             }
 
             if matcher_type == "SPLIT":
@@ -136,4 +142,20 @@ def process_yearly_data(
 
     inventory = matcher.get_current_inventory()
 
+    if include_diagnostics:
+        diagnostics = [
+            CalculationDiagnostic(
+                code="IDENTITY_CHANGE",
+                message=(
+                    f"Ticker {change['ticker']} changed identity from "
+                    f"{change['previous_isin']} to {change['new_isin']} on {change['date']}."
+                ),
+                ticker=change["ticker"],
+                date=change["date"],
+                previous_isin=change["previous_isin"],
+                new_isin=change["new_isin"],
+            )
+            for change in identity_changes
+        ]
+        return target_realized, dividends, inventory, diagnostics
     return target_realized, dividends, inventory

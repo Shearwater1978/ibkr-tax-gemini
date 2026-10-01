@@ -2,11 +2,14 @@
 
 import pytest
 from decimal import Decimal
+from pathlib import Path
 from src.parser import (
     normalize_date,
     extract_ticker,
+    extract_isin,
     parse_decimal,
     classify_trade_type,
+    parse_csv,
 )
 
 
@@ -42,6 +45,36 @@ def test_normalize_date(input_date, expected):
 def test_extract_ticker(desc, symbol_col, qty, expected):
     result = extract_ticker(desc, symbol_col, Decimal(qty))
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "description, expected",
+    [
+        ("OKE(US6826801036) Cash Dividend USD 0.99 per Share", "US6826801036"),
+        ("MGA (CA5592224011) Cash Dividend", "CA5592224011"),
+        ("Cash dividend without security identifier", ""),
+    ],
+)
+def test_extract_isin(description, expected):
+    assert extract_isin(description) == expected
+
+
+def test_real_statement_supplies_identity_and_narrow_variant_parses():
+    data_dir = Path(__file__).parent.parent / "data"
+    parsed = parse_csv(str(data_dir / "U1601_2024_2024.csv"))
+    oke_dividend = next(
+        record for record in parsed["dividends"] if record["ticker"] == "OKE"
+    )
+    assert oke_dividend["isin"] == "US6826801036"
+    assert oke_dividend["conid"] == "10794"
+    assert oke_dividend["instrument_description"] == "ONEOK INC"
+    mga_dividend = next(
+        record for record in parsed["dividends"] if record["ticker"] == "MGA"
+    )
+    assert mga_dividend["isin"] == "CA5592224011"
+
+    older_statement = parse_csv(str(data_dir / "U5801_20210315_20220107.csv"))
+    assert older_statement["trades"]
 
 
 # --- DECIMAL PARSING TESTS ---

@@ -133,3 +133,164 @@ def test_fifo_rejects_sell_exceeding_inventory(matcher):
 
     assert error.value.diagnostic.code == "UNMATCHED_SELL"
     assert error.value.diagnostic.quantity == 1.0
+
+
+def test_fifo_matches_and_retains_lots_by_isin(matcher):
+    matcher.process_trades(
+        [
+            {
+                "type": "BUY",
+                "date": "2024-01-01",
+                "ticker": "OKE",
+                "isin": "OLD-ISIN",
+                "qty": Decimal(10),
+                "price": Decimal(10),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            },
+            {
+                "type": "BUY",
+                "date": "2025-03-04",
+                "ticker": "OKE",
+                "isin": "NEW-ISIN",
+                "qty": Decimal(3),
+                "price": Decimal(20),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            },
+            {
+                "type": "SELL",
+                "date": "2025-03-05",
+                "ticker": "OKE",
+                "isin": "NEW-ISIN",
+                "qty": Decimal(-2),
+                "price": Decimal(30),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            },
+        ]
+    )
+
+    gain = matcher.get_realized_gains()[0]
+    inventory = matcher.get_current_inventory()
+    assert gain["ticker"] == "OKE"
+    assert gain["isin"] == "NEW-ISIN"
+    assert gain["matched_buys"][0]["isin"] == "NEW-ISIN"
+    assert [(item["isin"], item["quantity"]) for item in inventory] == [
+        ("OLD-ISIN", 10.0),
+        ("NEW-ISIN", 1.0),
+    ]
+
+
+def test_fifo_insufficient_inventory_names_identity(matcher):
+    matcher.process_trades(
+        [
+            {
+                "type": "BUY",
+                "date": "2024-01-01",
+                "ticker": "OKE",
+                "isin": "OLD-ISIN",
+                "qty": Decimal(10),
+                "price": Decimal(10),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            }
+        ]
+    )
+
+    with pytest.raises(UnmatchedInventoryError) as error:
+        matcher.process_trades(
+            [
+                {
+                    "type": "SELL",
+                    "date": "2025-03-05",
+                    "ticker": "OKE",
+                    "isin": "NEW-ISIN",
+                    "qty": Decimal(-1),
+                    "price": Decimal(30),
+                    "commission": Decimal(0),
+                    "currency": "PLN",
+                    "rate": Decimal(1),
+                }
+            ]
+        )
+
+    assert error.value.diagnostic.ticker == "OKE"
+    assert error.value.diagnostic.isin == "NEW-ISIN"
+    assert "NEW-ISIN" in error.value.diagnostic.message
+
+
+def test_splits_and_transfers_only_change_their_identity(matcher):
+    matcher.process_trades(
+        [
+            {
+                "type": "BUY",
+                "date": "2024-01-01",
+                "ticker": "OKE",
+                "isin": "OLD-ISIN",
+                "qty": Decimal(5),
+                "price": Decimal(10),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            },
+            {
+                "type": "BUY",
+                "date": "2024-01-02",
+                "ticker": "OKE",
+                "isin": "NEW-ISIN",
+                "qty": Decimal(2),
+                "price": Decimal(20),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            },
+            {
+                "type": "STOCK_DIV",
+                "date": "2024-01-03",
+                "ticker": "OKE",
+                "isin": "NEW-ISIN",
+                "qty": Decimal(1),
+                "price": Decimal(0),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            },
+            {
+                "type": "SPLIT",
+                "date": "2024-02-01",
+                "ticker": "OKE",
+                "isin": "OLD-ISIN",
+                "qty": Decimal(1),
+                "ratio": Decimal(2),
+                "price": Decimal(0),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            },
+            {
+                "type": "TRANSFER",
+                "date": "2024-03-01",
+                "ticker": "OKE",
+                "isin": "OLD-ISIN",
+                "qty": Decimal(-1),
+                "price": Decimal(0),
+                "commission": Decimal(0),
+                "currency": "PLN",
+                "rate": Decimal(1),
+            },
+        ]
+    )
+
+    inventory = matcher.get_current_inventory()
+    assert [
+        (item["isin"], item["buy_date"], item["quantity"]) for item in inventory
+    ] == [
+        ("OLD-ISIN", "2024-01-01", 9.0),
+        ("NEW-ISIN", "2024-01-02", 2.0),
+        ("NEW-ISIN", "2024-01-03", 1.0),
+    ]

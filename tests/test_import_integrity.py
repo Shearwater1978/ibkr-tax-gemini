@@ -101,3 +101,100 @@ def test_split_ratio_reaches_fifo(encrypted_database):
     _, _, inventory = process_yearly_data(rows, 2024)
     assert inventory[0]["quantity"] == 2.0
     assert inventory[0]["cost_per_share"] == 50.0
+
+
+def test_isin_remap_import_calculation_and_report_end_to_end(encrypted_database, tmp_path):
+    from main import prepare_data_for_pdf
+    from src.data_collector import collect_all_trade_data
+    from src.processing import process_yearly_data
+    from src.report_pdf import generate_pdf
+
+    trades = [
+        {
+            **trade_record(),
+            "date": "2024-01-02",
+            "ticker": "OKE",
+            "isin": "OLD-ISIN",
+            "conid": "10794",
+            "instrument_description": "OLD ONEOK",
+            "source": "old identity buy",
+        },
+        {
+            **trade_record(),
+            "date": "2025-03-04",
+            "ticker": "OKE",
+            "isin": "NEW-ISIN",
+            "conid": "99999",
+            "instrument_description": "NEW INSTRUMENT",
+            "qty": Decimal("2"),
+            "source": "new identity buy",
+        },
+        {
+            **trade_record(),
+            "date": "2025-03-05",
+            "type": "SELL",
+            "ticker": "OKE",
+            "isin": "NEW-ISIN",
+            "conid": "99999",
+            "instrument_description": "NEW INSTRUMENT",
+            "qty": Decimal("-1"),
+            "price": Decimal("150"),
+            "source": "new identity sale",
+        },
+    ]
+    save_to_database(
+        {"trades": trades, "dividends": [], "taxes": [], "corp_actions": []}
+    )
+
+    with DBConnector(encrypted_database, key="test-key") as db:
+        rows = db.get_trades_for_calculation(target_year=2025)
+
+    realized, dividends, inventory, diagnostics = process_yearly_data(
+        rows, 2025, include_diagnostics=True
+    )
+    sheets, ticker_summary = collect_all_trade_data(
+        realized, dividends, inventory, diagnostics
+    )
+    pdf_data = prepare_data_for_pdf(
+        2025, rows, realized, dividends, inventory, diagnostics
+    )
+
+    assert [(lot["ticker"], lot["isin"]) for lot in inventory] == [
+        ("OKE", "OLD-ISIN"),
+        ("OKE", "NEW-ISIN"),
+    ]
+    assert sheets["Open Positions"]["ISIN"].tolist() == ["OLD-ISIN", "NEW-ISIN"]
+    assert list(ticker_summary) == ["OKE"]
+    assert pdf_data["data"]["identity_changes"][0]["date"] == "2025-03-04"
+    assert len(pdf_data["data"]["holdings"]) == 1
+
+    report_path = tmp_path / "isin-remap.pdf"
+    generate_pdf(pdf_data, str(report_path))
+    assert report_path.is_file()
+
+
+def test_added_identity_columns_allow_legacy_query_and_calculation(encrypted_database):
+    save_to_database(
+        {
+            "trades": [trade_record()],
+            "dividends": [],
+            "taxes": [],
+            "corp_actions": [],
+        }
+    )
+    with DBConnector(encrypted_database, key="test-key") as db:
+        legacy_rows = [
+            dict(row)
+            for row in db.conn.execute(
+                "SELECT rowid as TradeId, Date, EventType, Ticker, Quantity, "
+                "Price, Currency, Amount, Fee, Description, SplitRatio "
+                "FROM transactions ORDER BY Date"
+            ).fetchall()
+        ]
+
+    from src.processing import process_yearly_data
+
+    _, _, inventory = process_yearly_data(legacy_rows, 2024)
+    assert inventory[0]["ticker"] == "AAPL"
+    assert inventory[0]["quantity"] == 1.0
+    assert "isin" not in inventory[0]
