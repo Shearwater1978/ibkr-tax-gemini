@@ -14,8 +14,24 @@ class TradeMatcher:
     def __init__(self):
         self.inventory = {}
         self.realized_pnl = []
+        self.observed_isins = {}
+        self.identity_sensitive_tickers = set()
 
     def process_trades(self, trades_list: List[Dict[str, Any]]):
+        newly_sensitive = set()
+        for trade in trades_list:
+            isin = trade.get("isin", "") or ""
+            if isin:
+                self.observed_isins.setdefault(trade["ticker"], set()).add(isin)
+                if len(self.observed_isins[trade["ticker"]]) > 1:
+                    newly_sensitive.add(trade["ticker"])
+        for ticker in newly_sensitive - self.identity_sensitive_tickers:
+            legacy_batches = self.inventory.pop(ticker, deque())
+            for batch in legacy_batches:
+                key = (ticker, batch.get("isin", "") or "")
+                self.inventory.setdefault(key, deque()).append(batch)
+        self.identity_sensitive_tickers.update(newly_sensitive)
+
         # Priority: SPLIT (process first if same day to adjust holdings) -> BUY -> SELL
         type_priority = {
             "SPLIT": 0,
@@ -33,8 +49,9 @@ class TradeMatcher:
 
         for trade in sorted_trades:
             ticker = trade["ticker"]
-            if ticker not in self.inventory:
-                self.inventory[ticker] = deque()
+            inventory_key = self._inventory_key(trade)
+            if inventory_key not in self.inventory:
+                self.inventory[inventory_key] = deque()
 
             t_type = trade["type"]
             qty = trade.get("qty", Decimal(0))
@@ -65,7 +82,7 @@ class TradeMatcher:
                     self._process_transfer_out(trade)
 
     def _process_split(self, trade):
-        ticker = trade["ticker"]
+        inventory_key = self._inventory_key(trade)
         ratio = trade.get("ratio", Decimal(1))
 
         # IBKR represents reverse splits (e.g., "1 for 8") as TWO records:
@@ -76,15 +93,15 @@ class TradeMatcher:
         if qty < 0:
             return
 
-        if ticker not in self.inventory or not self.inventory[ticker]:
+        if inventory_key not in self.inventory or not self.inventory[inventory_key]:
             return
 
         # Apply split to all existing batches in inventory
         # New Qty = Old Qty * Ratio
         # New Price = Old Price / Ratio (Cost basis per batch stays same)
         new_deque = deque()
-        while self.inventory[ticker]:
-            batch = self.inventory[ticker].popleft()
+        while self.inventory[inventory_key]:
+            batch = self.inventory[inventory_key].popleft()
 
             # Adjust Quantity
             batch["qty"] = batch["qty"] * ratio
@@ -95,7 +112,7 @@ class TradeMatcher:
 
             new_deque.append(batch)
 
-        self.inventory[ticker] = new_deque
+        self.inventory[inventory_key] = new_deque
 
     def _process_buy(self, trade):
         if "rate" in trade and trade["rate"]:
@@ -108,17 +125,18 @@ class TradeMatcher:
         # Cost is calculated here
         cost_pln = money((price * trade["qty"] * rate) + (abs(comm) * rate))
 
-        self.inventory[trade["ticker"]].append(
-            {
-                "date": trade["date"],
-                "qty": trade["qty"],
-                "price": price,
-                "rate": rate,
-                "cost_pln": cost_pln,
-                "currency": trade["currency"],
-                "source": trade.get("source", "UNKNOWN"),
-            }
-        )
+        batch = {
+            "ticker": trade["ticker"],
+            "isin": trade.get("isin", ""),
+            "date": trade["date"],
+            "qty": trade["qty"],
+            "price": price,
+            "rate": rate,
+            "cost_pln": cost_pln,
+            "currency": trade["currency"],
+            "source": trade.get("source", "UNKNOWN"),
+        }
+        self.inventory[self._inventory_key(trade)].append(batch)
 
     def _process_sell(self, trade):
         self._consume_inventory(trade, is_taxable=True)
@@ -128,6 +146,8 @@ class TradeMatcher:
 
     def _consume_inventory(self, trade, is_taxable):
         ticker = trade["ticker"]
+        inventory_key = self._inventory_key(trade)
+        isin = trade.get("isin", "")
         qty_to_sell = abs(trade["qty"])
 
         if "rate" in trade and trade["rate"]:
@@ -144,10 +164,10 @@ class TradeMatcher:
         matched_buys = []
 
         while qty_to_sell > 0:
-            if not self.inventory.get(ticker):
+            if not self.inventory.get(inventory_key):
                 break
 
-            buy_batch = self.inventory[ticker][0]
+            buy_batch = self.inventory[inventory_key][0]
 
             # Avoid precision issues with tiny leftovers
             if buy_batch["qty"] <= qty_to_sell + Decimal("0.00000001"):
@@ -155,8 +175,8 @@ class TradeMatcher:
                 cost_basis_pln += buy_batch["cost_pln"]
                 taken_qty = buy_batch["qty"]
 
-                matched_buys.append(buy_batch.copy())
-                self.inventory[ticker].popleft()
+                matched_buys.append(self._lot_for_output(buy_batch, ticker))
+                self.inventory[inventory_key].popleft()
 
                 qty_to_sell -= taken_qty
             else:
@@ -164,7 +184,7 @@ class TradeMatcher:
                 ratio = qty_to_sell / buy_batch["qty"]
                 part_cost = money(buy_batch["cost_pln"] * ratio)
 
-                partial_record = buy_batch.copy()
+                partial_record = self._lot_for_output(buy_batch, ticker)
                 partial_record["qty"] = qty_to_sell
                 partial_record["cost_pln"] = part_cost
                 matched_buys.append(partial_record)
@@ -180,10 +200,14 @@ class TradeMatcher:
                 CalculationDiagnostic(
                     code="UNMATCHED_SELL",
                     message=(
-                        f"Sell exceeds available inventory for {ticker} on "
-                        f"{trade['date']} by {qty_to_sell}."
-                    ),
+                        f"Sell exceeds available inventory for {ticker}"
+                        f" ({isin}) on "
+                        if isin
+                        else f"Sell exceeds available inventory for {ticker} on "
+                    )
+                    + f"{trade['date']} by {qty_to_sell}.",
                     ticker=ticker,
+                    isin=isin or None,
                     date=trade["date"],
                     quantity=float(qty_to_sell),
                 )
@@ -194,37 +218,52 @@ class TradeMatcher:
             total_cost = cost_basis_pln + sell_comm_pln
             profit_pln = sell_revenue_pln - total_cost
 
-            self.realized_pnl.append(
-                {
-                    "ticker": ticker,
-                    "sale_date": trade["date"],
-                    "date_sell": trade["date"],
-                    "quantity": float(abs(trade["qty"])),
-                    "sale_price": float(price),
-                    "sale_rate": float(sell_rate),
-                    "sale_amount": float(sell_revenue_pln),
-                    "cost_basis": float(total_cost),
-                    "profit_loss": float(profit_pln),
-                    "currency": trade["currency"],
-                    "matched_buys": matched_buys,
-                }
-            )
+            result = {
+                "ticker": ticker,
+                "sale_date": trade["date"],
+                "date_sell": trade["date"],
+                "quantity": float(abs(trade["qty"])),
+                "sale_price": float(price),
+                "sale_rate": float(sell_rate),
+                "sale_amount": float(sell_revenue_pln),
+                "cost_basis": float(total_cost),
+                "profit_loss": float(profit_pln),
+                "currency": trade["currency"],
+                "matched_buys": matched_buys,
+            }
+            if ticker in self.identity_sensitive_tickers:
+                result["isin"] = isin
+            self.realized_pnl.append(result)
 
     def get_realized_gains(self):
         return self.realized_pnl
 
     def get_current_inventory(self):
         inventory_list = []
-        for ticker, batches in self.inventory.items():
+        for batches in self.inventory.values():
             for batch in batches:
-                inventory_list.append(
-                    {
-                        "ticker": ticker,
-                        "buy_date": batch["date"],
-                        "quantity": float(batch["qty"]),
-                        "cost_per_share": float(batch["price"]),
-                        "total_cost": float(batch["cost_pln"]),
-                        "currency": batch["currency"],
-                    }
-                )
+                item = {
+                    "ticker": batch["ticker"],
+                    "buy_date": batch["date"],
+                    "quantity": float(batch["qty"]),
+                    "cost_per_share": float(batch["price"]),
+                    "total_cost": float(batch["cost_pln"]),
+                    "currency": batch["currency"],
+                }
+                if batch["ticker"] in self.identity_sensitive_tickers:
+                    item["isin"] = batch["isin"]
+                inventory_list.append(item)
         return inventory_list
+
+    def _inventory_key(self, trade):
+        ticker = trade["ticker"]
+        if ticker not in self.identity_sensitive_tickers:
+            return ticker
+        return ticker, trade.get("isin", "") or ""
+
+    def _lot_for_output(self, batch, ticker):
+        lot = batch.copy()
+        if ticker not in self.identity_sensitive_tickers:
+            lot.pop("ticker", None)
+            lot.pop("isin", None)
+        return lot

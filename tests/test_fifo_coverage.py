@@ -83,6 +83,18 @@ def test_coverage_ignores_rows_with_blank_or_invalid_tickers():
     assert result["results"][0]["missing"] == 0.0
 
 
+def test_coverage_ignores_invalid_tickers_when_no_requested_history_matches():
+    rows = [
+        {**row("BUY", "2024-01-02", ticker="", quantity=7), "Ticker": ""},
+        {**row("BUY", "2024-01-03", ticker="MSFT", quantity=2), "Ticker": None},
+    ]
+
+    result = check_coverage(rows, [PlannedSale("AAPL", 1, "2024-02-01")])
+
+    assert result["results"][0]["status"] == "NOT_COVERED"
+    assert result["results"][0]["history_found"] is False
+
+
 def test_alias_and_empty_history_are_explicit():
     result = check_coverage(
         [row("BUY", "2024-01-01", ticker="FB", quantity=3)],
@@ -130,3 +142,23 @@ def test_coverage_matches_normal_fifo_inventory():
         "2024-01-01",
         "2024-02-01",
     ]
+
+
+def test_coverage_selects_identity_active_on_as_of_date_and_reports_isin():
+    rows = [
+        row("BUY", "2023-01-01", ticker="OKE", quantity=2, ISIN=""),
+        row("BUY", "2024-01-01", ticker="OKE", quantity=5, ISIN="OLD-ISIN"),
+        row("BUY", "2025-03-04", ticker="OKE", quantity=3, ISIN="NEW-ISIN"),
+    ]
+
+    before_change = check_coverage(rows, [PlannedSale("OKE", 7, "2025-03-03")])[
+        "results"
+    ][0]
+    after_change = check_coverage(rows, [PlannedSale("OKE", 3, "2025-03-04")])[
+        "results"
+    ][0]
+
+    assert before_change["available"] == 7.0
+    assert {lot["isin"] for lot in before_change["lots"]} == {"OLD-ISIN"}
+    assert after_change["available"] == 3.0
+    assert [lot["isin"] for lot in after_change["lots"]] == ["NEW-ISIN"]

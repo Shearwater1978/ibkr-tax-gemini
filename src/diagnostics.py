@@ -10,6 +10,9 @@ class CalculationDiagnostic:
     date: Optional[str] = None
     currency: Optional[str] = None
     quantity: Optional[float] = None
+    isin: Optional[str] = None
+    previous_isin: Optional[str] = None
+    new_isin: Optional[str] = None
 
 
 class CalculationError(RuntimeError):

@@ -60,6 +60,7 @@ def collect_all_trade_data(
     realized_gains: List[Dict[str, Any]],
     dividends: List[Dict[str, Any]],
     inventory: List[Dict[str, Any]],
+    identity_changes: List[Any] = None,
 ) -> Tuple[Dict[str, pd.DataFrame], Dict[str, Dict[str, str]]]:
 
     # --- 1. Sales P&L ---
@@ -76,6 +77,7 @@ def collect_all_trade_data(
                 {
                     "Date": sale_date,
                     "Ticker": ticker,
+                    "ISIN": sale.get("isin", ""),
                     "TransactionType": "Sale_P&L",
                     "Buy_Date": "MISSING",
                     "Quantity": float(sale.get("quantity", 0)),
@@ -99,6 +101,7 @@ def collect_all_trade_data(
                 {
                     "Date": sale_date,
                     "Ticker": ticker,
+                    "ISIN": buy.get("isin", sale.get("isin", "")),
                     "TransactionType": "Sale_P&L",
                     "Buy_Date": buy_date,
                     "Quantity": qty,
@@ -120,6 +123,7 @@ def collect_all_trade_data(
         cols = [
             "Date",
             "Ticker",
+            "ISIN",
             "TransactionType",
             "Buy_Date",
             "Quantity",
@@ -141,6 +145,7 @@ def collect_all_trade_data(
             {
                 "Date": d.get("ex_date"),
                 "Ticker": d.get("ticker"),
+                "ISIN": d.get("isin", ""),
                 "TransactionType": "Dividend",
                 "Quantity": 0,
                 "Gross_PLN": gross,
@@ -170,6 +175,7 @@ def collect_all_trade_data(
             {
                 "Buy_Date": buy_date,
                 "Ticker": i.get("ticker"),
+                "ISIN": i.get("isin", ""),
                 "TransactionType": "Inventory",
                 "Quantity": i.get("quantity"),
                 "Cost_per_Share": i.get("cost_per_share"),
@@ -186,6 +192,28 @@ def collect_all_trade_data(
         "Dividends": df_dividends,
         "Open Positions": df_inventory,
     }
+
+    if identity_changes:
+        change_records = []
+        for change in identity_changes:
+            if isinstance(change, dict):
+                value = change
+            else:
+                value = vars(change)
+            change_records.append(
+                {
+                    "Ticker": value.get("ticker", ""),
+                    "Previous ISIN": value.get("previous_isin", ""),
+                    "New ISIN": value.get("new_isin", ""),
+                    "Change Date": value.get("date", ""),
+                }
+            )
+        sheets_collection["Identity Changes"] = pd.DataFrame(change_records)
+    else:
+        for sheet_name in ("Sales P&L", "Dividends", "Open Positions"):
+            sheets_collection[sheet_name] = sheets_collection[sheet_name].drop(
+                columns=["ISIN"], errors="ignore"
+            )
 
     ticker_summary = calculate_ticker_summary(flat_records)
     return sheets_collection, ticker_summary

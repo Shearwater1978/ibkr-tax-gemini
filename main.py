@@ -2,6 +2,7 @@
 
 import argparse
 import json
+from dataclasses import asdict
 from datetime import date
 from collections import defaultdict
 import sys
@@ -33,7 +34,9 @@ except ImportError:
     PDF_AVAILABLE = False
 
 
-def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inventory):
+def prepare_data_for_pdf(
+    target_year, raw_trades, realized_gains, dividends, inventory, identity_changes=None
+):
     """
     Adapter: Converts processing results into the dictionary structure
     expected by src/report_pdf.py.
@@ -98,6 +101,7 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
                     {
                         "date": t["Date"],
                         "ticker": t["Ticker"],
+                        "isin": t.get("ISIN", "") or "",
                         "type": event_type,
                         "qty": float(t["Quantity"]) if t["Quantity"] else 0,
                         "ratio": 1,
@@ -110,6 +114,7 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
                     {
                         "date": t["Date"],
                         "ticker": t["Ticker"],
+                        "isin": t.get("ISIN", "") or "",
                         "type": event_type,
                         "qty": float(t["Quantity"]) if t["Quantity"] else 0,
                         "price": float(t["Price"]) if t["Price"] else 0,
@@ -142,6 +147,7 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
             {
                 "date": date_str,
                 "ticker": d["ticker"],
+                "isin": d.get("isin", ""),
                 "amount": (
                     d.get("gross_amount_pln", 0) / d.get("rate", 1)
                     if d.get("rate")
@@ -208,6 +214,10 @@ def prepare_data_for_pdf(target_year, raw_trades, realized_gains, dividends, inv
                 "div_rows_count": len(dividends),
                 "tax_rows_count": 0,
             },
+            "identity_changes": [
+                asdict(change) if hasattr(change, "__dataclass_fields__") else change
+                for change in (identity_changes or [])
+            ],
         },
     }
     return pdf_payload
@@ -242,10 +252,12 @@ def run_import_routine():
 
     if any(combined.values()):
         print("Saving to database...")
-        result = save_to_database(combined)
+        result = save_to_database(combined, include_identity_counts=True)
         print(
             f"Import summary: {result['inserted']} inserted, "
-            f"{result['skipped']} skipped."
+            f"{result['skipped']} skipped; "
+            f"{result.get('identity_resolved', 0)} identity-resolved, "
+            f"{result.get('identity_unresolved', 0)} unresolved."
         )
         return result
     else:
@@ -297,7 +309,7 @@ def run_ib_sync_routine():
             "trades": [],
         }
 
-    result = save_to_database(normalized)
+    result = save_to_database(normalized, include_identity_counts=True)
     print(
         f"IB sync summary: {result['inserted']} inserted, "
         f"{result['skipped']} skipped."
@@ -331,7 +343,7 @@ def run_ib_web_sync_routine():
             "trades": [],
         }
 
-    result = save_to_database(normalized)
+    result = save_to_database(normalized, include_identity_counts=True)
     return {
         "status": "success",
         "message": "IB Web API sync finished",
@@ -462,8 +474,8 @@ def main():
     print("INFO: Running FIFO matching and NBP currency conversion...")
     try:
         # process_yearly_data works with original PascalCase DB keys
-        realized_gains, dividends, inventory = process_yearly_data(
-            raw_trades, args.target_year
+        realized_gains, dividends, inventory, diagnostics = process_yearly_data(
+            raw_trades, args.target_year, include_diagnostics=True
         )
     except CalculationError as e:
         diagnostic = e.diagnostic
@@ -472,6 +484,9 @@ def main():
     except Exception as e:
         print(f"CRITICAL ERROR during processing: {e}")
         sys.exit(1)
+
+    for diagnostic in diagnostics:
+        print(f"WARNING [{diagnostic.code}]: {diagnostic.message}")
 
     # Calculate Totals
     total_pl = sum(r["profit_loss"] for r in realized_gains)
@@ -490,7 +505,7 @@ def main():
         print("\nStarting Excel export...")
         try:
             sheets_dict, ticker_summary = collect_all_trade_data(
-                realized_gains, dividends, inventory
+                realized_gains, dividends, inventory, diagnostics
             )
 
             summary_metrics = {
@@ -521,7 +536,12 @@ def main():
             # Prepare data for PDF (handling PascalCase keys)
             try:
                 pdf_data = prepare_data_for_pdf(
-                    args.target_year, raw_trades, realized_gains, dividends, inventory
+                    args.target_year,
+                    raw_trades,
+                    realized_gains,
+                    dividends,
+                    inventory,
+                    diagnostics,
                 )
                 generate_pdf(pdf_data, output_path_pdf)
                 print(f"SUCCESS: PDF report saved to {output_path_pdf}")

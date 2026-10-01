@@ -116,6 +116,14 @@ class DBConnector:
             self.conn.execute("ALTER TABLE transactions ADD COLUMN SourceKey TEXT")
         if "SplitRatio" not in columns:
             self.conn.execute("ALTER TABLE transactions ADD COLUMN SplitRatio REAL")
+        if "ISIN" not in columns:
+            self.conn.execute("ALTER TABLE transactions ADD COLUMN ISIN TEXT")
+        if "Conid" not in columns:
+            self.conn.execute("ALTER TABLE transactions ADD COLUMN Conid TEXT")
+        if "InstrumentDescription" not in columns:
+            self.conn.execute(
+                "ALTER TABLE transactions ADD COLUMN InstrumentDescription TEXT"
+            )
         self.conn.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_source_key "
             "ON transactions(SourceKey) WHERE SourceKey IS NOT NULL"
@@ -147,7 +155,8 @@ class DBConnector:
     def get_trades_for_calculation(self, target_year=None, ticker=None):
         query = """
             SELECT rowid as TradeId, Date, EventType, Ticker, Quantity,
-                 Price, Currency, Amount, Fee, Description, SplitRatio
+                 Price, Currency, Amount, Fee, Description, SplitRatio, ISIN, Conid,
+                 InstrumentDescription
             FROM transactions
             WHERE 1=1
         """

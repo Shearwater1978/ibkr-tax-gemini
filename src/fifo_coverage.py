@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Any, Dict, Iterable, List
 
 from src.fifo import TradeMatcher
+from src.instrument_identity import resolve_instrument_identities
 
 TICKER_ALIASES = {"TOT": "TTE", "FB": "META"}
 EPSILON = Decimal("0.00000001")
@@ -63,6 +64,7 @@ class PlannedSale:
 @dataclass(frozen=True)
 class CoverageLot:
     ticker: str
+    isin: str
     acquisition_date: str
     quantity: Decimal
     source: str
@@ -70,6 +72,7 @@ class CoverageLot:
     def as_dict(self) -> Dict[str, Any]:
         return {
             "ticker": self.ticker,
+            "isin": self.isin,
             "acquisition_date": self.acquisition_date,
             "quantity": float(self.quantity),
             "source": self.source,
@@ -120,6 +123,7 @@ def _normalize_event(row: Dict[str, Any]) -> Dict[str, Any]:
         "type": event_type,
         "date": row.get("Date", row.get("date")),
         "ticker": ticker,
+        "isin": row.get("ISIN", row.get("isin", "")) or "",
         "qty": quantity,
         "price": Decimal(0),
         "commission": Decimal(0),
@@ -130,10 +134,19 @@ def _normalize_event(row: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _row_matches_ticker(row: Dict[str, Any], ticker: str) -> bool:
+    try:
+        raw_ticker = row.get("Ticker", row.get("ticker", ""))
+        return normalize_ticker(raw_ticker) == ticker
+    except ValueError:
+        return False
+
+
 def build_inventory_snapshot(
     rows: Iterable[Dict[str, Any]], as_of: str
-) -> Dict[str, deque]:
+) -> Dict[Any, deque]:
     as_of = valid_date(as_of)
+    rows, _ = resolve_instrument_identities(rows)
     events = []
     for row in rows:
         event = _normalize_event(row)
@@ -141,10 +154,14 @@ def build_inventory_snapshot(
             events.append(event)
     matcher = TradeMatcher()
     matcher.process_trades(events)
-    return {
-        ticker: deque(batch.copy() for batch in batches)
-        for ticker, batches in matcher.inventory.items()
-    }
+    snapshot = {}
+    for key, batches in matcher.inventory.items():
+        if isinstance(key, tuple):
+            identity = key
+        else:
+            identity = (key, batches[0].get("isin", "") if batches else "")
+        snapshot[identity] = deque(batch.copy() for batch in batches)
+    return snapshot
 
 
 def check_coverage(
@@ -157,11 +174,28 @@ def check_coverage(
     if len(set(tickers)) != len(tickers):
         raise ValueError("planned sales must not contain duplicate tickers")
 
-    all_rows = list(rows)
+    all_rows, _ = resolve_instrument_identities(rows)
     results = []
     for request in requests:
         snapshot = build_inventory_snapshot(all_rows, request.as_of)
-        inventory = snapshot.get(request.ticker, deque())
+        identity_starts = {}
+        for row in all_rows:
+            raw_ticker = row.get("Ticker", row.get("ticker", ""))
+            try:
+                row_ticker = normalize_ticker(raw_ticker)
+            except ValueError:
+                continue
+            row_date = row.get("Date", row.get("date", "")) or ""
+            isin = row.get("ISIN", row.get("isin", "")) or ""
+            if row_ticker == request.ticker and row_date <= request.as_of:
+                if isin not in identity_starts or row_date < identity_starts[isin]:
+                    identity_starts[isin] = row_date
+        active_isin = (
+            max(identity_starts.items(), key=lambda item: (item[1], item[0]))[0]
+            if identity_starts
+            else ""
+        )
+        inventory = snapshot.get((request.ticker, active_isin), deque())
         available = sum((batch["qty"] for batch in inventory), Decimal(0))
         remaining = min(request.quantity, available)
         lots = []
@@ -172,6 +206,7 @@ def check_coverage(
             lots.append(
                 CoverageLot(
                     request.ticker,
+                    str(batch.get("isin", "")),
                     batch["date"],
                     contribution,
                     str(batch.get("source", "UNKNOWN")),
@@ -195,15 +230,7 @@ def check_coverage(
                 status,
                 lots,
                 any(
-                    row.get("Ticker", row.get("ticker"))
-                    in {
-                        request.ticker,
-                        *[
-                            alias
-                            for alias, target in TICKER_ALIASES.items()
-                            if target == request.ticker
-                        ],
-                    }
+                    _row_matches_ticker(row, request.ticker)
                     and row.get("Date", row.get("date", "")) <= request.as_of
                     for row in all_rows
                 ),

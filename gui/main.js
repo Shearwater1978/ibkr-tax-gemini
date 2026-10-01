@@ -1,10 +1,12 @@
 // gui/main.js
 const { app, BrowserWindow } = require('electron');
+const http = require('http');
 const path = require('path');
 const { spawn } = require('child_process');
 
 let mainWindow;
 let pythonProcess;
+const backendUrl = 'http://127.0.0.1:8000/health';
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -54,8 +56,34 @@ function startPythonBackend() {
   });
 }
 
-app.whenReady().then(() => {
-  startPythonBackend();
+function backendIsReady() {
+  return new Promise((resolve) => {
+    const request = http.get(backendUrl, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        body += chunk;
+      });
+      response.on('end', () => {
+        try {
+          resolve(response.statusCode === 200 && JSON.parse(body).status === 'ready');
+        } catch {
+          resolve(false);
+        }
+      });
+    });
+
+    request.setTimeout(1000, () => request.destroy());
+    request.on('error', () => resolve(false));
+  });
+}
+
+app.whenReady().then(async () => {
+  if (await backendIsReady()) {
+    console.log('Using existing Python backend.');
+  } else {
+    startPythonBackend();
+  }
   createWindow();
 });
 

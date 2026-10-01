@@ -62,6 +62,24 @@ def test_import_reports_inserted_and_skipped_counts():
     assert response.json()["count"] == 1
 
 
+def test_import_reports_identity_resolution_counts():
+    database = FakeDatabase([("2025-01-01",)])
+    result = {
+        "inserted": 1,
+        "skipped": 0,
+        "identity_resolved": 3,
+        "identity_unresolved": 2,
+    }
+    with patch.object(api, "run_import_routine", return_value=result), patch.object(
+        api, "DBConnector", return_value=database
+    ):
+        response = TestClient(api.app).post("/import")
+
+    assert response.status_code == 200
+    assert response.json()["identity_resolved"] == 3
+    assert response.json()["identity_unresolved"] == 2
+
+
 def test_missing_year_data_preserves_404():
     with patch.object(api, "DBConnector", return_value=FakeDatabase()):
         response = TestClient(api.app).get("/calculate/2025")
@@ -306,7 +324,7 @@ def test_calculation_diagnostic_is_structured():
 def test_calculation_marks_failed_export_unavailable():
     database = FakeDatabase([{"TradeId": 1}])
     with patch.object(api, "DBConnector", return_value=database), patch.object(
-        api, "process_yearly_data", return_value=([], [], [])
+        api, "process_yearly_data", return_value=([], [], [], [])
     ), patch.object(api, "collect_all_trade_data", return_value=({}, {})), patch.object(
         api, "export_to_excel", side_effect=ReportExportError("write failed")
     ), patch.object(
@@ -318,6 +336,64 @@ def test_calculation_marks_failed_export_unavailable():
     assert response.json()["complete"] is False
     assert response.json()["excel_available"] is False
     assert response.json()["pdf_available"] is False
+
+
+def test_calculation_returns_identity_change_diagnostic_without_failing():
+    diagnostic = CalculationDiagnostic(
+        code="IDENTITY_CHANGE",
+        message="Ticker OKE changed identity.",
+        ticker="OKE",
+        date="2025-03-04",
+        previous_isin="US6826801036",
+        new_isin="NEW-ISIN",
+    )
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api,
+        "process_yearly_data",
+        return_value=([], [], [], [diagnostic]),
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel"
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        response = TestClient(api.app).get("/calculate/2025")
+
+    assert response.status_code == 200
+    assert response.json()["diagnostics"] == [
+        {
+            "code": "IDENTITY_CHANGE",
+            "message": "Ticker OKE changed identity.",
+            "ticker": "OKE",
+            "date": "2025-03-04",
+            "currency": None,
+            "quantity": None,
+            "isin": None,
+            "previous_isin": "US6826801036",
+            "new_isin": "NEW-ISIN",
+        }
+    ]
+
+
+def test_calculation_omits_identity_diagnostics_when_no_change_exists():
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=([], [], [], [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel"
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        response = TestClient(api.app).get("/calculate/2025")
+
+    assert response.status_code == 200
+    assert "diagnostics" not in response.json()
 
 
 def test_missing_report_returns_404():

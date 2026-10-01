@@ -14,6 +14,7 @@ merge, copy its content to the Wiki manually.
 - Local SQLCipher database with AES-256 encryption.
 - Parser for IBKR Activity Statements and Flex Query CSV reports.
 - Idempotent imports with duplicate detection and import summaries.
+- ISIN and broker contract identity tracking, with remapped tickers isolated into separate FIFO histories.
 - FIFO matching for buys, sells, transfers, splits, and supported corporate actions.
 - Official NBP exchange rates using the previous-working-day rule.
 - Excel and PDF report generation.
@@ -56,6 +57,7 @@ project-root/
 |  |- db_connector.py              SQLCipher database access
 |  |- processing.py                Tax and event processing
 |  |- fifo.py                      FIFO inventory and realized gains
+|  |- instrument_identity.py       Legacy identity resolution and change detection
 |  |- fifo_coverage.py             Non-destructive coverage preflight
 |  |- nbp.py                       NBP exchange-rate lookup and caching
 |  |- excel_exporter.py            Excel output
@@ -76,7 +78,9 @@ python main.py --import-data
 
 The import scans `data/*.csv`, normalizes supported records, ignores duplicate
 records, and stores transactions in the encrypted database. Keep all historical
-reports: FIFO cost basis may require purchases from earlier years.
+reports: FIFO cost basis may require purchases from earlier years. Import
+summaries include counts for identity-resolved and unresolved records. Re-imports
+update ISIN/conid metadata in place without changing transaction deduplication.
 
 ## Calculate Reports
 
@@ -90,6 +94,10 @@ The calculation reads imported transactions through the requested year,
 applies FIFO matching and NBP conversion, and writes reports under `output/`.
 If an NBP rate is unavailable or a sale cannot be matched, the calculation
 returns a diagnostic rather than presenting incomplete tax totals as valid.
+When one ticker has multiple ISINs, the calculation reports the dated identity
+boundary and keeps each identity's FIFO lots separate. Sales cannot consume lots
+from another ISIN. Legacy rows without an ISIN are assigned to that ticker's
+earliest observed identity.
 
 ## FIFO Coverage Preflight
 
@@ -137,7 +145,7 @@ Statuses are:
 `history_found: false` distinguishes missing broker history from imported
 history that simply has no remaining holdings. Lot evidence is listed oldest
 first and includes acquisition date, quantity contribution, and source identity
-when available.
+when available, including the ISIN active on the as-of date.
 
 ### API
 
@@ -177,21 +185,25 @@ working day before the event and caches rate lookups where possible.
 
 ### Dividends and Withholding Tax
 
-Dividend and withholding-tax rows are linked by date and ticker. Reports show
-gross dividend amounts and tax withheld in PLN when the required data is present.
+Dividend and withholding-tax rows are linked by date, ticker, and ISIN. Reports
+show gross dividend amounts and tax withheld in PLN when the required data is
+present.
 
 ## Reports
 
 ### Excel
 
 The Excel workbook includes summary metrics, realized sales and FIFO lot
-matches, dividends, and open inventory lots.
+matches, dividends, and open inventory lots. When a ticker has multiple ISINs,
+history rows include ISIN and an `Identity Changes` sheet lists the previous
+ISIN, new ISIN, and change date. The ticker summary remains one row per ticker.
 
 ### PDF
 
 The PDF contains a cover, portfolio holdings, filtered trade history, dividend
-summary, and PIT-38 helper figures. It is an analysis and preparation aid, not
-a guarantee that a tax filing is legally correct.
+summary, identity-change disclosure when applicable, and PIT-38 helper figures.
+It is an analysis and preparation aid, not a guarantee that a tax filing is
+legally correct.
 
 ## Desktop GUI
 

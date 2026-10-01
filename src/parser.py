@@ -85,6 +85,28 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
     return "UNKNOWN"
 
 
+def extract_isin(description: str, ticker: str = "") -> str:
+    """Extract the ISIN associated with a ticker in an IBKR description."""
+    if ticker:
+        escaped_ticker = re.escape(ticker.strip())
+        embedded = re.search(
+            rf"\(\s*{escaped_ticker}\s*,\s*[^,]+,\s*([A-Z]{{2}}[A-Z0-9]{{10}})\s*\)",
+            description,
+            re.I,
+        )
+        if embedded:
+            return embedded.group(1).upper()
+        direct = re.search(
+            rf"\b{escaped_ticker}\s*\(([A-Z]{{2}}[A-Z0-9]{{10}})\)",
+            description,
+            re.I,
+        )
+        if direct:
+            return direct.group(1).upper()
+    match = re.search(r"\b[A-Z0-9.]+\s*\(([A-Z]{2}[A-Z0-9]{10})\)", description, re.I)
+    return match.group(1).upper() if match else ""
+
+
 def classify_trade_type(description: str, quantity: Decimal) -> str:
     """Classifies standard trades and transfers."""
     desc_upper = description.upper()
@@ -179,6 +201,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
     """Parses IBKR Activity Flex Query CSV file."""
     data = {"trades": [], "dividends": [], "taxes": [], "corp_actions": []}
     section_headers = {}
+    financial_instruments = {}
     filename = os.path.basename(filepath)
     print(f"Parsing file: {filename}")
 
@@ -243,6 +266,9 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     data["trades"].append(
                         {
                             "ticker": ticker,
+                            "isin": extract_isin(desc_raw, ticker),
+                            "conid": "",
+                            "instrument_description": "",
                             "currency": row[idx_cur],
                             "date": date_norm,
                             "qty": qty,
@@ -266,6 +292,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         continue
 
                     idx_date = get_col_idx(headers, ["Date/Time", "Report Date"])
+                    idx_cur = get_col_idx(headers, ["Currency"])
                     idx_desc = get_col_idx(headers, ["Description"])
                     idx_qty = get_col_idx(headers, ["Quantity"])
                     idx_sym = get_col_idx(headers, ["Symbol", "Ticker"])
@@ -293,7 +320,12 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         data["corp_actions"].append(
                             {
                                 "ticker": real_ticker,
-                                "currency": "USD",
+                                "isin": extract_isin(desc, real_ticker),
+                                "conid": "",
+                                "instrument_description": "",
+                                "currency": (
+                                    row[idx_cur] if idx_cur is not None else "USD"
+                                ),
                                 "date": date_norm,
                                 "qty": qty,
                                 "price": Decimal(0),
@@ -327,6 +359,9 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     data["dividends"].append(
                         {
                             "ticker": ticker,
+                            "isin": extract_isin(row[idx_desc], ticker),
+                            "conid": "",
+                            "instrument_description": "",
                             "currency": row[idx_cur],
                             "date": date_norm,
                             "amount": parse_decimal(row[idx_amt]),
@@ -356,12 +391,86 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     data["taxes"].append(
                         {
                             "ticker": ticker,
+                            "isin": extract_isin(
+                                row[idx_desc] if idx_desc is not None else "", ticker
+                            ),
+                            "conid": "",
+                            "instrument_description": "",
                             "currency": row[idx_cur],
                             "date": date_norm,
                             "amount": parse_decimal(row[idx_amt]),
                             "source_file": filename,
                         }
                     )
+
+                elif section == "Financial Instrument Information":
+                    idx_symbol = get_col_idx(headers, ["Symbol", "Ticker"])
+                    idx_description = get_col_idx(headers, ["Description"])
+                    idx_conid = get_col_idx(headers, ["Conid", "ConID"])
+                    idx_security_id = get_col_idx(headers, ["Security ID"])
+                    if idx_symbol is None:
+                        continue
+                    symbol = row[idx_symbol].strip().upper()
+                    if not symbol:
+                        continue
+                    security_id = (
+                        row[idx_security_id].strip()
+                        if idx_security_id is not None
+                        else ""
+                    )
+                    financial_instruments.setdefault(symbol, []).append(
+                        {
+                            "isin": extract_isin(f"{symbol}({security_id})"),
+                            "conid": (
+                                row[idx_conid].strip() if idx_conid is not None else ""
+                            ),
+                            "instrument_description": (
+                                row[idx_description].strip()
+                                if idx_description is not None
+                                else ""
+                            ),
+                        }
+                    )
+
+        observed_identities = {}
+        for records in data.values():
+            for record in records:
+                ticker = str(record.get("ticker", "")).strip().upper()
+                currency = str(record.get("currency", "")).strip().upper()
+                isin = record.get("isin", "")
+                if ticker and currency and isin:
+                    observed_identities.setdefault((ticker, currency), set()).add(isin)
+
+        for records in data.values():
+            for record in records:
+                ticker = str(record.get("ticker", "")).strip().upper()
+                currency = str(record.get("currency", "")).strip().upper()
+                candidates = financial_instruments.get(ticker, [])
+                isin = record.get("isin", "")
+
+                if isin:
+                    instrument = next(
+                        (item for item in candidates if item["isin"] == isin), None
+                    )
+                else:
+                    observed = observed_identities.get((ticker, currency), set())
+                    matching = [item for item in candidates if item["isin"] in observed]
+                    if len(observed) == 1:
+                        isin = next(iter(observed))
+                        instrument = next(
+                            (item for item in matching if item["isin"] == isin), None
+                        )
+                        record["isin"] = isin
+                    elif not observed and len(candidates) == 1:
+                        instrument = candidates[0]
+                        record["isin"] = instrument["isin"]
+                    else:
+                        instrument = None
+
+                if instrument:
+                    for field in ("conid", "instrument_description"):
+                        if not record.get(field):
+                            record[field] = instrument.get(field, "")
 
     except Exception as e:
         print(f"ERROR parsing {filename}: {e}")
@@ -384,7 +493,7 @@ def _source_key(record):
     return hashlib.sha256("\x1f".join(values).encode("utf-8")).hexdigest()
 
 
-def save_to_database(all_data):
+def save_to_database(all_data, include_identity_counts=False):
     """Validates and atomically upserts normalized records."""
     manual_fixes = load_manual_fixes(MANUAL_FIXES_FILE)
     if manual_fixes:
@@ -393,9 +502,11 @@ def save_to_database(all_data):
     seen_registry = set()
     unique_records = []
     duplicates_count = 0
+    identity_resolved = 0
+    identity_unresolved = 0
 
     def process_list(datalist, category):
-        nonlocal duplicates_count
+        nonlocal duplicates_count, identity_resolved, identity_unresolved
         for t in datalist:
             qty_val = t.get("qty", 0)
             price_val = t.get("price", 0)
@@ -406,6 +517,10 @@ def save_to_database(all_data):
                 raise ValueError("Import record is missing date, ticker, or currency")
             if record_type == "UNKNOWN":
                 raise ValueError("Import record has an unknown event type")
+            if t.get("isin"):
+                identity_resolved += 1
+            else:
+                identity_unresolved += 1
 
             key_record = dict(t)
             key_record["type"] = record_type
@@ -431,6 +546,9 @@ def save_to_database(all_data):
                         "Dividend",
                         sig,
                         None,
+                        t.get("isin", ""),
+                        t.get("conid", ""),
+                        t.get("instrument_description", ""),
                     )
                 )
             elif category == "TAX":
@@ -447,6 +565,9 @@ def save_to_database(all_data):
                         "Tax",
                         sig,
                         None,
+                        t.get("isin", ""),
+                        t.get("conid", ""),
+                        t.get("instrument_description", ""),
                     )
                 )
             else:
@@ -463,6 +584,9 @@ def save_to_database(all_data):
                         t["source"],
                         sig,
                         float(t.get("ratio")) if t.get("ratio") is not None else None,
+                        t.get("isin", ""),
+                        t.get("conid", ""),
+                        t.get("instrument_description", ""),
                     )
                 )
 
@@ -478,10 +602,17 @@ def save_to_database(all_data):
 
     if not unique_records:
         print("WARNING: No valid records to save.")
-        return {"inserted": 0, "skipped": duplicates_count}
+        result = {"inserted": 0, "skipped": duplicates_count}
+        if include_identity_counts:
+            result.update(
+                identity_resolved=identity_resolved,
+                identity_unresolved=identity_unresolved,
+            )
+        return result
 
     with DBConnector() as db:
         db.initialize_schema()
+        db.conn.execute("BEGIN")
         legacy_rows = db.conn.execute(
             "SELECT rowid, Date, EventType, Ticker, Quantity, Price, Currency, "
             "Amount, Fee, Description, SplitRatio FROM transactions "
@@ -510,19 +641,38 @@ def save_to_database(all_data):
                 "SELECT SourceKey FROM transactions WHERE SourceKey IS NOT NULL"
             ).fetchall()
         }
+        db.conn.executemany(
+            "UPDATE transactions SET "
+            "ISIN = CASE WHEN ? <> '' THEN ? ELSE ISIN END, "
+            "Conid = CASE WHEN ? <> '' THEN ? ELSE Conid END, "
+            "InstrumentDescription = CASE WHEN ? <> '' THEN ? ELSE InstrumentDescription END "
+            "WHERE SourceKey = ?",
+            [
+                (
+                    record[11],
+                    record[11],
+                    record[12],
+                    record[12],
+                    record[13],
+                    record[13],
+                    record[9],
+                )
+                for record in unique_records
+                if record[9] in existing_keys
+            ],
+        )
         records_to_insert = [
-            record for record in unique_records if record[-2] not in existing_keys
+            record for record in unique_records if record[9] not in existing_keys
         ]
         skipped_existing = len(unique_records) - len(records_to_insert)
-        db.conn.execute("BEGIN")
         try:
             before_count = db.conn.execute(
                 "SELECT COUNT(*) FROM transactions"
             ).fetchone()[0]
             db.conn.executemany(
                 "INSERT OR IGNORE INTO transactions "
-                "(Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description, SourceKey, SplitRatio) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "(Date, EventType, Ticker, Quantity, Price, Currency, Amount, Fee, Description, SourceKey, SplitRatio, ISIN, Conid, InstrumentDescription) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 records_to_insert,
             )
             after_count = db.conn.execute(
@@ -537,7 +687,13 @@ def save_to_database(all_data):
     print(
         f"Successfully imported {inserted} new records; skipped {skipped} duplicates."
     )
-    return {"inserted": inserted, "skipped": skipped}
+    result = {"inserted": inserted, "skipped": skipped}
+    if include_identity_counts:
+        result.update(
+            identity_resolved=identity_resolved,
+            identity_unresolved=identity_unresolved,
+        )
+    return result
 
 
 if __name__ == "__main__":
@@ -553,4 +709,4 @@ if __name__ == "__main__":
         for k in combined:
             combined[k].extend(parsed[k])
 
-    save_to_database(combined)
+    save_to_database(combined, include_identity_counts=True)

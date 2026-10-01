@@ -1,5 +1,4 @@
 from decimal import Decimal
-
 import pytest
 
 from src.db_connector import DBConnector, DBConnectorError
@@ -101,3 +100,248 @@ def test_split_ratio_reaches_fifo(encrypted_database):
     _, _, inventory = process_yearly_data(rows, 2024)
     assert inventory[0]["quantity"] == 2.0
     assert inventory[0]["cost_per_share"] == 50.0
+
+
+def test_isin_remap_import_calculation_and_report_end_to_end(
+    encrypted_database, tmp_path
+):
+    from main import prepare_data_for_pdf
+    from src.data_collector import collect_all_trade_data
+    from src.processing import process_yearly_data
+    from src.report_pdf import generate_pdf
+
+    trades = [
+        {
+            **trade_record(),
+            "date": "2024-01-02",
+            "ticker": "OKE",
+            "isin": "OLD-ISIN",
+            "conid": "10794",
+            "instrument_description": "OLD ONEOK",
+            "source": "old identity buy",
+        },
+        {
+            **trade_record(),
+            "date": "2025-03-04",
+            "ticker": "OKE",
+            "isin": "NEW-ISIN",
+            "conid": "99999",
+            "instrument_description": "NEW INSTRUMENT",
+            "qty": Decimal("2"),
+            "source": "new identity buy",
+        },
+        {
+            **trade_record(),
+            "date": "2025-03-05",
+            "type": "SELL",
+            "ticker": "OKE",
+            "isin": "NEW-ISIN",
+            "conid": "99999",
+            "instrument_description": "NEW INSTRUMENT",
+            "qty": Decimal("-1"),
+            "price": Decimal("150"),
+            "source": "new identity sale",
+        },
+    ]
+    save_to_database(
+        {"trades": trades, "dividends": [], "taxes": [], "corp_actions": []}
+    )
+
+    with DBConnector(encrypted_database, key="test-key") as db:
+        rows = db.get_trades_for_calculation(target_year=2025)
+
+    realized, dividends, inventory, diagnostics = process_yearly_data(
+        rows, 2025, include_diagnostics=True
+    )
+    sheets, ticker_summary = collect_all_trade_data(
+        realized, dividends, inventory, diagnostics
+    )
+    pdf_data = prepare_data_for_pdf(
+        2025, rows, realized, dividends, inventory, diagnostics
+    )
+
+    assert [(lot["ticker"], lot["isin"]) for lot in inventory] == [
+        ("OKE", "OLD-ISIN"),
+        ("OKE", "NEW-ISIN"),
+    ]
+    assert sheets["Open Positions"]["ISIN"].tolist() == ["OLD-ISIN", "NEW-ISIN"]
+    assert list(ticker_summary) == ["OKE"]
+    assert pdf_data["data"]["identity_changes"][0]["date"] == "2025-03-04"
+    assert len(pdf_data["data"]["holdings"]) == 1
+
+    report_path = tmp_path / "isin-remap.pdf"
+    generate_pdf(pdf_data, str(report_path))
+    assert report_path.is_file()
+
+
+def test_added_identity_columns_allow_legacy_query_and_calculation(encrypted_database):
+    save_to_database(
+        {
+            "trades": [trade_record()],
+            "dividends": [],
+            "taxes": [],
+            "corp_actions": [],
+        }
+    )
+    with DBConnector(encrypted_database, key="test-key") as db:
+        legacy_rows = [
+            dict(row)
+            for row in db.conn.execute(
+                "SELECT rowid as TradeId, Date, EventType, Ticker, Quantity, "
+                "Price, Currency, Amount, Fee, Description, SplitRatio "
+                "FROM transactions ORDER BY Date"
+            ).fetchall()
+        ]
+
+    from src.processing import process_yearly_data
+
+    _, _, inventory = process_yearly_data(legacy_rows, 2024)
+    assert inventory[0]["ticker"] == "AAPL"
+    assert inventory[0]["quantity"] == 1.0
+    assert "isin" not in inventory[0]
+
+
+def test_ogn_spinoff_lot_matches_sale_under_child_isin(encrypted_database, monkeypatch):
+    from src.processing import process_yearly_data
+
+    monkeypatch.setattr(
+        "src.processing.get_nbp_rate", lambda currency, trade_date: Decimal("1")
+    )
+    data = {
+        "trades": [
+            {
+                "date": "2021-07-23",
+                "type": "SELL",
+                "ticker": "OGN",
+                "qty": Decimal("-0.1"),
+                "price": Decimal("30.2"),
+                "currency": "USD",
+                "commission": Decimal("-0.030227302"),
+                "source": "OGN sample sale",
+                "isin": "US68622V1061",
+                "conid": "490414355",
+                "instrument_description": "ORGANON & CO",
+            }
+        ],
+        "corp_actions": [
+            {
+                "date": "2021-06-02",
+                "type": "STOCK_DIV",
+                "ticker": "OGN",
+                "qty": Decimal("0.1"),
+                "price": Decimal("0"),
+                "currency": "USD",
+                "commission": Decimal("0"),
+                "source": "MRK spinoff to OGN",
+                "isin": "US68622V1061",
+                "conid": "490414355",
+                "instrument_description": "ORGANON & CO",
+            }
+        ],
+        "dividends": [],
+        "taxes": [],
+    }
+    save_to_database(data)
+
+    with DBConnector(encrypted_database, key="test-key") as db:
+        rows = db.get_trades_for_calculation(target_year=2021, ticker="OGN")
+
+    assert {row["ISIN"] for row in rows} == {"US68622V1061"}
+    realized, _, _, _ = process_yearly_data(rows, 2021, include_diagnostics=True)
+    assert len(realized) == 1
+    assert realized[0]["matched_buys"][0]["date"] == "2021-06-02"
+
+
+def test_sber_adr_tender_uses_adr_purchase_not_common_share_identity(
+    encrypted_database, monkeypatch
+):
+    from src.processing import process_yearly_data
+
+    rate_calls = []
+    monkeypatch.setattr(
+        "src.processing.get_nbp_rate",
+        lambda currency, trade_date: (
+            rate_calls.append((currency, trade_date)) or Decimal("1")
+        ),
+    )
+    save_to_database(
+        {
+            "trades": [
+                {
+                    "date": "2022-01-14",
+                    "type": "BUY",
+                    "ticker": "SBER",
+                    "qty": Decimal("5"),
+                    "price": Decimal("13.335"),
+                    "currency": "USD",
+                    "commission": Decimal("-0.525"),
+                    "source": "SBER ADR purchase",
+                    "isin": "US80585Y3080",
+                    "conid": "90581067",
+                    "instrument_description": "SBERBANK PJSC -SPONSORED ADR",
+                }
+            ],
+            "corp_actions": [
+                {
+                    "date": "2022-05-24",
+                    "type": "MERGER",
+                    "ticker": "SBER",
+                    "qty": Decimal("-5"),
+                    "price": Decimal("0"),
+                    "currency": "USD",
+                    "commission": Decimal("0"),
+                    "source": "SBER ADR tender",
+                    "isin": "US80585Y3080",
+                    "conid": "90581067",
+                },
+                {
+                    "date": "2022-05-24",
+                    "type": "STOCK_DIV",
+                    "ticker": "SBER.CNV4",
+                    "qty": Decimal("5"),
+                    "price": Decimal("0"),
+                    "currency": "USD",
+                    "commission": Decimal("0"),
+                    "source": "SBER ADR tender proceeds",
+                    "isin": "US80585Y3CNV",
+                    "conid": "563839405",
+                },
+                {
+                    "date": "2022-05-24",
+                    "type": "MERGER",
+                    "ticker": "SBER.CNV4",
+                    "qty": Decimal("-5"),
+                    "price": Decimal("0"),
+                    "currency": "USD",
+                    "commission": Decimal("0"),
+                    "source": "SBER tender instrument merge",
+                    "isin": "US80585Y3CNV",
+                    "conid": "563839405",
+                },
+                {
+                    "date": "2022-05-24",
+                    "type": "STOCK_DIV",
+                    "ticker": "SBER",
+                    "qty": Decimal("20"),
+                    "price": Decimal("0"),
+                    "currency": "RUB",
+                    "commission": Decimal("0"),
+                    "source": "SBER common share merge",
+                    "isin": "RU0009029540",
+                    "conid": "360308912",
+                },
+            ],
+            "dividends": [],
+            "taxes": [],
+        }
+    )
+
+    with DBConnector(encrypted_database, key="test-key") as db:
+        rows = db.get_trades_for_calculation(target_year=2022)
+
+    sber_buy = next(
+        row for row in rows if row["Ticker"] == "SBER" and row["EventType"] == "BUY"
+    )
+    assert sber_buy["ISIN"] == "US80585Y3080"
+    _, _, _, _ = process_yearly_data(rows, 2022, include_diagnostics=True)
+    assert ("RUB", "2022-05-24") not in rate_calls

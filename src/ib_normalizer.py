@@ -65,7 +65,7 @@ def normalize_fill(fill: dict):
     else:
         qty, trade_type = shares, "UNKNOWN"
 
-    return {
+    record = {
         "ticker": symbol,
         "currency": currency,
         "date": date_norm,
@@ -76,6 +76,8 @@ def normalize_fill(fill: dict):
         "source": f"IB Live Fill {exec_id}",
         "source_file": "ib_live_api",
     }
+    _add_identity(record, fill)
+    return record
 
 
 def normalize_web_trade(trade: dict):
@@ -103,7 +105,7 @@ def normalize_web_trade(trade: dict):
     else:
         qty, trade_type = size, "UNKNOWN"
 
-    return {
+    record = {
         "ticker": symbol,
         "currency": currency,
         "date": date_norm,
@@ -114,6 +116,18 @@ def normalize_web_trade(trade: dict):
         "source": f"IB Web Trade {execution_id}",
         "source_file": "ib_web_api",
     }
+    _add_identity(record, trade)
+    return record
+
+
+def _add_identity(record: dict, source: dict):
+    identity = {
+        "isin": source.get("isin", ""),
+        "conid": source.get("conid", ""),
+        "instrument_description": source.get("description", ""),
+    }
+    if any(identity.values()):
+        record.update(identity)
 
 
 def normalize_snapshot(snapshot: dict) -> dict:
