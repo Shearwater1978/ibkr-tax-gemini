@@ -73,7 +73,12 @@ def process_yearly_data(
 
         # --- 2. Get Exchange Rate (NBP) ---
         rate = Decimal("1.0")
-        if currency != "PLN":
+        needs_exchange_rate = event_type in {"BUY", "SELL", "DIVIDEND"} or (
+            event_type == "TRANSFER"
+            and quantity > 0
+            and (price != 0 or fee != 0)
+        )
+        if currency != "PLN" and needs_exchange_rate:
             rate = get_nbp_rate(currency, date_str)
 
         # --- 3. Event Routing ---

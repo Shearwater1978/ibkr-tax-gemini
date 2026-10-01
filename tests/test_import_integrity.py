@@ -237,8 +237,12 @@ def test_sber_adr_tender_uses_adr_purchase_not_common_share_identity(
 ):
     from src.processing import process_yearly_data
 
+    rate_calls = []
     monkeypatch.setattr(
-        "src.processing.get_nbp_rate", lambda currency, trade_date: Decimal("1")
+        "src.processing.get_nbp_rate",
+        lambda currency, trade_date: (
+            rate_calls.append((currency, trade_date)) or Decimal("1")
+        ),
     )
     statement = parse_csv("data/U1601_U7701_20220103_20221230.csv")
     selected_tickers = {"SBER", "SBER.CNV4"}
@@ -267,3 +271,4 @@ def test_sber_adr_tender_uses_adr_purchase_not_common_share_identity(
     )
     assert sber_buy["ISIN"] == "US80585Y3080"
     _, _, _, _ = process_yearly_data(rows, 2022, include_diagnostics=True)
+    assert ("RUB", "2022-05-24") not in rate_calls

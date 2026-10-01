@@ -206,3 +206,44 @@ def test_dividend_and_tax_records_remain_attributed_to_each_identity(mock_rate):
         ("OLD-ISIN", 10.0),
         ("NEW-ISIN", 20.0),
     ]
+
+
+@patch("src.processing.get_nbp_rate")
+def test_zero_cost_corporate_action_does_not_require_exchange_rate(mock_rate):
+    row = {
+        "TradeId": 1,
+        "Date": "2022-05-24",
+        "EventType": "STOCK_DIV",
+        "Ticker": "SBER",
+        "ISIN": "RU0009029540",
+        "Quantity": 20,
+        "Price": 0,
+        "Amount": 0,
+        "Fee": 0,
+        "Currency": "RUB",
+    }
+
+    _, _, inventory = process_yearly_data([row], 2022)
+
+    mock_rate.assert_not_called()
+    assert inventory[0]["quantity"] == 20.0
+
+
+@patch("src.processing.get_nbp_rate", return_value=Decimal("2"))
+def test_valued_transfer_in_still_uses_exchange_rate(mock_rate):
+    row = {
+        "TradeId": 1,
+        "Date": "2022-05-24",
+        "EventType": "TRANSFER",
+        "Ticker": "SBER",
+        "Quantity": 2,
+        "Price": 10,
+        "Amount": 20,
+        "Fee": 1,
+        "Currency": "RUB",
+    }
+
+    _, _, inventory = process_yearly_data([row], 2022)
+
+    mock_rate.assert_called_once_with("RUB", "2022-05-24")
+    assert inventory[0]["total_cost"] == 42.0
