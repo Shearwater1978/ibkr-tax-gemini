@@ -16,16 +16,47 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        # Full history is required to diff against the PR base branch.
+        fetch-depth: 0
+
+    # Bandit only scans `src/`, so a documentation-only PR cannot change its
+    # result. This job always runs and always reports a status, which keeps any
+    # required check satisfied rather than pending. Do not move this into a
+    # job-level `if:`.
+    - name: Detect non-Markdown changes
+      id: changes
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "run=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        BASE="origin/${{ github.base_ref }}"
+        git fetch --no-tags origin "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
+        CHANGED="$(git diff --name-only "$BASE...HEAD")"
+        echo "Changed files:"
+        echo "$CHANGED"
+        if printf '%s\n' "$CHANGED" | grep -qv '\.md$'; then
+          echo "run=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "run=false" >> "$GITHUB_OUTPUT"
+          echo "Documentation-only change detected; skipping Bandit scan."
+        fi
+
+
     
     - name: Set up Python 3.12
+      if: steps.changes.outputs.run == 'true'
       uses: actions/setup-python@v5 # Updated to v5
       with:
         python-version: "3.12"
         
     - name: Install Bandit
+      if: steps.changes.outputs.run == 'true'
       run: pip install bandit
       
     - name: Run Bandit Scan
+      if: steps.changes.outputs.run == 'true'
       run: |
         # Generate JSON report (won't break build due to --exit-zero, per configuration)
         bandit -r src/ -f json -o bandit-report.json --exit-zero
@@ -34,6 +65,7 @@ jobs:
         bandit -r src/ -ll
 
     - name: Upload Security Report
+      if: steps.changes.outputs.run == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: bandit-report
