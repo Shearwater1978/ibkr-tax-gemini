@@ -85,8 +85,24 @@ def extract_ticker(description: str, symbol_col: str, quantity: Decimal) -> str:
     return "UNKNOWN"
 
 
-def extract_isin(description: str) -> str:
-    """Extracts an ISIN embedded in an IBKR instrument description."""
+def extract_isin(description: str, ticker: str = "") -> str:
+    """Extract the ISIN associated with a ticker in an IBKR description."""
+    if ticker:
+        escaped_ticker = re.escape(ticker.strip())
+        embedded = re.search(
+            rf"\(\s*{escaped_ticker}\s*,\s*[^,]+,\s*([A-Z]{{2}}[A-Z0-9]{{10}})\s*\)",
+            description,
+            re.I,
+        )
+        if embedded:
+            return embedded.group(1).upper()
+        direct = re.search(
+            rf"\b{escaped_ticker}\s*\(([A-Z]{{2}}[A-Z0-9]{{10}})\)",
+            description,
+            re.I,
+        )
+        if direct:
+            return direct.group(1).upper()
     match = re.search(r"\b[A-Z0-9.]+\s*\(([A-Z]{2}[A-Z0-9]{10})\)", description, re.I)
     return match.group(1).upper() if match else ""
 
@@ -250,7 +266,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     data["trades"].append(
                         {
                             "ticker": ticker,
-                            "isin": extract_isin(desc_raw),
+                            "isin": extract_isin(desc_raw, ticker),
                             "conid": "",
                             "instrument_description": "",
                             "currency": row[idx_cur],
@@ -303,7 +319,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         data["corp_actions"].append(
                             {
                                 "ticker": real_ticker,
-                                "isin": extract_isin(desc),
+                                "isin": extract_isin(desc, real_ticker),
                                 "conid": "",
                                 "instrument_description": "",
                                 "currency": "USD",
@@ -340,7 +356,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     data["dividends"].append(
                         {
                             "ticker": ticker,
-                            "isin": extract_isin(row[idx_desc]),
+                            "isin": extract_isin(row[idx_desc], ticker),
                             "conid": "",
                             "instrument_description": "",
                             "currency": row[idx_cur],
@@ -373,7 +389,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                         {
                             "ticker": ticker,
                             "isin": extract_isin(
-                                row[idx_desc] if idx_desc is not None else ""
+                                row[idx_desc] if idx_desc is not None else "", ticker
                             ),
                             "conid": "",
                             "instrument_description": "",

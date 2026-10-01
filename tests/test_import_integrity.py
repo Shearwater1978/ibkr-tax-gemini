@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from src.db_connector import DBConnector, DBConnectorError
-from src.parser import extract_split_ratio, save_to_database
+from src.parser import extract_split_ratio, parse_csv, save_to_database
 
 
 @pytest.fixture
@@ -198,3 +198,35 @@ def test_added_identity_columns_allow_legacy_query_and_calculation(encrypted_dat
     assert inventory[0]["ticker"] == "AAPL"
     assert inventory[0]["quantity"] == 1.0
     assert "isin" not in inventory[0]
+
+
+def test_ogn_spinoff_lot_matches_sale_under_child_isin(
+    encrypted_database, monkeypatch
+):
+    from src.processing import process_yearly_data
+
+    monkeypatch.setattr(
+        "src.processing.get_nbp_rate", lambda currency, trade_date: Decimal("1")
+    )
+    statement = parse_csv("data/U5801_20210315_20220107.csv")
+    data = {
+        "trades": [
+            record for record in statement["trades"] if record["ticker"] == "OGN"
+        ],
+        "corp_actions": [
+            record
+            for record in statement["corp_actions"]
+            if record["ticker"] == "OGN"
+        ],
+        "dividends": [],
+        "taxes": [],
+    }
+    save_to_database(data)
+
+    with DBConnector(encrypted_database, key="test-key") as db:
+        rows = db.get_trades_for_calculation(target_year=2021, ticker="OGN")
+
+    assert {row["ISIN"] for row in rows} == {"US68622V1061"}
+    realized, _, _, _ = process_yearly_data(rows, 2021, include_diagnostics=True)
+    assert len(realized) == 1
+    assert realized[0]["matched_buys"][0]["date"] == "2021-06-02"
