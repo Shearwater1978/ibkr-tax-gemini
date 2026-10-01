@@ -15,7 +15,6 @@ from src.instrument_identity import TICKER_ALIASES, resolve_instrument_identitie
 def process_yearly_data(
     raw_trades: List[Dict[str, Any]], target_year: int, include_diagnostics=False
 ):
-
     """
     Main Processing Pipeline:
     1. Fetches raw data from DB.
@@ -74,9 +73,7 @@ def process_yearly_data(
         # --- 2. Get Exchange Rate (NBP) ---
         rate = Decimal("1.0")
         needs_exchange_rate = event_type in {"BUY", "SELL", "DIVIDEND"} or (
-            event_type == "TRANSFER"
-            and quantity > 0
-            and (price != 0 or fee != 0)
+            event_type == "TRANSFER" and quantity > 0 and (price != 0 or fee != 0)
         )
         if currency != "PLN" and needs_exchange_rate:
             rate = get_nbp_rate(currency, date_str)

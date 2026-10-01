@@ -1,4 +1,9 @@
 repos:
+-   repo: https://github.com/psf/black
+    rev: 26.5.1
+    hooks:
+    -   id: black
+
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -11,5 +16,7 @@ repos:
     rev: 7.0.0
     hooks:
     -   id: flake8
-        # Make it match GitHub Actions settings loosely (allow 127 chars)
-        args: [--max-line-length=127]
+        # Match the blocking flake8 categories in GitHub Actions.
+        args:
+        -   --select=E9,F63,F7,F82
+        -   --max-line-length=127

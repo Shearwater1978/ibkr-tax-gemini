@@ -353,9 +353,13 @@ def test_calculation_returns_identity_change_diagnostic_without_failing():
         api,
         "process_yearly_data",
         return_value=([], [], [], [diagnostic]),
-    ), patch.object(api, "collect_all_trade_data", return_value=({}, {})), patch.object(
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
         api, "export_to_excel"
-    ), patch.object(api, "generate_pdf", None):
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
         response = TestClient(api.app).get("/calculate/2025")
 
     assert response.status_code == 200
@@ -379,9 +383,13 @@ def test_calculation_omits_identity_diagnostics_when_no_change_exists():
         api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
     ), patch.object(
         api, "process_yearly_data", return_value=([], [], [], [])
-    ), patch.object(api, "collect_all_trade_data", return_value=({}, {})), patch.object(
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
         api, "export_to_excel"
-    ), patch.object(api, "generate_pdf", None):
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
         response = TestClient(api.app).get("/calculate/2025")
 
     assert response.status_code == 200

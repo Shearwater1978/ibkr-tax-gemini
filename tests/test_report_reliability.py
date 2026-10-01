@@ -38,7 +38,14 @@ def test_excel_data_keeps_ticker_summary_and_discloses_identity_change():
             }
         ],
         [],
-        [{"ticker": "OKE", "isin": "OLD-ISIN", "buy_date": "2024-01-01", "quantity": 5}],
+        [
+            {
+                "ticker": "OKE",
+                "isin": "OLD-ISIN",
+                "buy_date": "2024-01-01",
+                "quantity": 5,
+            }
+        ],
         [
             {
                 "ticker": "OKE",

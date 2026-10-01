@@ -61,8 +61,7 @@ def test_extract_isin(description, expected):
 
 def test_extract_isin_uses_child_ticker_in_spinoff_description():
     description = (
-        "MRK(US58933Y1055) Spinoff 1 for 10 "
-        "(OGN, ORGANON & CO-W/I, US68622V1061)"
+        "MRK(US58933Y1055) Spinoff 1 for 10 " "(OGN, ORGANON & CO-W/I, US68622V1061)"
     )
 
     assert extract_isin(description, "OGN") == "US68622V1061"
@@ -90,9 +89,7 @@ def test_real_statement_supplies_identity_and_narrow_variant_parses():
         if record["ticker"] == "OGN"
     )
     ogn_sale = next(
-        record
-        for record in older_statement["trades"]
-        if record["ticker"] == "OGN"
+        record for record in older_statement["trades"] if record["ticker"] == "OGN"
     )
     assert ogn_spinoff["isin"] == ogn_sale["isin"] == "US68622V1061"
 

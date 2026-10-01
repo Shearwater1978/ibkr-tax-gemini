@@ -190,9 +190,11 @@ def check_coverage(
             if row_ticker == request.ticker and row_date <= request.as_of:
                 if isin not in identity_starts or row_date < identity_starts[isin]:
                     identity_starts[isin] = row_date
-        active_isin = max(
-            identity_starts.items(), key=lambda item: (item[1], item[0])
-        )[0] if identity_starts else ""
+        active_isin = (
+            max(identity_starts.items(), key=lambda item: (item[1], item[0]))[0]
+            if identity_starts
+            else ""
+        )
         inventory = snapshot.get((request.ticker, active_isin), deque())
         available = sum((batch["qty"] for batch in inventory), Decimal(0))
         remaining = min(request.quantity, available)

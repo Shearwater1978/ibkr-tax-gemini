@@ -103,7 +103,9 @@ def test_split_ratio_reaches_fifo(encrypted_database):
     assert inventory[0]["cost_per_share"] == 50.0
 
 
-def test_isin_remap_import_calculation_and_report_end_to_end(encrypted_database, tmp_path):
+def test_isin_remap_import_calculation_and_report_end_to_end(
+    encrypted_database, tmp_path
+):
     from main import prepare_data_for_pdf
     from src.data_collector import collect_all_trade_data
     from src.processing import process_yearly_data
@@ -200,9 +202,7 @@ def test_added_identity_columns_allow_legacy_query_and_calculation(encrypted_dat
     assert "isin" not in inventory[0]
 
 
-def test_ogn_spinoff_lot_matches_sale_under_child_isin(
-    encrypted_database, monkeypatch
-):
+def test_ogn_spinoff_lot_matches_sale_under_child_isin(encrypted_database, monkeypatch):
     from src.processing import process_yearly_data
 
     monkeypatch.setattr(
@@ -214,9 +214,7 @@ def test_ogn_spinoff_lot_matches_sale_under_child_isin(
             record for record in statement["trades"] if record["ticker"] == "OGN"
         ],
         "corp_actions": [
-            record
-            for record in statement["corp_actions"]
-            if record["ticker"] == "OGN"
+            record for record in statement["corp_actions"] if record["ticker"] == "OGN"
         ],
         "dividends": [],
         "taxes": [],

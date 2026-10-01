@@ -128,14 +128,14 @@ class TradeMatcher:
         batch = {
             "ticker": trade["ticker"],
             "isin": trade.get("isin", ""),
-                "date": trade["date"],
-                "qty": trade["qty"],
-                "price": price,
-                "rate": rate,
-                "cost_pln": cost_pln,
-                "currency": trade["currency"],
-                "source": trade.get("source", "UNKNOWN"),
-            }
+            "date": trade["date"],
+            "qty": trade["qty"],
+            "price": price,
+            "rate": rate,
+            "cost_pln": cost_pln,
+            "currency": trade["currency"],
+            "source": trade.get("source", "UNKNOWN"),
+        }
         self.inventory[self._inventory_key(trade)].append(batch)
 
     def _process_sell(self, trade):
@@ -201,12 +201,11 @@ class TradeMatcher:
                     code="UNMATCHED_SELL",
                     message=(
                         f"Sell exceeds available inventory for {ticker}"
-                        f" ({isin}) on " if isin else
-                        f"Sell exceeds available inventory for {ticker} on "
+                        f" ({isin}) on "
+                        if isin
+                        else f"Sell exceeds available inventory for {ticker} on "
                     )
-                    +
-                        f"{trade['date']} by {qty_to_sell}."
-                    ,
+                    + f"{trade['date']} by {qty_to_sell}.",
                     ticker=ticker,
                     isin=isin or None,
                     date=trade["date"],
@@ -220,18 +219,18 @@ class TradeMatcher:
             profit_pln = sell_revenue_pln - total_cost
 
             result = {
-                    "ticker": ticker,
-                    "sale_date": trade["date"],
-                    "date_sell": trade["date"],
-                    "quantity": float(abs(trade["qty"])),
-                    "sale_price": float(price),
-                    "sale_rate": float(sell_rate),
-                    "sale_amount": float(sell_revenue_pln),
-                    "cost_basis": float(total_cost),
-                    "profit_loss": float(profit_pln),
-                    "currency": trade["currency"],
-                    "matched_buys": matched_buys,
-                }
+                "ticker": ticker,
+                "sale_date": trade["date"],
+                "date_sell": trade["date"],
+                "quantity": float(abs(trade["qty"])),
+                "sale_price": float(price),
+                "sale_rate": float(sell_rate),
+                "sale_amount": float(sell_revenue_pln),
+                "cost_basis": float(total_cost),
+                "profit_loss": float(profit_pln),
+                "currency": trade["currency"],
+                "matched_buys": matched_buys,
+            }
             if ticker in self.identity_sensitive_tickers:
                 result["isin"] = isin
             self.realized_pnl.append(result)
@@ -244,13 +243,13 @@ class TradeMatcher:
         for batches in self.inventory.values():
             for batch in batches:
                 item = {
-                        "ticker": batch["ticker"],
-                        "buy_date": batch["date"],
-                        "quantity": float(batch["qty"]),
-                        "cost_per_share": float(batch["price"]),
-                        "total_cost": float(batch["cost_pln"]),
-                        "currency": batch["currency"],
-                    }
+                    "ticker": batch["ticker"],
+                    "buy_date": batch["date"],
+                    "quantity": float(batch["qty"]),
+                    "cost_per_share": float(batch["price"]),
+                    "total_cost": float(batch["cost_pln"]),
+                    "currency": batch["currency"],
+                }
                 if batch["ticker"] in self.identity_sensitive_tickers:
                     item["isin"] = batch["isin"]
                 inventory_list.append(item)

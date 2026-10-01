@@ -151,12 +151,12 @@ def test_coverage_selects_identity_active_on_as_of_date_and_reports_isin():
         row("BUY", "2025-03-04", ticker="OKE", quantity=3, ISIN="NEW-ISIN"),
     ]
 
-    before_change = check_coverage(
-        rows, [PlannedSale("OKE", 7, "2025-03-03")]
-    )["results"][0]
-    after_change = check_coverage(
-        rows, [PlannedSale("OKE", 3, "2025-03-04")]
-    )["results"][0]
+    before_change = check_coverage(rows, [PlannedSale("OKE", 7, "2025-03-03")])[
+        "results"
+    ][0]
+    after_change = check_coverage(rows, [PlannedSale("OKE", 3, "2025-03-04")])[
+        "results"
+    ][0]
 
     assert before_change["available"] == 7.0
     assert {lot["isin"] for lot in before_change["lots"]} == {"OLD-ISIN"}

@@ -211,9 +211,7 @@ def test_repeat_import_updates_identity_without_changing_source_key(mocker):
 
     normalized = normalize_snapshot({"fills": [_make_fill()]})
     first = save_to_database(normalized, include_identity_counts=True)
-    source_key = real_conn.execute(
-        "SELECT SourceKey FROM transactions"
-    ).fetchone()[0]
+    source_key = real_conn.execute("SELECT SourceKey FROM transactions").fetchone()[0]
     normalized["trades"][0].update(
         isin="US0378331005",
         conid="265598",
@@ -245,7 +243,9 @@ def test_real_statement_identity_is_persisted_by_import(mocker):
 
     statement = Path(__file__).parent.parent / "data" / "U1601_2024_2024.csv"
     parsed = parse_csv(str(statement))
-    oke_dividends = [record for record in parsed["dividends"] if record["ticker"] == "OKE"]
+    oke_dividends = [
+        record for record in parsed["dividends"] if record["ticker"] == "OKE"
+    ]
     imported = save_to_database(
         {"trades": [], "corp_actions": [], "dividends": oke_dividends, "taxes": []}
     )

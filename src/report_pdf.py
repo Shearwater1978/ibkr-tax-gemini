@@ -210,9 +210,7 @@ def generate_pdf(json_data, filename="report.pdf"):
         )
         t_trades = Table(full_table_data, colWidths=col_widths, repeatRows=1)
         ts_trades = get_zebra_style(len(full_table_data))
-        ts_trades.add(
-            "ALIGN", (5 if has_identity_changes else 4, 1), (-1, -1), "RIGHT"
-        )
+        ts_trades.add("ALIGN", (5 if has_identity_changes else 4, 1), (-1, -1), "RIGHT")
 
         for i, row in enumerate(trades_rows, 1):
             if "(!)" in row[5]:
@@ -311,16 +309,16 @@ def generate_pdf(json_data, filename="report.pdf"):
 
         full_corp_data = corp_header + corp_rows
         col_widths = (
-            [25, 65, 55, 75, 55, 155]
-            if has_identity_changes
-            else [25, 65, 55, 65, 220]
+            [25, 65, 55, 75, 55, 155] if has_identity_changes else [25, 65, 55, 65, 220]
         )
         t_corp = Table(full_corp_data, colWidths=col_widths, repeatRows=1)
         ts_corp = get_zebra_style(len(full_corp_data))
         for i, row in enumerate(corp_rows, 1):
             details_col = 5 if has_identity_changes else 4
             if "(!)" in row[details_col]:
-                ts_corp.add("TEXTCOLOR", (details_col, i), (details_col, i), colors.orange)
+                ts_corp.add(
+                    "TEXTCOLOR", (details_col, i), (details_col, i), colors.orange
+                )
         t_corp.setStyle(ts_corp)
         elements.append(t_corp)
 
@@ -412,14 +410,14 @@ def generate_pdf(json_data, filename="report.pdf"):
             det_rows = []
             for d in group:
                 row = [
-                        str(global_div_idx),
-                        d["date"],
-                        d["ticker"],
-                        f"{d['amount']:.2f} {d['currency']}",
-                        f"{d['rate']:.4f}",
-                        f"{d['amount_pln']:.2f}",
-                        f"{d['tax_paid_pln']:.2f}",
-                    ]
+                    str(global_div_idx),
+                    d["date"],
+                    d["ticker"],
+                    f"{d['amount']:.2f} {d['currency']}",
+                    f"{d['rate']:.4f}",
+                    f"{d['amount_pln']:.2f}",
+                    f"{d['tax_paid_pln']:.2f}",
+                ]
                 if has_identity_changes:
                     row.insert(3, d.get("isin", ""))
                 det_rows.append(row)

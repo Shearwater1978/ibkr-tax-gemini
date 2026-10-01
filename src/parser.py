@@ -414,17 +414,23 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     if not symbol:
                         continue
                     security_id = (
-                        row[idx_security_id].strip() if idx_security_id is not None else ""
+                        row[idx_security_id].strip()
+                        if idx_security_id is not None
+                        else ""
                     )
-                    financial_instruments.setdefault(symbol, []).append({
-                        "isin": extract_isin(f"{symbol}({security_id})"),
-                        "conid": row[idx_conid].strip() if idx_conid is not None else "",
-                        "instrument_description": (
-                            row[idx_description].strip()
-                            if idx_description is not None
-                            else ""
-                        ),
-                    })
+                    financial_instruments.setdefault(symbol, []).append(
+                        {
+                            "isin": extract_isin(f"{symbol}({security_id})"),
+                            "conid": (
+                                row[idx_conid].strip() if idx_conid is not None else ""
+                            ),
+                            "instrument_description": (
+                                row[idx_description].strip()
+                                if idx_description is not None
+                                else ""
+                            ),
+                        }
+                    )
 
         observed_identities = {}
         for records in data.values():
@@ -448,9 +454,7 @@ def parse_csv(filepath: str) -> Dict[str, List]:
                     )
                 else:
                     observed = observed_identities.get((ticker, currency), set())
-                    matching = [
-                        item for item in candidates if item["isin"] in observed
-                    ]
+                    matching = [item for item in candidates if item["isin"] in observed]
                     if len(observed) == 1:
                         isin = next(iter(observed))
                         instrument = next(
@@ -644,7 +648,15 @@ def save_to_database(all_data, include_identity_counts=False):
             "InstrumentDescription = CASE WHEN ? <> '' THEN ? ELSE InstrumentDescription END "
             "WHERE SourceKey = ?",
             [
-                (record[11], record[11], record[12], record[12], record[13], record[13], record[9])
+                (
+                    record[11],
+                    record[11],
+                    record[12],
+                    record[12],
+                    record[13],
+                    record[13],
+                    record[9],
+                )
                 for record in unique_records
                 if record[9] in existing_keys
             ],

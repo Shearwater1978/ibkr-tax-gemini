@@ -1,7 +1,6 @@
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Tuple
 
-
 TICKER_ALIASES = {"TOT": "TTE", "FB": "META"}
 
 
@@ -16,7 +15,9 @@ def resolve_instrument_identities(
         ticker = row.get("Ticker", row.get("ticker", ""))
         if not ticker:
             continue
-        ticker = TICKER_ALIASES.get(str(ticker).strip().upper(), str(ticker).strip().upper())
+        ticker = TICKER_ALIASES.get(
+            str(ticker).strip().upper(), str(ticker).strip().upper()
+        )
         isin = row.get("ISIN", row.get("isin", "")) or ""
         date = row.get("Date", row.get("date", "")) or ""
         if isin and (isin not in first_seen[ticker] or date < first_seen[ticker][isin]):
