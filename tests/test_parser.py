@@ -1,5 +1,6 @@
 # tests/test_parser.py
 
+import csv
 import pytest
 from decimal import Decimal
 from pathlib import Path
@@ -67,36 +68,146 @@ def test_extract_isin_uses_child_ticker_in_spinoff_description():
     assert extract_isin(description, "OGN") == "US68622V1061"
 
 
-def test_real_statement_supplies_identity_and_narrow_variant_parses():
-    data_dir = Path(__file__).parent.parent / "data"
-    parsed = parse_csv(str(data_dir / "U1601_2024_2024.csv"))
-    oke_dividend = next(
-        record for record in parsed["dividends"] if record["ticker"] == "OKE"
+def test_tracked_example_statement_supplies_identity():
+    statement = (
+        Path(__file__).parent.parent
+        / "example_reports_2020_2024"
+        / "U12345678_2020.csv"
     )
-    assert oke_dividend["isin"] == "US6826801036"
-    assert oke_dividend["conid"] == "10794"
-    assert oke_dividend["instrument_description"] == "ONEOK INC"
-    mga_dividend = next(
-        record for record in parsed["dividends"] if record["ticker"] == "MGA"
+    parsed = parse_csv(str(statement))
+    aapl_dividend = next(
+        record for record in parsed["dividends"] if record["ticker"] == "AAPL"
     )
-    assert mga_dividend["isin"] == "CA5592224011"
-
-    older_statement = parse_csv(str(data_dir / "U5801_20210315_20220107.csv"))
-    assert older_statement["trades"]
-    ogn_spinoff = next(
-        record
-        for record in older_statement["corp_actions"]
-        if record["ticker"] == "OGN"
-    )
-    ogn_sale = next(
-        record for record in older_statement["trades"] if record["ticker"] == "OGN"
-    )
-    assert ogn_spinoff["isin"] == ogn_sale["isin"] == "US68622V1061"
+    assert aapl_dividend["isin"] == "US0378331005"
+    assert aapl_dividend["conid"] == "265598"
+    assert aapl_dividend["instrument_description"] == "APPLE INC"
 
 
-def test_duplicate_symbol_identity_uses_currency_context_from_statement():
-    data_dir = Path(__file__).parent.parent / "data"
-    parsed = parse_csv(str(data_dir / "U1601_U7701_20220103_20221230.csv"))
+def test_narrow_financial_instrument_section_supplies_missing_identity(tmp_path):
+    statement = tmp_path / "narrow_statement.csv"
+    rows = [
+        [
+            "Trades",
+            "Header",
+            "Asset Category",
+            "Currency",
+            "Symbol",
+            "Date/Time",
+            "Quantity",
+            "T. Price",
+            "Comm/Fee",
+            "Description",
+        ],
+        ["Trades", "Data", "Stocks", "USD", "XYZ", "2024-01-02", "1", "10", "0", ""],
+        [
+            "Financial Instrument Information",
+            "Header",
+            "Symbol",
+            "Security ID",
+            "Conid",
+            "Description",
+        ],
+        [
+            "Financial Instrument Information",
+            "Data",
+            "XYZ",
+            "US0378331005",
+            "12345",
+            "TEST CORPORATION",
+        ],
+    ]
+    with statement.open("w", newline="", encoding="utf-8") as output:
+        csv.writer(output).writerows(rows)
+
+    parsed = parse_csv(str(statement))
+    assert parsed["trades"][0]["isin"] == "US0378331005"
+    assert parsed["trades"][0]["conid"] == "12345"
+    assert parsed["trades"][0]["instrument_description"] == "TEST CORPORATION"
+
+
+def test_duplicate_symbol_identity_uses_currency_context_from_statement(tmp_path):
+    statement = tmp_path / "duplicate_symbol_statement.csv"
+    rows = [
+        [
+            "Trades",
+            "Header",
+            "Asset Category",
+            "Currency",
+            "Symbol",
+            "Date/Time",
+            "Quantity",
+            "T. Price",
+            "Comm/Fee",
+            "Description",
+        ],
+        [
+            "Trades",
+            "Data",
+            "Stocks",
+            "USD",
+            "SBER",
+            "2022-01-14",
+            "5",
+            "13.335",
+            "-0.525",
+            "",
+        ],
+        [
+            "Corporate Actions",
+            "Header",
+            "Asset Category",
+            "Currency",
+            "Report Date",
+            "Description",
+            "Quantity",
+        ],
+        [
+            "Corporate Actions",
+            "Data",
+            "Stocks",
+            "USD",
+            "2022-05-24",
+            "SBER(US80585Y3080) Tendered to US80585Y3CNV (SBER, SBERBANK ADR, US80585Y3080)",
+            "-5",
+        ],
+        [
+            "Corporate Actions",
+            "Data",
+            "Stocks",
+            "RUB",
+            "2022-05-24",
+            "SBER.CNV4(563839405) Merged WITH SBER (SBER, SBERBANK COMMON, RU0009029540)",
+            "20",
+        ],
+        [
+            "Financial Instrument Information",
+            "Header",
+            "Symbol",
+            "Security ID",
+            "Conid",
+            "Description",
+        ],
+        [
+            "Financial Instrument Information",
+            "Data",
+            "SBER",
+            "US80585Y3080",
+            "90581067",
+            "SBERBANK ADR",
+        ],
+        [
+            "Financial Instrument Information",
+            "Data",
+            "SBER",
+            "RU0009029540",
+            "360308912",
+            "SBERBANK COMMON",
+        ],
+    ]
+    with statement.open("w", newline="", encoding="utf-8") as output:
+        csv.writer(output).writerows(rows)
+
+    parsed = parse_csv(str(statement))
 
     sber_buy = next(
         record

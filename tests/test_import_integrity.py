@@ -1,9 +1,8 @@
 from decimal import Decimal
-
 import pytest
 
 from src.db_connector import DBConnector, DBConnectorError
-from src.parser import extract_split_ratio, parse_csv, save_to_database
+from src.parser import extract_split_ratio, save_to_database
 
 
 @pytest.fixture
@@ -208,13 +207,36 @@ def test_ogn_spinoff_lot_matches_sale_under_child_isin(encrypted_database, monke
     monkeypatch.setattr(
         "src.processing.get_nbp_rate", lambda currency, trade_date: Decimal("1")
     )
-    statement = parse_csv("data/U5801_20210315_20220107.csv")
     data = {
         "trades": [
-            record for record in statement["trades"] if record["ticker"] == "OGN"
+            {
+                "date": "2021-07-23",
+                "type": "SELL",
+                "ticker": "OGN",
+                "qty": Decimal("-0.1"),
+                "price": Decimal("30.2"),
+                "currency": "USD",
+                "commission": Decimal("-0.030227302"),
+                "source": "OGN sample sale",
+                "isin": "US68622V1061",
+                "conid": "490414355",
+                "instrument_description": "ORGANON & CO",
+            }
         ],
         "corp_actions": [
-            record for record in statement["corp_actions"] if record["ticker"] == "OGN"
+            {
+                "date": "2021-06-02",
+                "type": "STOCK_DIV",
+                "ticker": "OGN",
+                "qty": Decimal("0.1"),
+                "price": Decimal("0"),
+                "currency": "USD",
+                "commission": Decimal("0"),
+                "source": "MRK spinoff to OGN",
+                "isin": "US68622V1061",
+                "conid": "490414355",
+                "instrument_description": "ORGANON & CO",
+            }
         ],
         "dividends": [],
         "taxes": [],
@@ -242,19 +264,72 @@ def test_sber_adr_tender_uses_adr_purchase_not_common_share_identity(
             rate_calls.append((currency, trade_date)) or Decimal("1")
         ),
     )
-    statement = parse_csv("data/U1601_U7701_20220103_20221230.csv")
-    selected_tickers = {"SBER", "SBER.CNV4"}
     save_to_database(
         {
             "trades": [
-                record
-                for record in statement["trades"]
-                if record["ticker"] in selected_tickers
+                {
+                    "date": "2022-01-14",
+                    "type": "BUY",
+                    "ticker": "SBER",
+                    "qty": Decimal("5"),
+                    "price": Decimal("13.335"),
+                    "currency": "USD",
+                    "commission": Decimal("-0.525"),
+                    "source": "SBER ADR purchase",
+                    "isin": "US80585Y3080",
+                    "conid": "90581067",
+                    "instrument_description": "SBERBANK PJSC -SPONSORED ADR",
+                }
             ],
             "corp_actions": [
-                record
-                for record in statement["corp_actions"]
-                if record["ticker"] in selected_tickers
+                {
+                    "date": "2022-05-24",
+                    "type": "MERGER",
+                    "ticker": "SBER",
+                    "qty": Decimal("-5"),
+                    "price": Decimal("0"),
+                    "currency": "USD",
+                    "commission": Decimal("0"),
+                    "source": "SBER ADR tender",
+                    "isin": "US80585Y3080",
+                    "conid": "90581067",
+                },
+                {
+                    "date": "2022-05-24",
+                    "type": "STOCK_DIV",
+                    "ticker": "SBER.CNV4",
+                    "qty": Decimal("5"),
+                    "price": Decimal("0"),
+                    "currency": "USD",
+                    "commission": Decimal("0"),
+                    "source": "SBER ADR tender proceeds",
+                    "isin": "US80585Y3CNV",
+                    "conid": "563839405",
+                },
+                {
+                    "date": "2022-05-24",
+                    "type": "MERGER",
+                    "ticker": "SBER.CNV4",
+                    "qty": Decimal("-5"),
+                    "price": Decimal("0"),
+                    "currency": "USD",
+                    "commission": Decimal("0"),
+                    "source": "SBER tender instrument merge",
+                    "isin": "US80585Y3CNV",
+                    "conid": "563839405",
+                },
+                {
+                    "date": "2022-05-24",
+                    "type": "STOCK_DIV",
+                    "ticker": "SBER",
+                    "qty": Decimal("20"),
+                    "price": Decimal("0"),
+                    "currency": "RUB",
+                    "commission": Decimal("0"),
+                    "source": "SBER common share merge",
+                    "isin": "RU0009029540",
+                    "conid": "360308912",
+                },
             ],
             "dividends": [],
             "taxes": [],

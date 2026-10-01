@@ -241,22 +241,27 @@ def test_real_statement_identity_is_persisted_by_import(mocker):
     mock_instance.conn = real_conn
     mock_instance.initialize_schema = lambda: _init_schema(real_conn)
 
-    statement = Path(__file__).parent.parent / "data" / "U1601_2024_2024.csv"
+    statement = (
+        Path(__file__).parent.parent
+        / "example_reports_2020_2024"
+        / "U12345678_2020.csv"
+    )
     parsed = parse_csv(str(statement))
-    oke_dividends = [
-        record for record in parsed["dividends"] if record["ticker"] == "OKE"
+    aapl_dividends = [
+        record for record in parsed["dividends"] if record["ticker"] == "AAPL"
     ]
     imported = save_to_database(
-        {"trades": [], "corp_actions": [], "dividends": oke_dividends, "taxes": []}
+        {"trades": [], "corp_actions": [], "dividends": aapl_dividends, "taxes": []}
     )
 
     row = real_conn.execute(
-        "SELECT ISIN, Conid, InstrumentDescription FROM transactions WHERE Ticker = 'OKE'"
+        "SELECT ISIN, Conid, InstrumentDescription FROM transactions "
+        "WHERE Ticker = 'AAPL'"
     ).fetchone()
-    assert imported["inserted"] == len(oke_dividends)
-    assert row["ISIN"] == "US6826801036"
-    assert row["Conid"] == "10794"
-    assert row["InstrumentDescription"] == "ONEOK INC"
+    assert imported["inserted"] == len(aapl_dividends)
+    assert row["ISIN"] == "US0378331005"
+    assert row["Conid"] == "265598"
+    assert row["InstrumentDescription"] == "APPLE INC"
 
 
 def test_distinct_fills_with_same_price_and_qty_are_both_inserted(mocker):
