@@ -31,7 +31,7 @@ src/excel_exporter.py     src/report_pdf.py
 output/tax_report_*.xlsx and output/tax_report_*.pdf
 ```
 
-The primary CLI entry point is `main.py`. Import mode scans `data/*.csv`; calculation mode reads transactions through `DBConnector`, runs `process_yearly_data`, and optionally exports Excel and PDF. `src/parser.py` also has a direct `--files` CLI. The desktop entry point is `gui/main.js`: it starts `gui/backend/api.py` as a child process and opens `gui/ui/index.html`. The FastAPI service provides `GET /health`, `GET /years`, `POST /import`, `GET /calculate/{year}`, and safe file-opening endpoints for generated reports.
+The primary CLI entry point is `main.py`. Import mode scans `data/*.csv`; calculation mode reads transactions through `DBConnector`, runs `process_yearly_data`, and optionally exports Excel and PDF. `src/parser.py` also has a direct `--files` CLI. The desktop entry point is `gui/main.js`: it checks `GET /health`, reuses an already-ready local backend, and otherwise starts `gui/backend/api.py` as a child process before opening `gui/ui/index.html`. The FastAPI service provides `GET /health`, `GET /years`, `POST /import`, `GET /calculate/{year}`, and safe file-opening endpoints for generated reports.
 
 ## Components
 
@@ -40,7 +40,7 @@ The primary CLI entry point is `main.py`. Import mode scans `data/*.csv`; calcul
 - `src/instrument_identity.py`: resolves legacy blank ISINs to the earliest observed identity and derives dated identity changes from stored history.
 - `src/processing.py`: links dividend and tax rows by date/ticker/ISIN, fetches NBP rates, routes FIFO events, emits non-blocking identity-change diagnostics, and filters realized sales to the target year.
 - `src/fifo.py`: preserves ticker-keyed behavior for single-identity history and partitions remapped tickers by ISIN; handles buys, sells, transfers, corporate actions, and split adjustments.
-- `src/nbp.py`: obtains NBP exchange rates with T-1 lookup and in-process caching.
+- `src/nbp.py`: obtains required NBP exchange rates for monetary conversion with T-1 lookup and in-process caching; zero-price, zero-fee non-cash corporate actions do not require a rate.
 - `src/data_collector.py`, `src/excel_exporter.py`, `src/report_pdf.py`: transform results and write spreadsheet/PDF reports.
 - `gui/backend/api.py`: FastAPI adapter around the CLI and calculation modules.
 - `gui/main.js` and `gui/ui/index.html`: Electron process management and vanilla HTML/JavaScript dashboard.
@@ -69,7 +69,7 @@ Given the Electron shell can start the local Python service, when the user opens
 - Python 3.10+ with `pandas`, `openpyxl`, `reportlab`, `requests`, `cryptography`, `fastapi`, `uvicorn`, and `sqlcipher3`; pytest tooling is used for verification.
 - Electron 33 and vanilla JavaScript/HTML are used for the desktop UI; there is no frontend framework.
 - The database schema is a single `transactions` table with PascalCase columns and is addressed through SQLite APIs.
-- NBP network access is required for non-PLN conversion; results depend on external availability and rate data.
+- NBP network access is required for non-PLN monetary conversions; zero-price, zero-fee non-cash corporate actions do not require an exchange-rate lookup.
 - FIFO and tax calculations use `Decimal` internally but export several values as floats.
 - The application assumes local filesystem access to `data/`, `db/`, and `output/`; several paths still depend on the process working directory.
 - The GUI backend binds to `127.0.0.1:8000`; CORS is restricted to local desktop/browser origins and the renderer uses a preload boundary.
