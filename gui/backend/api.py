@@ -345,6 +345,17 @@ def calculate_report(year: int):
         response = {
             "status": "success",
             "by_ticker": sorted(by_ticker.values(), key=lambda x: x["ticker"]),
+            "dividends": [
+                {
+                    "ex_date": d["ex_date"],
+                    "ticker": d["ticker"],
+                    "currency": d["currency"],
+                    "rate": d["rate"],
+                    "gross_pln": d["gross_amount_pln"],
+                    "tax_withheld_pln": d["tax_withheld_pln"],
+                }
+                for d in dividends
+            ],
             "complete": not errors,
             "errors": errors,
             "pdf_available": pdf_generated,

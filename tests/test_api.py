@@ -327,8 +327,22 @@ def test_calculation_returns_by_ticker_summary_with_existing_fields():
         {"ticker": "MSFT", "profit_loss": -20.0},
     ]
     dividends = [
-        {"ticker": "KO", "gross_amount_pln": 30.0},
-        {"ticker": "MSFT", "gross_amount_pln": 5.0},
+        {
+            "ex_date": "2025-03-01",
+            "ticker": "KO",
+            "gross_amount_pln": 30.0,
+            "tax_withheld_pln": 0.0,
+            "currency": "USD",
+            "rate": 4.0,
+        },
+        {
+            "ex_date": "2025-04-01",
+            "ticker": "MSFT",
+            "gross_amount_pln": 5.0,
+            "tax_withheld_pln": 0.0,
+            "currency": "USD",
+            "rate": 4.0,
+        },
     ]
     with patch.object(
         api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
@@ -357,6 +371,63 @@ def test_calculation_returns_by_ticker_summary_with_existing_fields():
     assert {"status", "complete", "errors", "pdf_available", "excel_available"} <= set(
         data
     )
+
+
+def test_calculation_returns_dividend_payment_details():
+    dividends = [
+        {
+            "ex_date": "2025-03-01",
+            "ticker": "KO",
+            "gross_amount_pln": 30.0,
+            "tax_withheld_pln": 4.5,
+            "currency": "USD",
+            "rate": 4.0,
+        }
+    ]
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=([], dividends, [], [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        data = TestClient(api.app).get("/calculate/2025").json()
+
+    assert data["dividends"] == [
+        {
+            "ex_date": "2025-03-01",
+            "ticker": "KO",
+            "currency": "USD",
+            "rate": 4.0,
+            "gross_pln": 30.0,
+            "tax_withheld_pln": 4.5,
+        }
+    ]
+    assert data["summary"]["pln_dividend_gross"] == 30.0
+    assert {"status", "complete", "errors", "pdf_available", "excel_available"} <= set(
+        data
+    )
+
+
+def test_calculation_returns_empty_dividends_list_without_dividends():
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=([], [], [], [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        data = TestClient(api.app).get("/calculate/2025").json()
+
+    assert data["dividends"] == []
 
 
 def test_calculation_marks_failed_export_unavailable():

@@ -78,6 +78,10 @@
         .search { width: 100%; padding: 9px 12px; margin-bottom: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); }
         .table-scroll { max-height: 360px; overflow-y: auto; }
         .table-scroll th { position: sticky; top: 0; background: var(--card); }
+        th.sortable { cursor: pointer; user-select: none; }
+        th.sortable:hover { color: var(--text); }
+        .coverage-table tfoot td { font-weight: 600; border-top: 2px solid var(--line); border-bottom: none; }
+        .num { text-align: right; }
         .pos { color: var(--green); }
         .neg { color: var(--red); }
         #ib-web-trades { font-size: 13px; color: var(--muted); margin: 12px 0 0; padding-left: 18px; }
@@ -87,6 +91,7 @@
     <div class="topbar">
         <div class="logo">T</div>
         <button class="tab active" data-page="page-dashboard" onclick="showPage('page-dashboard')">Dashboard</button>
+        <button class="tab" data-page="page-dividends" onclick="showPage('page-dividends')">Dividends</button>
         <button class="tab" data-page="page-tax" onclick="showPage('page-tax')">Tax Calculation</button>
         <button class="tab" data-page="page-data" onclick="showPage('page-data')">Data</button>
         <button class="tab" data-page="page-coverage" onclick="showPage('page-coverage')">Coverage</button>
@@ -166,6 +171,51 @@
             </div>
         </div>
 
+        <div id="page-dividends" class="page">
+            <div class="breadcrumb">Tax Architect / <b>Dividends</b></div>
+
+            <div class="card" id="divEmpty">
+                <h3>No report yet</h3>
+                <p class="hint">Run a calculation to see dividend payments here.</p>
+                <button class="btn btn-primary" onclick="showPage('page-tax')">Go to Tax Calculation</button>
+            </div>
+
+            <div class="card hidden" id="divCard">
+                <div class="controls" style="margin-bottom:12px">
+                    <h3 style="margin:0" id="divTitle">Dividends</h3>
+                    <div style="flex:1"></div>
+                    <input id="divFilter" class="search" style="width:220px;margin:0" type="search" placeholder="Filter ticker..." oninput="divState.page = 0; renderDividends()">
+                </div>
+                <p class="hint" id="divNone" style="display:none">No dividends were received in this year.</p>
+                <div class="table-scroll" style="max-height:none">
+                    <table class="coverage-table" id="divTable">
+                        <thead><tr>
+                            <th class="sortable" onclick="sortDividends('ex_date')">Date</th>
+                            <th class="sortable" onclick="sortDividends('ticker')">Ticker</th>
+                            <th class="sortable" onclick="sortDividends('currency')">Currency</th>
+                            <th class="sortable" onclick="sortDividends('rate')">NBP rate</th>
+                            <th class="sortable" onclick="sortDividends('gross_pln')">Gross (PLN)</th>
+                            <th class="sortable" onclick="sortDividends('tax_withheld_pln')">Withheld (PLN)</th>
+                            <th class="sortable" onclick="sortDividends('net_pln')">Net (PLN)</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                        <tfoot></tfoot>
+                    </table>
+                </div>
+                <div class="controls" style="margin-top:14px; justify-content:space-between">
+                    <div class="controls">
+                        <button class="btn btn-outline" id="divPrev" onclick="divPage(-1)">&lsaquo; Prev</button>
+                        <button class="btn btn-outline" id="divNext" onclick="divPage(1)">Next &rsaquo;</button>
+                    </div>
+                    <div class="controls">
+                        <span class="status-text" id="divInfo"></span>
+                        <select id="divPageSize" onchange="divState.page = 0; renderDividends()">
+                            <option>10</option><option selected>25</option><option>50</option><option>100</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div id="page-data" class="page">
             <div class="breadcrumb">Tax Architect / <b>Data</b></div>
 
@@ -425,6 +475,7 @@
 
                 // 3. Показ результата
                 renderBreakdown(data.by_ticker || []);
+                setDividends(data.dividends || [], year);
                 resultsCard.classList.remove('hidden');
                 document.getElementById('emptyCard').classList.add('hidden');
                 document.getElementById('resultsTitle').innerText = `Results for ${year}`;
@@ -446,6 +497,74 @@
 
         const PALETTE = ['#4a90e2', '#52d1dc', '#6a5acd', '#7c2fc9', '#2ec4b6', '#a020f0', '#6ee7d8', '#00e5a0', '#b388ff', '#3b4cca'];
 
+        const divState = { rows: [], year: null, sortKey: 'ex_date', sortDir: 1, page: 0 };
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function setDividends(list, year) {
+            divState.rows = list.map(d => ({ ...d, net_pln: d.gross_pln - d.tax_withheld_pln }));
+            divState.year = year;
+            divState.page = 0;
+            document.getElementById('divFilter').value = '';
+            document.getElementById('divEmpty').classList.add('hidden');
+            document.getElementById('divCard').classList.remove('hidden');
+            document.getElementById('divTitle').innerText = `Dividends ${year}`;
+            renderDividends();
+        }
+
+        function sortDividends(key) {
+            divState.sortDir = divState.sortKey === key ? -divState.sortDir : 1;
+            divState.sortKey = key;
+            divState.page = 0;
+            renderDividends();
+        }
+
+        function divPage(delta) {
+            divState.page += delta;
+            renderDividends();
+        }
+
+        function renderDividends() {
+            const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const sum = (rows, k) => rows.reduce((s, r) => s + r[k], 0);
+            const q = document.getElementById('divFilter').value.trim().toLowerCase();
+            const all = divState.rows;
+            const filtered = q ? all.filter(r => String(r.ticker).toLowerCase().includes(q)) : all;
+            const { sortKey, sortDir } = divState;
+            const sorted = [...filtered].sort((a, b) => {
+                const x = a[sortKey], y = b[sortKey];
+                return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * sortDir;
+            });
+
+            const size = parseInt(document.getElementById('divPageSize').value, 10);
+            const pages = Math.max(1, Math.ceil(sorted.length / size));
+            divState.page = Math.min(Math.max(divState.page, 0), pages - 1);
+            const start = divState.page * size;
+            const pageRows = sorted.slice(start, start + size);
+
+            document.querySelector('#divTable tbody').innerHTML = pageRows.map(r =>
+                `<tr><td>${escapeHtml(r.ex_date)}</td><td>${escapeHtml(r.ticker)}</td><td>${escapeHtml(r.currency)}</td>` +
+                `<td class="num">${Number(r.rate).toFixed(4)}</td>` +
+                `<td class="num">${fmt(r.gross_pln)}</td>` +
+                `<td class="num">${fmt(r.tax_withheld_pln)}</td>` +
+                `<td class="num pos">${fmt(r.net_pln)}</td></tr>`
+            ).join('');
+
+            const totalRow = (label, rows) =>
+                `<tr><td colspan="4">${label}</td><td class="num">${fmt(sum(rows, 'gross_pln'))}</td>` +
+                `<td class="num">${fmt(sum(rows, 'tax_withheld_pln'))}</td><td class="num">${fmt(sum(rows, 'net_pln'))}</td></tr>`;
+            document.querySelector('#divTable tfoot').innerHTML =
+                (q ? totalRow('Filtered total', filtered) : '') + totalRow(`Total ${divState.year}`, all);
+
+            document.getElementById('divNone').style.display = all.length ? 'none' : 'block';
+            document.getElementById('divInfo').innerText = sorted.length
+                ? `Showing ${start + 1}-${start + pageRows.length} of ${sorted.length}`
+                : 'Showing 0 of 0';
+            document.getElementById('divPrev').disabled = divState.page === 0;
+            document.getElementById('divNext').disabled = divState.page >= pages - 1;
+        }
         const MAX_SLICES = 10;
         let breakdownRows = [];
 
