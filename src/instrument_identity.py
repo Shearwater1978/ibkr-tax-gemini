@@ -1,7 +1,20 @@
+import re
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Tuple
 
 TICKER_ALIASES = {"TOT": "TTE", "FB": "META"}
+
+_PLACEHOLDER_TICKER = re.compile(r"^\d+[A-Z]?$")
+_ACTION_SYMBOL = re.compile(r"^([A-Z][A-Z0-9.]*)\(")
+
+
+def resolve_placeholder_ticker(ticker: str, description: str) -> str:
+    """IBKR labels a new ISIN with a temporary numeric symbol (e.g. 2682320D);
+    the corporate-action description names the real symbol it replaces."""
+    match = _ACTION_SYMBOL.match(description or "")
+    if _PLACEHOLDER_TICKER.match(str(ticker).strip()) and match:
+        return match.group(1)
+    return ticker
 
 
 def resolve_instrument_identities(
@@ -9,6 +22,12 @@ def resolve_instrument_identities(
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
     """Resolve legacy blank ISINs and derive chronologically ordered changes."""
     resolved = [dict(row) for row in rows]
+    for row in resolved:
+        for key in ("Ticker", "ticker"):
+            if row.get(key):
+                row[key] = resolve_placeholder_ticker(
+                    row[key], row.get("Description", row.get("description", ""))
+                )
     first_seen = defaultdict(dict)
 
     for row in resolved:

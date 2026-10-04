@@ -294,3 +294,70 @@ def test_splits_and_transfers_only_change_their_identity(matcher):
         ("NEW-ISIN", "2024-01-02", 2.0),
         ("NEW-ISIN", "2024-01-03", 1.0),
     ]
+
+
+def _action(kind, qty, ticker, isin, tail, date="2026-07-01"):
+    return {
+        "type": kind,
+        "date": date,
+        "ticker": ticker,
+        "qty": Decimal(qty),
+        "price": Decimal("0"),
+        "commission": Decimal("0"),
+        "currency": "USD",
+        "rate": Decimal("4"),
+        "isin": isin,
+        "description": f"XOM(OLD) CUSIP/ISIN Change to (NEW) ({tail})",
+    }
+
+
+def _buy(date, qty, price):
+    return {
+        "type": "BUY",
+        "date": date,
+        "ticker": "XOM",
+        "qty": Decimal(qty),
+        "price": Decimal(price),
+        "commission": Decimal("0"),
+        "currency": "USD",
+        "rate": Decimal("4"),
+        "isin": "OLD",
+    }
+
+
+def test_isin_change_carries_cost_and_purchase_date(matcher):
+    matcher.process_trades(
+        [
+            _buy("2024-01-10", "2", "100"),
+            _buy("2024-02-10", "1", "110"),
+            _action("STOCK_DIV", "3", "XOM", "NEW", "XOM, NEW CO, NEW"),
+            _action("MERGER", "-3", "XOM", "OLD", "X.OLD, OLD CO, OLD"),
+        ]
+    )
+    lots = sorted(matcher.get_current_inventory(), key=lambda lot: lot["buy_date"])
+    assert [(lot["buy_date"], lot["quantity"], lot["total_cost"]) for lot in lots] == [
+        ("2024-01-10", 2.0, 800.0),
+        ("2024-02-10", 1.0, 440.0),
+    ]
+    assert {lot["isin"] for lot in lots} == {"NEW"}
+
+
+def test_exchange_ratio_changes_quantity_not_cost(matcher):
+    matcher.process_trades(
+        [
+            _buy("2024-01-10", "10", "100"),
+            _action("STOCK_DIV", "3.44", "XOM", "NEW", "XOM, NEW CO, NEW"),
+            _action("MERGER", "-10", "XOM", "OLD", "X.OLD, OLD CO, OLD"),
+        ]
+    )
+    (lot,) = matcher.get_current_inventory()
+    assert lot["quantity"] == 3.44
+    assert lot["total_cost"] == 4000.0
+
+
+def test_corporate_action_without_removal_stays_zero_cost(matcher):
+    matcher.process_trades(
+        [_action("STOCK_DIV", "1.5", "XOM", "NEW", "XOM, NEW CO, NEW")]
+    )
+    (lot,) = matcher.get_current_inventory()
+    assert lot["total_cost"] == 0.0
