@@ -97,7 +97,8 @@
         .ticker-card b { font-size: 15px; }
         .ticker-card .row { display: flex; justify-content: space-between; gap: 18px; margin-top: 6px; }
         .ticker-card .row span:first-child { color: var(--muted); }
-        body.ticker-mode .topbar, body.ticker-mode .container:not(#tickerView) { display: none; }
+        body.ticker-mode .container:not(#tickerView) { display: none; }
+        body.ticker-mode .topbar > :not(.spacer):not(.topbar-controls), body.ticker-mode #yearSelect, body.ticker-mode #calcBtn { display: none; }
         #tickerView { display: none; }
         body.ticker-mode #tickerView { display: block; }
         #ib-web-trades { font-size: 13px; color: var(--muted); margin: 12px 0 0; padding-left: 18px; }
@@ -710,6 +711,7 @@
             renderDividends();
             renderAnalytics();
             renderPortfolio();
+            if (document.body.classList.contains('ticker-mode')) renderTickerView(tickerParam);
         }
 
         const SNAPSHOT_KEY = 'taxSnapshot';
@@ -784,6 +786,7 @@
                 return;
             }
             setFx(snap.fx);
+            updateCurrencyUi();
             const st = tickerStats(sym);
             const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
             const qty = n => n.toLocaleString('en-US', { maximumFractionDigits: 4 });
