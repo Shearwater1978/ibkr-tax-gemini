@@ -407,7 +407,11 @@
 
         window.onload = async () => {
             if (await waitForBackend()) {
-                loadYears();
+                await runImport();
+                await loadYears();
+                if (/^\d{4}$/.test(document.getElementById('yearSelect').value)) {
+                    calculate();
+                }
             }
         };
 
