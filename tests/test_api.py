@@ -321,6 +321,44 @@ def test_calculation_diagnostic_is_structured():
     assert response.json()["detail"]["currency"] == "USD"
 
 
+def test_calculation_returns_by_ticker_summary_with_existing_fields():
+    gains = [
+        {"ticker": "MSFT", "profit_loss": 100.5},
+        {"ticker": "MSFT", "profit_loss": -20.0},
+    ]
+    dividends = [
+        {"ticker": "KO", "gross_amount_pln": 30.0},
+        {"ticker": "MSFT", "gross_amount_pln": 5.0},
+    ]
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=(gains, dividends, [], [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        response = TestClient(api.app).get("/calculate/2025")
+
+    data = response.json()
+    assert response.status_code == 200
+    assert data["by_ticker"] == [
+        {"ticker": "KO", "profit": 0.0, "dividends": 30.0, "sales": 0},
+        {"ticker": "MSFT", "profit": 80.5, "dividends": 5.0, "sales": 2},
+    ]
+    assert data["summary"] == {
+        "pln_profit": 80.5,
+        "pln_dividend_gross": 35.0,
+        "open_positions_count": 0,
+    }
+    assert {"status", "complete", "errors", "pdf_available", "excel_available"} <= set(
+        data
+    )
+
+
 def test_calculation_marks_failed_export_unavailable():
     database = FakeDatabase([{"TradeId": 1}])
     with patch.object(api, "DBConnector", return_value=database), patch.object(
