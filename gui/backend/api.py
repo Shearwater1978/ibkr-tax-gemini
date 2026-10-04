@@ -357,6 +357,17 @@ def calculate_report(year: int):
                 for d in dividends
             ],
             "complete": not errors,
+            "inventory": [
+                {
+                    "ticker": lot["ticker"],
+                    "buy_date": lot["buy_date"],
+                    "quantity": lot["quantity"],
+                    "cost_per_share": lot["cost_per_share"],
+                    "total_cost": lot["total_cost"],
+                    "currency": lot["currency"],
+                }
+                for lot in inventory
+            ],
             "errors": errors,
             "pdf_available": pdf_generated,
             "excel_available": excel_generated,

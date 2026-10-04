@@ -428,6 +428,52 @@ def test_calculation_returns_empty_dividends_list_without_dividends():
         data = TestClient(api.app).get("/calculate/2025").json()
 
     assert data["dividends"] == []
+    assert data["inventory"] == []
+
+
+def test_calculation_returns_open_lot_details():
+    inventory = [
+        {
+            "ticker": "KO",
+            "buy_date": "2024-02-01",
+            "quantity": 2.5,
+            "cost_per_share": 60.0,
+            "total_cost": 600.0,
+            "currency": "USD",
+            "isin": "US1912161007",
+        },
+        {
+            "ticker": "KO",
+            "buy_date": "2024-03-01",
+            "quantity": 1.0,
+            "cost_per_share": 62.0,
+            "total_cost": 250.0,
+            "currency": "USD",
+        },
+    ]
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=([], [], inventory, [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        data = TestClient(api.app).get("/calculate/2025").json()
+
+    assert data["inventory"][0] == {
+        "ticker": "KO",
+        "buy_date": "2024-02-01",
+        "quantity": 2.5,
+        "cost_per_share": 60.0,
+        "total_cost": 600.0,
+        "currency": "USD",
+    }
+    assert len(data["inventory"]) == data["summary"]["open_positions_count"] == 2
+    assert {"status", "complete", "errors", "dividends", "by_ticker"} <= set(data)
 
 
 def test_calculation_marks_failed_export_unavailable():

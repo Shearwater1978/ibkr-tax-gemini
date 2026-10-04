@@ -93,6 +93,7 @@
         <button class="tab active" data-page="page-dashboard" onclick="showPage('page-dashboard')">Dashboard</button>
         <button class="tab" data-page="page-dividends" onclick="showPage('page-dividends')">Dividends</button>
         <button class="tab" data-page="page-analytics" onclick="showPage('page-analytics')">Analytics</button>
+        <button class="tab" data-page="page-portfolio" onclick="showPage('page-portfolio')">Portfolio</button>
         <button class="tab" data-page="page-tax" onclick="showPage('page-tax')">Tax Calculation</button>
         <button class="tab" data-page="page-data" onclick="showPage('page-data')">Data</button>
         <button class="tab" data-page="page-coverage" onclick="showPage('page-coverage')">Coverage</button>
@@ -268,7 +269,58 @@
                 </div>
             </div>
         </div>
-        <div id="page-data" class="page">
+        <div id="page-portfolio" class="page">
+            <div class="breadcrumb">Tax Architect / <b>Portfolio</b></div>
+
+            <div class="card" id="pfEmpty">
+                <h3>No report yet</h3>
+                <p class="hint">Run a calculation to see open positions here.</p>
+                <button class="btn btn-primary" onclick="showPage('page-tax')">Go to Tax Calculation</button>
+            </div>
+
+            <div class="hidden" id="pfContent">
+                <div class="metrics-grid">
+                    <div class="metric-box"><div class="metric-label">Open tickers</div><div class="metric-val" id="pfTickers">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Open lots</div><div class="metric-val" id="pfLots">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Total cost (PLN)</div><div class="metric-val" id="pfCost">-</div></div>
+                </div>
+                <div class="card">
+                    <div class="controls" style="margin-bottom:12px">
+                        <h3 style="margin:0" id="pfTitle">Portfolio</h3>
+                        <div style="flex:1"></div>
+                        <input id="pfFilter" class="search" style="width:220px;margin:0" type="search" placeholder="Filter ticker..." oninput="pfState.page = 0; renderPortfolio()">
+                    </div>
+                    <p class="hint" id="pfNone" style="display:none">No open positions at the end of this year.</p>
+                    <div class="table-scroll" style="max-height:none">
+                        <table class="coverage-table" id="pfTable">
+                            <thead><tr>
+                                <th class="sortable" onclick="sortPortfolio('ticker')">Ticker</th>
+                                <th class="sortable" onclick="sortPortfolio('currency')">Currency</th>
+                                <th class="sortable" onclick="sortPortfolio('quantity')">Quantity</th>
+                                <th class="sortable" onclick="sortPortfolio('lots')">Lots</th>
+                                <th class="sortable" onclick="sortPortfolio('cost')">Total cost (PLN)</th>
+                                <th class="sortable" onclick="sortPortfolio('avg')">Avg cost (PLN)</th>
+                                <th class="sortable" onclick="sortPortfolio('oldest')">Oldest buy</th>
+                            </tr></thead>
+                            <tbody></tbody>
+                            <tfoot></tfoot>
+                        </table>
+                    </div>
+                    <div class="controls" style="margin-top:14px; justify-content:space-between">
+                        <div class="controls">
+                            <button class="btn btn-outline" id="pfPrev" onclick="pfPage(-1)">&lsaquo; Prev</button>
+                            <button class="btn btn-outline" id="pfNext" onclick="pfPage(1)">Next &rsaquo;</button>
+                        </div>
+                        <div class="controls">
+                            <span class="status-text" id="pfInfo"></span>
+                            <select id="pfPageSize" onchange="pfState.page = 0; renderPortfolio()">
+                                <option>10</option><option selected>25</option><option>50</option><option>100</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>        <div id="page-data" class="page">
             <div class="breadcrumb">Tax Architect / <b>Data</b></div>
 
             <div class="card">
@@ -529,6 +581,7 @@
                 renderBreakdown(data.by_ticker || []);
                 setDividends(data.dividends || [], year);
                 setAnalytics(data.by_ticker || [], year);
+                setPortfolio(data.inventory || [], year);
                 resultsCard.classList.remove('hidden');
                 document.getElementById('emptyCard').classList.add('hidden');
                 document.getElementById('resultsTitle').innerText = `Results for ${year}`;
@@ -692,7 +745,101 @@
             document.getElementById('anPrev').disabled = anState.page === 0;
             document.getElementById('anNext').disabled = anState.page >= pages - 1;
         }
-        const MAX_SLICES = 10;
+        const pfState = { rows: [], year: null, sortKey: 'cost', sortDir: -1, page: 0, open: new Set() };
+
+        function setPortfolio(lots, year) {
+            const groups = {};
+            for (const l of lots) {
+                const g = groups[l.ticker] || (groups[l.ticker] = {
+                    ticker: l.ticker, currency: l.currency, quantity: 0, lots: 0, cost: 0, oldest: l.buy_date, items: []
+                });
+                g.quantity += l.quantity;
+                g.lots += 1;
+                g.cost += l.total_cost;
+                if (l.buy_date < g.oldest) g.oldest = l.buy_date;
+                g.items.push(l);
+            }
+            pfState.rows = Object.values(groups).map(g => ({ ...g, avg: g.quantity ? g.cost / g.quantity : 0 }));
+            pfState.year = year;
+            pfState.page = 0;
+            pfState.open = new Set();
+            document.getElementById('pfFilter').value = '';
+            document.getElementById('pfEmpty').classList.add('hidden');
+            document.getElementById('pfContent').classList.remove('hidden');
+            document.getElementById('pfTitle').innerText = `Portfolio ${year}`;
+            renderPortfolio();
+        }
+
+        function sortPortfolio(key) {
+            pfState.sortDir = pfState.sortKey === key ? -pfState.sortDir : 1;
+            pfState.sortKey = key;
+            pfState.page = 0;
+            renderPortfolio();
+        }
+
+        function pfPage(delta) {
+            pfState.page += delta;
+            renderPortfolio();
+        }
+
+        function togglePfLots(i) {
+            const t = pfState.rows[i].ticker;
+            pfState.open.has(t) ? pfState.open.delete(t) : pfState.open.add(t);
+            renderPortfolio();
+        }
+
+        function renderPortfolio() {
+            const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const fmtQty = n => n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+            const all = pfState.rows;
+            const q = document.getElementById('pfFilter').value.trim().toLowerCase();
+            const filtered = q ? all.filter(r => String(r.ticker).toLowerCase().includes(q)) : all;
+            const { sortKey, sortDir } = pfState;
+            const sorted = [...filtered].sort((a, b) => {
+                const x = a[sortKey], y = b[sortKey];
+                return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * sortDir;
+            });
+
+            const size = parseInt(document.getElementById('pfPageSize').value, 10);
+            const pages = Math.max(1, Math.ceil(sorted.length / size));
+            pfState.page = Math.min(Math.max(pfState.page, 0), pages - 1);
+            const start = pfState.page * size;
+            const pageRows = sorted.slice(start, start + size);
+
+            document.querySelector('#pfTable tbody').innerHTML = pageRows.map(r => {
+                const open = pfState.open.has(r.ticker);
+                const idx = all.indexOf(r);
+                let html = `<tr><td><a href="#" style="color:inherit" onclick="togglePfLots(${idx}); return false;">${open ? '&#9662;' : '&#9656;'} ${escapeHtml(r.ticker)}</a></td>` +
+                    `<td>${escapeHtml(r.currency)}</td><td class="num">${fmtQty(r.quantity)}</td><td class="num">${r.lots}</td>` +
+                    `<td class="num">${fmt(r.cost)}</td><td class="num">${fmt(r.avg)}</td><td>${escapeHtml(r.oldest)}</td></tr>`;
+                if (open) {
+                    html += r.items.map(l =>
+                        `<tr class="lot-row"><td class="hint">&nbsp;&nbsp;${escapeHtml(l.buy_date)}</td>` +
+                        `<td class="hint">${fmt(l.cost_per_share)} ${escapeHtml(l.currency)}</td>` +
+                        `<td class="num hint">${fmtQty(l.quantity)}</td><td></td>` +
+                        `<td class="num hint">${fmt(l.total_cost)}</td><td colspan="2"></td></tr>`
+                    ).join('');
+                }
+                return html;
+            }).join('');
+
+            const totQty = all.reduce((s, r) => s + r.quantity, 0);
+            const totLots = all.reduce((s, r) => s + r.lots, 0);
+            const totCost = all.reduce((s, r) => s + r.cost, 0);
+            document.querySelector('#pfTable tfoot').innerHTML =
+                `<tr><td>Total ${pfState.year}</td><td></td><td class="num">${fmtQty(totQty)}</td>` +
+                `<td class="num">${totLots}</td><td class="num">${fmt(totCost)}</td><td colspan="2"></td></tr>`;
+
+            document.getElementById('pfTickers').innerText = all.length;
+            document.getElementById('pfLots').innerText = totLots;
+            document.getElementById('pfCost').innerText = fmt(totCost);
+            document.getElementById('pfNone').style.display = all.length ? 'none' : 'block';
+            document.getElementById('pfInfo').innerText = sorted.length
+                ? `Showing ${start + 1}-${start + pageRows.length} of ${sorted.length}`
+                : 'Showing 0 of 0';
+            document.getElementById('pfPrev').disabled = pfState.page === 0;
+            document.getElementById('pfNext').disabled = pfState.page >= pages - 1;
+        }        const MAX_SLICES = 10;
         let breakdownRows = [];
 
         function renderBreakdown(rows) {
