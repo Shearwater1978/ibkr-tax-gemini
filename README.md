@@ -87,6 +87,46 @@ npm start
 The GUI starts a local backend on `127.0.0.1:8000`, waits for its `/health`
 endpoint, and uses the same encrypted database and report output as the CLI.
 
+### Web portal (browser)
+
+The same dark, tabbed portal also runs in a normal browser, without Electron.
+It needs only Python and the `.env` from the installation steps.
+
+1.  Start the backend (keep this terminal open):
+    ```bash
+    python gui/backend/api.py
+    ```
+    It listens on `http://127.0.0.1:8000` and must be started from the project
+    root so it finds `.env` and the encrypted database.
+
+2.  Open **http://127.0.0.1:8000/** in a browser. The backend serves the portal
+    itself. On start the portal imports the statement files from `data/`,
+    loads the available years and calculates the latest one, so the Dashboard
+    fills in without any clicks. If it shows "Backend is unavailable", check
+    that the backend is running. (Opening `gui/ui/index.html` directly from
+    disk also works.)
+
+3.  To look at another year, choose it in the top bar and press **Calculate**.
+    The **currency** selector next to it shows amounts in PLN, USD or EUR at
+    the NBP rate of the year's last day (display only; reports stay in PLN).
+    Click any ticker to open its sales, dividends and open lots in a new tab,
+    or hover it for a short summary.
+
+Stop the backend with `Ctrl+C`. The backend only accepts requests from
+`file://` pages and `localhost`/`127.0.0.1`, so it is not reachable from other
+machines.
+
+| View | What it shows |
+|------|---------------|
+| Dashboard | P&L and dividend totals, per-ticker breakdown, buttons to open the Excel/PDF reports |
+| Reports → Dividends | Every dividend payment of the year with filter, sorting and totals |
+| Reports → Analytics | Per-ticker realized P&L, dividends and total result |
+| Reports → Portfolio | Open FIFO lots aggregated per ticker with cost basis |
+| Workspace | Calculation progress, CSV import, IB connections, FIFO coverage check |
+
+The Dividends, Analytics and Portfolio views show the most recently calculated
+year and stay empty until a calculation succeeds.
+
 ### IB Live API (optional)
 
 CSV import from `data/` remains the default and required workflow. A

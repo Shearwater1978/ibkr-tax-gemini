@@ -69,3 +69,59 @@ A successful calculation response MUST include a per-ticker summary list, sorted
 
 - **WHEN** a client ignores the per-ticker summary
 - **THEN** all previously documented response fields are present with unchanged meaning
+
+### Requirement: Dividend payment details
+
+A successful calculation response MUST include a list of the dividend payments of the requested year, each with ex-date, ticker, currency, exchange rate, gross amount in PLN, and tax withheld in PLN. Existing response fields MUST remain unchanged, and the list MUST be empty when there are no dividends.
+
+#### Scenario: Dividends present
+
+- **WHEN** the requested year contains dividends
+- **THEN** each payment appears once with its gross and withheld amounts
+
+#### Scenario: No dividends
+
+- **WHEN** the requested year contains no dividends
+- **THEN** the list is present and empty
+
+### Requirement: Open lot details
+
+A successful calculation response MUST include a list of the open lots at the end of the requested year, each with ticker, buy date, quantity, cost per share in the original currency, total cost in PLN, and currency. Existing response fields MUST remain unchanged, and the list MUST be empty when there are no open lots.
+
+#### Scenario: Open lots present
+
+- **WHEN** the requested year ends with open positions
+- **THEN** each open lot appears once and the list length equals the reported open positions count
+
+#### Scenario: No open lots
+
+- **WHEN** there are no open positions
+- **THEN** the list is present and empty
+
+### Requirement: Display exchange rates
+
+A successful calculation response MUST include display exchange rates: the NBP rate date and the PLN value of one USD and one EUR on that date, where the date is the last day of the requested year or the current date for a year still in progress. A currency whose rate cannot be obtained MUST be omitted without failing the calculation, and existing response fields MUST remain unchanged.
+
+#### Scenario: Rates present
+
+- **WHEN** a calculation succeeds for a completed year
+- **THEN** the response contains the rate date and USD and EUR rates
+
+#### Scenario: Rate unavailable
+
+- **WHEN** NBP has no rate for EUR
+- **THEN** the response omits EUR, still succeeds, and keeps the USD rate
+
+### Requirement: Sale details
+
+A successful calculation response MUST include a list of the realized sales of the requested year, each with ticker, sale date, quantity, sale price, currency, sale amount in PLN, cost basis in PLN, and profit or loss in PLN. Existing response fields MUST remain unchanged, and the list MUST be empty when there are no sales.
+
+#### Scenario: Sales present
+
+- **WHEN** the requested year contains sales
+- **THEN** each sale appears once and the per-ticker profit equals the sum of its sales' profit
+
+#### Scenario: No sales
+
+- **WHEN** the requested year contains no sales
+- **THEN** the list is present and empty

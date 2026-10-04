@@ -1,12 +1,14 @@
 # --- User Data (SENSITIVE) ---
 # Ignore all CSVs from broker
 data/*
+data.bkp/*
 !data/.gitkeep
 snapshot_*.json
 db/*
 *.csv
 *.db
 *.db.*
+gui/references/*
 
 # Ignore manual history override (contains personal trades)
 manual_history.csv

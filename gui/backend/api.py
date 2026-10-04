@@ -11,6 +11,7 @@ from typing import List
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 current_dir = Path(__file__).resolve().parent
@@ -28,6 +29,7 @@ from src.db_connector import DBConnector
 from src.diagnostics import CalculationError, ReportExportError
 from src.excel_exporter import export_to_excel
 from src.processing import process_yearly_data
+from src.nbp import get_nbp_rate
 from src.fifo_coverage import PlannedSale, check_coverage
 from src.ib_connector import (
     IBConnector,
@@ -137,6 +139,11 @@ def open_file_system(filepath: Path):
         raise HTTPException(
             status_code=500, detail="Could not open report file"
         ) from exc
+
+
+@app.get("/", include_in_schema=False)
+def portal_page():
+    return FileResponse(current_dir.parent / "ui" / "index.html")
 
 
 @app.get("/health")
@@ -285,6 +292,17 @@ def coverage_check(request: CoverageRequest):
         raise HTTPException(status_code=503, detail="Database is unavailable") from exc
 
 
+def get_fx_rates(year: int) -> dict:
+    rate_date = min(date(year, 12, 31), date.today()).isoformat()
+    rates = {}
+    for currency in ("USD", "EUR"):
+        try:
+            rates[currency] = float(get_nbp_rate(currency, rate_date))
+        except Exception:
+            continue
+    return {"date": rate_date, "rates": rates}
+
+
 @app.get("/calculate/{year}")
 def calculate_report(year: int):
     try:
@@ -345,7 +363,43 @@ def calculate_report(year: int):
         response = {
             "status": "success",
             "by_ticker": sorted(by_ticker.values(), key=lambda x: x["ticker"]),
+            "dividends": [
+                {
+                    "ex_date": d["ex_date"],
+                    "ticker": d["ticker"],
+                    "currency": d["currency"],
+                    "rate": d["rate"],
+                    "gross_pln": d["gross_amount_pln"],
+                    "tax_withheld_pln": d["tax_withheld_pln"],
+                }
+                for d in dividends
+            ],
+            "sales": [
+                {
+                    "ticker": r["ticker"],
+                    "sale_date": r.get("sale_date"),
+                    "quantity": r.get("quantity"),
+                    "sale_price": r.get("sale_price"),
+                    "currency": r.get("currency"),
+                    "sale_amount_pln": r.get("sale_amount"),
+                    "cost_basis_pln": r.get("cost_basis"),
+                    "profit_loss_pln": r["profit_loss"],
+                }
+                for r in realized_gains
+            ],
+            "fx": get_fx_rates(year),
             "complete": not errors,
+            "inventory": [
+                {
+                    "ticker": lot["ticker"],
+                    "buy_date": lot["buy_date"],
+                    "quantity": lot["quantity"],
+                    "cost_per_share": lot["cost_per_share"],
+                    "total_cost": lot["total_cost"],
+                    "currency": lot["currency"],
+                }
+                for lot in inventory
+            ],
             "errors": errors,
             "pdf_available": pdf_generated,
             "excel_available": excel_generated,

@@ -13,12 +13,18 @@
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
 
         /* Top nav */
-        .topbar { display: flex; align-items: center; gap: 8px; padding: 10px 24px; background: var(--nav); border-bottom: 1px solid var(--line); }
+        .topbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; white-space: nowrap; padding: 10px 24px; background: var(--nav); border-bottom: 1px solid var(--line); }
         .logo { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--violet), var(--blue)); display: grid; place-items: center; font-weight: 700; margin-right: 16px; }
         .tab { background: transparent; border: none; color: var(--muted); padding: 9px 16px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
         .tab:hover { color: var(--text); }
         .tab.active { background: #3a3a4d; color: var(--text); }
         .topbar .spacer { flex: 1; }
+        .menu { position: relative; }
+        .menu-list { position: absolute; top: calc(100% + 6px); left: 0; min-width: 170px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px; z-index: 20; display: none; }
+        .menu.open .menu-list { display: block; }
+        .menu-item { display: block; width: 100%; text-align: left; background: transparent; border: none; color: var(--muted); padding: 9px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .menu-item:hover, .menu-item.active { background: #3a3a4d; color: var(--text); }
+        .topbar-controls { display: flex; align-items: center; gap: 8px; margin-right: 12px; }
         .pill { background: #2e3b4e; color: var(--blue); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; }
 
         .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
@@ -78,8 +84,22 @@
         .search { width: 100%; padding: 9px 12px; margin-bottom: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); }
         .table-scroll { max-height: 360px; overflow-y: auto; }
         .table-scroll th { position: sticky; top: 0; background: var(--card); }
+        th.sortable { cursor: pointer; user-select: none; }
+        th.sortable:hover { color: var(--text); }
+        .coverage-table tfoot td { font-weight: 600; border-top: 2px solid var(--line); border-bottom: none; }
+        .num { text-align: right; }
         .pos { color: var(--green); }
         .neg { color: var(--red); }
+        a.tk { color: var(--blue); text-decoration: none; font-weight: 600; }
+        a.tk:hover, a.tk:focus { text-decoration: underline; }
+        a.exp { color: var(--muted); text-decoration: none; margin-right: 6px; }
+        .ticker-card { position: fixed; z-index: 40; min-width: 220px; background: var(--card-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); pointer-events: none; }
+        .ticker-card b { font-size: 15px; }
+        .ticker-card .row { display: flex; justify-content: space-between; gap: 18px; margin-top: 6px; }
+        .ticker-card .row span:first-child { color: var(--muted); }
+        body.ticker-mode .topbar, body.ticker-mode .container:not(#tickerView) { display: none; }
+        #tickerView { display: none; }
+        body.ticker-mode #tickerView { display: block; }
         #ib-web-trades { font-size: 13px; color: var(--muted); margin: 12px 0 0; padding-left: 18px; }
     </style>
 </head>
@@ -87,41 +107,39 @@
     <div class="topbar">
         <div class="logo">T</div>
         <button class="tab active" data-page="page-dashboard" onclick="showPage('page-dashboard')">Dashboard</button>
-        <button class="tab" data-page="page-tax" onclick="showPage('page-tax')">Tax Calculation</button>
-        <button class="tab" data-page="page-data" onclick="showPage('page-data')">Data</button>
-        <button class="tab" data-page="page-coverage" onclick="showPage('page-coverage')">Coverage</button>
+        <div class="menu" id="reportsMenu">
+            <button class="tab" id="reportsBtn" aria-haspopup="true" aria-expanded="false" onclick="toggleMenu(event)">Reports &#9662;</button>
+            <div class="menu-list" role="menu">
+                <button class="menu-item" role="menuitem" data-page="page-dividends" onclick="showPage('page-dividends')">Dividends</button>
+                <button class="menu-item" role="menuitem" data-page="page-analytics" onclick="showPage('page-analytics')">Analytics</button>
+                <button class="menu-item" role="menuitem" data-page="page-portfolio" onclick="showPage('page-portfolio')">Portfolio</button>
+            </div>
+        </div>
+        <button class="tab" data-page="page-workspace" onclick="showPage('page-workspace')">Workspace</button>
         <div class="spacer"></div>
+        <div class="topbar-controls">
+            <span class="hint" id="fxNote"></span>
+            <select id="currencySelect" aria-label="Currency" title="Display currency (conversion is for display only)" onchange="setCurrency(this.value)">
+                <option value="PLN" selected>PLN</option>
+                <option value="USD" disabled>USD</option>
+                <option value="EUR" disabled>EUR</option>
+            </select>
+            <select id="yearSelect" aria-label="Year">
+                <option value="" disabled selected>Loading...</option>
+            </select>
+            <button class="btn btn-primary" id="calcBtn" onclick="calculate()">Calculate</button>
+        </div>
         <span class="pill">SQLCipher • FIFO • NBP</span>
     </div>
 
     <div class="container">
-        <div id="page-tax" class="page">
-            <div class="breadcrumb">Tax Architect / <b>Tax Calculation</b></div>
-
-            <div class="card">
-                <h3>Tax Calculation</h3>
-                <div class="controls">
-                    <label>Year</label>
-                    <select id="yearSelect">
-                        <option value="" disabled selected>Loading...</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="calculate()">Calculate Report</button>
-                </div>
-                <div id="loader" class="loading-box hidden">
-                    <div class="spinner"></div>
-                    <span id="loader-text">Calculating FIFO &amp; NBP Rates...</span>
-                </div>
-                <div id="status"></div>
-            </div>
-        </div>
-
         <div id="page-dashboard" class="page active">
             <div class="breadcrumb">Tax Architect / <b>Dashboard</b></div>
 
             <div class="card" id="emptyCard">
                 <h3>No report yet</h3>
                 <p class="hint">Run a calculation to see results here.</p>
-                <button class="btn btn-primary" onclick="showPage('page-tax')">Go to Tax Calculation</button>
+                <button class="btn btn-primary" onclick="showPage('page-workspace')">Go to Workspace</button>
             </div>
 
             <div class="card hidden" id="resultsCard">
@@ -157,7 +175,7 @@
                     <input id="tickerFilter" class="search" type="search" placeholder="Filter ticker..." oninput="renderTickerTable()">
                     <div class="table-scroll">
                     <table class="coverage-table" id="tickerTable">
-                        <thead><tr><th>Ticker</th><th>Sales</th><th>P&amp;L (PLN)</th><th>Dividends (PLN)</th><th>Share</th></tr></thead>
+                        <thead><tr><th>Ticker</th><th>Sales</th><th>P&amp;L (<span class="curCode">PLN</span>)</th><th>Dividends (<span class="curCode">PLN</span>)</th><th>Share</th></tr></thead>
                         <tbody></tbody>
                     </table>
                     </div>
@@ -166,8 +184,167 @@
             </div>
         </div>
 
-        <div id="page-data" class="page">
-            <div class="breadcrumb">Tax Architect / <b>Data</b></div>
+        <div id="page-dividends" class="page">
+            <div class="breadcrumb">Tax Architect / <b>Dividends</b></div>
+
+            <div class="card" id="divEmpty">
+                <h3>No report yet</h3>
+                <p class="hint">Run a calculation to see dividend payments here.</p>
+                <button class="btn btn-primary" onclick="showPage('page-workspace')">Go to Workspace</button>
+            </div>
+
+            <div class="card hidden" id="divCard">
+                <div class="controls" style="margin-bottom:12px">
+                    <h3 style="margin:0" id="divTitle">Dividends</h3>
+                    <div style="flex:1"></div>
+                    <input id="divFilter" class="search" style="width:220px;margin:0" type="search" placeholder="Filter ticker..." oninput="divState.page = 0; renderDividends()">
+                </div>
+                <p class="hint" id="divNone" style="display:none">No dividends were received in this year.</p>
+                <div class="table-scroll" style="max-height:none">
+                    <table class="coverage-table" id="divTable">
+                        <thead><tr>
+                            <th class="sortable" onclick="sortDividends('ex_date')">Date</th>
+                            <th class="sortable" onclick="sortDividends('ticker')">Ticker</th>
+                            <th class="sortable" onclick="sortDividends('currency')">Currency</th>
+                            <th class="sortable" onclick="sortDividends('rate')">NBP rate</th>
+                            <th class="sortable" onclick="sortDividends('gross_pln')">Gross (<span class="curCode">PLN</span>)</th>
+                            <th class="sortable" onclick="sortDividends('tax_withheld_pln')">Withheld (<span class="curCode">PLN</span>)</th>
+                            <th class="sortable" onclick="sortDividends('net_pln')">Net (<span class="curCode">PLN</span>)</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                        <tfoot></tfoot>
+                    </table>
+                </div>
+                <div class="controls" style="margin-top:14px; justify-content:space-between">
+                    <div class="controls">
+                        <button class="btn btn-outline" id="divPrev" onclick="divPage(-1)">&lsaquo; Prev</button>
+                        <button class="btn btn-outline" id="divNext" onclick="divPage(1)">Next &rsaquo;</button>
+                    </div>
+                    <div class="controls">
+                        <span class="status-text" id="divInfo"></span>
+                        <select id="divPageSize" onchange="divState.page = 0; renderDividends()">
+                            <option>10</option><option selected>25</option><option>50</option><option>100</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="page-analytics" class="page">
+            <div class="breadcrumb">Tax Architect / <b>Analytics</b></div>
+
+            <div class="card" id="anEmpty">
+                <h3>No report yet</h3>
+                <p class="hint">Run a calculation to see per-ticker analytics here.</p>
+                <button class="btn btn-primary" onclick="showPage('page-workspace')">Go to Workspace</button>
+            </div>
+
+            <div class="hidden" id="anContent">
+                <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr)">
+                    <div class="metric-box"><div class="metric-label">Realized P&amp;L (<span class="curCode">PLN</span>)</div><div class="metric-val" id="anPl">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Dividends gross (<span class="curCode">PLN</span>)</div><div class="metric-val" id="anDiv">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Total result (<span class="curCode">PLN</span>)</div><div class="metric-val" id="anTotal">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Tickers</div><div class="metric-val" id="anCount">-</div></div>
+                </div>
+                <div class="card">
+                    <div class="controls" style="margin-bottom:12px">
+                        <h3 style="margin:0" id="anTitle">Analytics</h3>
+                        <div style="flex:1"></div>
+                        <label class="hint"><input type="checkbox" id="anHide" onchange="anState.page = 0; renderAnalytics()"> Hide tickers without sales</label>
+                        <input id="anFilter" class="search" style="width:220px;margin:0" type="search" placeholder="Filter ticker..." oninput="anState.page = 0; renderAnalytics()">
+                    </div>
+                    <div class="table-scroll" style="max-height:none">
+                        <table class="coverage-table" id="anTable">
+                            <thead><tr>
+                                <th class="sortable" onclick="sortAnalytics('ticker')">Ticker</th>
+                                <th class="sortable" onclick="sortAnalytics('sales')">Sales</th>
+                                <th class="sortable" onclick="sortAnalytics('profit')">Realized P&amp;L</th>
+                                <th class="sortable" onclick="sortAnalytics('dividends')">Dividends</th>
+                                <th class="sortable" onclick="sortAnalytics('total')">Total result</th>
+                            </tr></thead>
+                            <tbody></tbody>
+                            <tfoot></tfoot>
+                        </table>
+                    </div>
+                    <div class="controls" style="margin-top:14px; justify-content:space-between">
+                        <div class="controls">
+                            <button class="btn btn-outline" id="anPrev" onclick="anPage(-1)">&lsaquo; Prev</button>
+                            <button class="btn btn-outline" id="anNext" onclick="anPage(1)">Next &rsaquo;</button>
+                        </div>
+                        <div class="controls">
+                            <span class="status-text" id="anInfo"></span>
+                            <select id="anPageSize" onchange="anState.page = 0; renderAnalytics()">
+                                <option>10</option><option selected>25</option><option>50</option><option>100</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="page-portfolio" class="page">
+            <div class="breadcrumb">Tax Architect / <b>Portfolio</b></div>
+
+            <div class="card" id="pfEmpty">
+                <h3>No report yet</h3>
+                <p class="hint">Run a calculation to see open positions here.</p>
+                <button class="btn btn-primary" onclick="showPage('page-workspace')">Go to Workspace</button>
+            </div>
+
+            <div class="hidden" id="pfContent">
+                <div class="metrics-grid">
+                    <div class="metric-box"><div class="metric-label">Open tickers</div><div class="metric-val" id="pfTickers">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Open lots</div><div class="metric-val" id="pfLots">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Total cost (<span class="curCode">PLN</span>)</div><div class="metric-val" id="pfCost">-</div></div>
+                </div>
+                <div class="card">
+                    <div class="controls" style="margin-bottom:12px">
+                        <h3 style="margin:0" id="pfTitle">Portfolio</h3>
+                        <div style="flex:1"></div>
+                        <input id="pfFilter" class="search" style="width:220px;margin:0" type="search" placeholder="Filter ticker..." oninput="pfState.page = 0; renderPortfolio()">
+                    </div>
+                    <p class="hint" id="pfNone" style="display:none">No open positions at the end of this year.</p>
+                    <div class="table-scroll" style="max-height:none">
+                        <table class="coverage-table" id="pfTable">
+                            <thead><tr>
+                                <th class="sortable" onclick="sortPortfolio('ticker')">Ticker</th>
+                                <th class="sortable" onclick="sortPortfolio('currency')">Currency</th>
+                                <th class="sortable" onclick="sortPortfolio('quantity')">Quantity</th>
+                                <th class="sortable" onclick="sortPortfolio('lots')">Lots</th>
+                                <th class="sortable" onclick="sortPortfolio('cost')">Total cost (<span class="curCode">PLN</span>)</th>
+                                <th class="sortable" onclick="sortPortfolio('avg')">Avg cost (<span class="curCode">PLN</span>)</th>
+                                <th class="sortable" onclick="sortPortfolio('oldest')">Oldest buy</th>
+                            </tr></thead>
+                            <tbody></tbody>
+                            <tfoot></tfoot>
+                        </table>
+                    </div>
+                    <div class="controls" style="margin-top:14px; justify-content:space-between">
+                        <div class="controls">
+                            <button class="btn btn-outline" id="pfPrev" onclick="pfPage(-1)">&lsaquo; Prev</button>
+                            <button class="btn btn-outline" id="pfNext" onclick="pfPage(1)">Next &rsaquo;</button>
+                        </div>
+                        <div class="controls">
+                            <span class="status-text" id="pfInfo"></span>
+                            <select id="pfPageSize" onchange="pfState.page = 0; renderPortfolio()">
+                                <option>10</option><option selected>25</option><option>50</option><option>100</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-workspace" class="page">
+            <div class="breadcrumb">Tax Architect / <b>Workspace</b></div>
+
+            <div class="card">
+                <h3>Tax Calculation</h3>
+                <p class="hint">Choose a year in the top bar and press Calculate.</p>
+                <div id="loader" class="loading-box hidden">
+                    <div class="spinner"></div>
+                    <span id="loader-text">Calculating FIFO &amp; NBP Rates...</span>
+                </div>
+                <div id="status"></div>
+            </div>
 
             <div class="card">
                 <h3>Data Management</h3>
@@ -195,10 +372,7 @@
                 </div>
                 <ul id="ib-web-trades"></ul>
             </div>
-        </div>
 
-        <div id="page-coverage" class="page">
-            <div class="breadcrumb">Tax Architect / <b>FIFO Coverage Preflight</b></div>
             <div class="card">
                 <h3>Planned sales</h3>
                 <p class="hint">Check imported lots before a planned sale. This does not calculate tax or persist a sale.</p>
@@ -212,11 +386,35 @@
         </div>
     </div>
 
+    <div class="container" id="tickerView"></div>
+    <div class="ticker-card hidden" id="tickerCard" role="tooltip"></div>
+
     <script>
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === id));
-            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.page === id));
+            document.querySelectorAll('.tab[data-page]').forEach(t => t.classList.toggle('active', t.dataset.page === id));
+            document.querySelectorAll('.menu-item').forEach(t => t.classList.toggle('active', t.dataset.page === id));
+            document.getElementById('reportsBtn').classList.toggle('active', !!document.querySelector('.menu-item.active'));
+            closeMenu();
         }
+
+        function closeMenu() {
+            document.getElementById('reportsMenu').classList.remove('open');
+            document.getElementById('reportsBtn').setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleMenu(e) {
+            e.stopPropagation();
+            const open = document.getElementById('reportsMenu').classList.toggle('open');
+            document.getElementById('reportsBtn').setAttribute('aria-expanded', String(open));
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('#reportsMenu')) closeMenu();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeMenu();
+        });
     </script>
     <script>
         const API_URL = window.taxApi?.baseUrl || 'http://127.0.0.1:8000';
@@ -226,9 +424,19 @@
         const ibWebStatusEl = document.getElementById('ib-web-status');
         const ibWebTradesEl = document.getElementById('ib-web-trades');
 
+        const tickerParam = new URLSearchParams(location.search).get('ticker');
+
         window.onload = async () => {
+            if (tickerParam) {
+                renderTickerView(tickerParam);
+                return;
+            }
             if (await waitForBackend()) {
-                loadYears();
+                await runImport();
+                await loadYears();
+                if (/^\d{4}$/.test(document.getElementById('yearSelect').value)) {
+                    calculate();
+                }
             }
         };
 
@@ -386,11 +594,12 @@
         async function calculate() {
             const yearSelect = document.getElementById('yearSelect');
             const year = yearSelect.value;
-            const calcBtn = document.querySelector('button[onclick="calculate()"]');
+            const calcBtn = document.getElementById('calcBtn');
             const loader = document.getElementById('loader');
             const resultsCard = document.getElementById('resultsCard');
 
             if(!year || year === "No Data found") return;
+            showPage('page-workspace');
 
             // 1. Подготовка UI
             statusEl.innerText = "";
@@ -413,10 +622,9 @@
                 }
 
                 // 2. Заполнение данных
-                const plEl = document.getElementById('pl');
-                plEl.innerText = data.summary.pln_profit.toFixed(2) + " PLN";
-                plEl.className = 'metric-val ' + (data.summary.pln_profit >= 0 ? 'pos' : 'neg');
-                document.getElementById('divs').innerText = data.summary.pln_dividend_gross.toFixed(2) + " PLN";
+                setFx(data.fx);
+                lastSummary = data.summary;
+                renderDashboardMetrics();
                 document.getElementById('inv').innerText = data.summary.open_positions_count;
                 
                 // Кнопки отчетов
@@ -425,6 +633,11 @@
 
                 // 3. Показ результата
                 renderBreakdown(data.by_ticker || []);
+                setDividends(data.dividends || [], year);
+                setAnalytics(data.by_ticker || [], year);
+                setPortfolio(data.inventory || [], year);
+                updateCurrencyUi();
+                saveSnapshot(year, data);
                 resultsCard.classList.remove('hidden');
                 document.getElementById('emptyCard').classList.add('hidden');
                 document.getElementById('resultsTitle').innerText = `Results for ${year}`;
@@ -444,9 +657,400 @@
             }
         }
 
+        const CURRENCY_KEY = 'taxCurrency';
+        let fx = { date: null, rates: {} };
+        let curCode = 'PLN';
+        let lastSummary = null;
+        let calculated = false;
+
+        const fmtRaw = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const curRate = () => (curCode === 'PLN' ? 1 : fx.rates[curCode] || 1);
+        const money = n => fmtRaw(n / curRate());
+
+        function setFx(newFx) {
+            fx = newFx && newFx.rates ? newFx : { date: null, rates: {} };
+            calculated = true;
+            for (const opt of document.getElementById('currencySelect').options) {
+                opt.disabled = opt.value !== 'PLN' && !fx.rates[opt.value];
+            }
+            let saved = null;
+            try { saved = localStorage.getItem(CURRENCY_KEY); } catch (e) {}
+            curCode = saved === 'PLN' || (saved && fx.rates[saved]) ? saved : 'PLN';
+        }
+
+        function updateCurrencyUi() {
+            document.getElementById('currencySelect').value = curCode;
+            document.querySelectorAll('.curCode').forEach(el => { el.innerText = curCode; });
+            document.getElementById('fxNote').innerText = curCode === 'PLN'
+                ? ''
+                : `1 ${curCode} = ${fx.rates[curCode].toFixed(4)} PLN (${fx.date}) \u00b7 display only`;
+        }
+
+        function renderDashboardMetrics() {
+            if (!lastSummary) return;
+            const pl = document.getElementById('pl');
+            pl.innerText = `${money(lastSummary.pln_profit)} ${curCode}`;
+            pl.className = 'metric-val ' + (lastSummary.pln_profit >= 0 ? 'pos' : 'neg');
+            document.getElementById('divs').innerText = `${money(lastSummary.pln_dividend_gross)} ${curCode}`;
+        }
+
+        function setCurrency(code) {
+            if (!calculated || (code !== 'PLN' && !fx.rates[code])) code = 'PLN';
+            curCode = code;
+            try { localStorage.setItem(CURRENCY_KEY, code); } catch (e) {}
+            updateCurrencyUi();
+            renderDashboardMetrics();
+            renderTickerTable();
+            renderDividends();
+            renderAnalytics();
+            renderPortfolio();
+        }
+
+        const SNAPSHOT_KEY = 'taxSnapshot';
+        let snap = null;
+
+        function saveSnapshot(year, data) {
+            snap = {
+                year, fx: data.fx, by_ticker: data.by_ticker || [], sales: data.sales || [],
+                dividends: data.dividends || [], inventory: data.inventory || []
+            };
+            try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snap)); } catch (e) {}
+        }
+
+        function loadSnapshot() {
+            try { return JSON.parse(localStorage.getItem(SNAPSHOT_KEY)); } catch (e) { return null; }
+        }
+
+        function tickerLink(sym) {
+            const s = escapeHtml(sym);
+            return `<a class="tk" href="?ticker=${encodeURIComponent(sym)}" target="_blank" rel="noopener" data-ticker="${s}">${s}</a>`;
+        }
+
+        function tickerStats(sym) {
+            if (!snap) return null;
+            const row = snap.by_ticker.find(r => r.ticker === sym) || { profit: 0, dividends: 0 };
+            const sumCost = rows => rows.reduce((s, l) => s + l.total_cost, 0);
+            const openCost = sumCost(snap.inventory.filter(l => l.ticker === sym));
+            const totalOpen = sumCost(snap.inventory);
+            return {
+                profit: row.profit, dividends: row.dividends, total: row.profit + row.dividends,
+                openCost, share: totalOpen ? openCost / totalOpen * 100 : 0
+            };
+        }
+
+        const tickerCard = document.getElementById('tickerCard');
+
+        function showTickerCard(a) {
+            const st = tickerStats(a.dataset.ticker);
+            if (!st) return;
+            const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
+            const row = (label, val, cls = '') => `<div class="row"><span>${label}</span><span class="${cls}">${val}</span></div>`;
+            tickerCard.innerHTML = `<b>${escapeHtml(a.dataset.ticker)}</b>` +
+                row('Share of open cost', `${st.share.toFixed(2)}%`) +
+                row('Realized P&amp;L', `${money(st.profit)} ${curCode}`, sign(st.profit)) +
+                row('Dividends', `${money(st.dividends)} ${curCode}`) +
+                row('Total result', `${money(st.total)} ${curCode}`, sign(st.total));
+            tickerCard.classList.remove('hidden');
+            const r = a.getBoundingClientRect();
+            const w = tickerCard.offsetWidth, h = tickerCard.offsetHeight;
+            const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+            const top = r.bottom + 8 + h > window.innerHeight ? Math.max(8, r.top - h - 8) : r.bottom + 8;
+            tickerCard.style.left = `${left}px`;
+            tickerCard.style.top = `${top}px`;
+        }
+
+        function hideTickerCard() { tickerCard.classList.add('hidden'); }
+
+        document.addEventListener('mouseover', e => { const a = e.target.closest('a.tk'); if (a) showTickerCard(a); });
+        document.addEventListener('focusin', e => { const a = e.target.closest('a.tk'); if (a) showTickerCard(a); });
+        document.addEventListener('mouseout', e => { if (e.target.closest('a.tk')) hideTickerCard(); });
+        document.addEventListener('focusout', e => { if (e.target.closest('a.tk')) hideTickerCard(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') hideTickerCard(); });
+
+        function renderTickerView(sym) {
+            document.body.classList.add('ticker-mode');
+            document.title = `${sym} - Tax Architect`;
+            const view = document.getElementById('tickerView');
+            const head = `<div class="breadcrumb"><a class="tk" href="${location.pathname}">Tax Architect</a> / <b>${escapeHtml(sym)}</b></div>`;
+            snap = loadSnapshot();
+            if (!snap) {
+                view.innerHTML = head + `<div class="card"><h3>No data yet</h3><p class="hint">Open the portal and run a calculation first.</p></div>`;
+                return;
+            }
+            setFx(snap.fx);
+            const st = tickerStats(sym);
+            const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
+            const qty = n => n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+            const box = (label, val, cls = '') => `<div class="metric-box"><div class="metric-label">${label}</div><div class="metric-val ${cls}">${val}</div></div>`;
+            const table = (title, headers, rows, cols) => `<div class="card"><h3>${title}</h3>` + (rows.length
+                ? `<table class="coverage-table"><thead><tr>${headers.map((h, i) => `<th${i >= cols ? ' class="num"' : ''}>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`
+                : `<p class="hint">None in ${snap.year}.</p>`) + `</div>`;
+            const cell = (v, cls = '') => `<td class="num ${cls}">${v}</td>`;
+
+            const sales = snap.sales.filter(s => s.ticker === sym).map(s =>
+                `<tr><td>${escapeHtml(s.sale_date)}</td>${cell(qty(s.quantity))}` +
+                `${cell(`${fmtRaw(s.sale_price)} ${escapeHtml(s.currency)}`)}${cell(money(s.sale_amount_pln))}` +
+                `${cell(money(s.cost_basis_pln))}${cell(money(s.profit_loss_pln), sign(s.profit_loss_pln))}</tr>`);
+            const divs = snap.dividends.filter(d => d.ticker === sym).map(d =>
+                `<tr><td>${escapeHtml(d.ex_date)}</td><td>${escapeHtml(d.currency)}</td>${cell(Number(d.rate).toFixed(4))}` +
+                `${cell(money(d.gross_pln))}${cell(money(d.tax_withheld_pln))}${cell(money(d.gross_pln - d.tax_withheld_pln), 'pos')}</tr>`);
+            const lots = snap.inventory.filter(l => l.ticker === sym).map(l =>
+                `<tr><td>${escapeHtml(l.buy_date)}</td>${cell(qty(l.quantity))}` +
+                `${cell(`${fmtRaw(l.cost_per_share)} ${escapeHtml(l.currency)}`)}${cell(money(l.total_cost))}</tr>`);
+            const cc = curCode;
+
+            view.innerHTML = head +
+                `<p class="hint">Calculated year ${escapeHtml(snap.year)}. Amounts in ${cc}` +
+                (cc === 'PLN' ? '' : ` at 1 ${cc} = ${fx.rates[cc].toFixed(4)} PLN (${escapeHtml(fx.date)}), display only`) + `.</p>` +
+                `<div class="metrics-grid" style="grid-template-columns:repeat(4,1fr)">` +
+                box('Share of open cost', `${st.share.toFixed(2)}%`) +
+                box(`Realized P&amp;L (${cc})`, money(st.profit), sign(st.profit)) +
+                box(`Dividends (${cc})`, money(st.dividends)) +
+                box(`Total result (${cc})`, money(st.total), sign(st.total)) + `</div>` +
+                table('Sales', ['Date', 'Quantity', 'Price', `Proceeds (${cc})`, `Cost (${cc})`, `P&amp;L (${cc})`], sales, 1) +
+                table('Dividends', ['Ex-date', 'Currency', 'NBP rate', `Gross (${cc})`, `Withheld (${cc})`, `Net (${cc})`], divs, 2) +
+                table('Open lots', ['Buy date', 'Quantity', 'Cost per share', `Total cost (${cc})`], lots, 1);
+        }
+
         const PALETTE = ['#4a90e2', '#52d1dc', '#6a5acd', '#7c2fc9', '#2ec4b6', '#a020f0', '#6ee7d8', '#00e5a0', '#b388ff', '#3b4cca'];
 
-        const MAX_SLICES = 10;
+        const divState = { rows: [], year: null, sortKey: 'ex_date', sortDir: 1, page: 0 };
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function setDividends(list, year) {
+            divState.rows = list.map(d => ({ ...d, net_pln: d.gross_pln - d.tax_withheld_pln }));
+            divState.year = year;
+            divState.page = 0;
+            document.getElementById('divFilter').value = '';
+            document.getElementById('divEmpty').classList.add('hidden');
+            document.getElementById('divCard').classList.remove('hidden');
+            document.getElementById('divTitle').innerText = `Dividends ${year}`;
+            renderDividends();
+        }
+
+        function sortDividends(key) {
+            divState.sortDir = divState.sortKey === key ? -divState.sortDir : 1;
+            divState.sortKey = key;
+            divState.page = 0;
+            renderDividends();
+        }
+
+        function divPage(delta) {
+            divState.page += delta;
+            renderDividends();
+        }
+
+        function renderDividends() {
+            const fmt = money;
+            const sum = (rows, k) => rows.reduce((s, r) => s + r[k], 0);
+            const q = document.getElementById('divFilter').value.trim().toLowerCase();
+            const all = divState.rows;
+            const filtered = q ? all.filter(r => String(r.ticker).toLowerCase().includes(q)) : all;
+            const { sortKey, sortDir } = divState;
+            const sorted = [...filtered].sort((a, b) => {
+                const x = a[sortKey], y = b[sortKey];
+                return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * sortDir;
+            });
+
+            const size = parseInt(document.getElementById('divPageSize').value, 10);
+            const pages = Math.max(1, Math.ceil(sorted.length / size));
+            divState.page = Math.min(Math.max(divState.page, 0), pages - 1);
+            const start = divState.page * size;
+            const pageRows = sorted.slice(start, start + size);
+
+            document.querySelector('#divTable tbody').innerHTML = pageRows.map(r =>
+                `<tr><td>${escapeHtml(r.ex_date)}</td><td>${tickerLink(r.ticker)}</td><td>${escapeHtml(r.currency)}</td>` +
+                `<td class="num">${Number(r.rate).toFixed(4)}</td>` +
+                `<td class="num">${fmt(r.gross_pln)}</td>` +
+                `<td class="num">${fmt(r.tax_withheld_pln)}</td>` +
+                `<td class="num pos">${fmt(r.net_pln)}</td></tr>`
+            ).join('');
+
+            const totalRow = (label, rows) =>
+                `<tr><td colspan="4">${label}</td><td class="num">${fmt(sum(rows, 'gross_pln'))}</td>` +
+                `<td class="num">${fmt(sum(rows, 'tax_withheld_pln'))}</td><td class="num">${fmt(sum(rows, 'net_pln'))}</td></tr>`;
+            document.querySelector('#divTable tfoot').innerHTML =
+                (q ? totalRow('Filtered total', filtered) : '') + totalRow(`Total ${divState.year}`, all);
+
+            document.getElementById('divNone').style.display = all.length ? 'none' : 'block';
+            document.getElementById('divInfo').innerText = sorted.length
+                ? `Showing ${start + 1}-${start + pageRows.length} of ${sorted.length}`
+                : 'Showing 0 of 0';
+            document.getElementById('divPrev').disabled = divState.page === 0;
+            document.getElementById('divNext').disabled = divState.page >= pages - 1;
+        }
+        const anState = { rows: [], year: null, sortKey: 'total', sortDir: -1, page: 0 };
+
+        function setAnalytics(list, year) {
+            anState.rows = list.map(t => ({ ...t, total: t.profit + t.dividends }));
+            anState.year = year;
+            anState.page = 0;
+            document.getElementById('anFilter').value = '';
+            document.getElementById('anHide').checked = false;
+            document.getElementById('anEmpty').classList.add('hidden');
+            document.getElementById('anContent').classList.remove('hidden');
+            document.getElementById('anTitle').innerText = `Analytics ${year}`;
+            renderAnalytics();
+        }
+
+        function sortAnalytics(key) {
+            anState.sortDir = anState.sortKey === key ? -anState.sortDir : 1;
+            anState.sortKey = key;
+            anState.page = 0;
+            renderAnalytics();
+        }
+
+        function anPage(delta) {
+            anState.page += delta;
+            renderAnalytics();
+        }
+
+        function renderAnalytics() {
+            const fmt = money;
+            const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
+            const sum = (rows, k) => rows.reduce((s, r) => s + r[k], 0);
+            const all = anState.rows;
+            const q = document.getElementById('anFilter').value.trim().toLowerCase();
+            const hide = document.getElementById('anHide').checked;
+            const filtered = all.filter(r => (!hide || r.sales > 0) && (!q || String(r.ticker).toLowerCase().includes(q)));
+            const { sortKey, sortDir } = anState;
+            const sorted = [...filtered].sort((a, b) => {
+                const x = a[sortKey], y = b[sortKey];
+                return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * sortDir;
+            });
+
+            const size = parseInt(document.getElementById('anPageSize').value, 10);
+            const pages = Math.max(1, Math.ceil(sorted.length / size));
+            anState.page = Math.min(Math.max(anState.page, 0), pages - 1);
+            const start = anState.page * size;
+            const pageRows = sorted.slice(start, start + size);
+
+            const cells = r =>
+                `<td class="num ${sign(r.profit)}">${fmt(r.profit)}</td>` +
+                `<td class="num">${fmt(r.dividends)}</td>` +
+                `<td class="num ${sign(r.total)}">${fmt(r.total)}</td>`;
+            document.querySelector('#anTable tbody').innerHTML = pageRows.map(r =>
+                `<tr><td>${tickerLink(r.ticker)}</td><td class="num">${r.sales}</td>${cells(r)}</tr>`
+            ).join('');
+
+            const tot = { profit: sum(all, 'profit'), dividends: sum(all, 'dividends'), total: sum(all, 'total') };
+            document.querySelector('#anTable tfoot').innerHTML =
+                `<tr><td>Total ${anState.year}</td><td class="num">${sum(all, 'sales')}</td>${cells(tot)}</tr>`;
+
+            const setVal = (id, n) => {
+                const el = document.getElementById(id);
+                el.innerText = fmt(n);
+                el.className = 'metric-val ' + sign(n);
+            };
+            setVal('anPl', tot.profit);
+            setVal('anDiv', tot.dividends);
+            setVal('anTotal', tot.total);
+            document.getElementById('anCount').innerText = all.length;
+
+            document.getElementById('anInfo').innerText = sorted.length
+                ? `Showing ${start + 1}-${start + pageRows.length} of ${sorted.length}`
+                : 'Showing 0 of 0';
+            document.getElementById('anPrev').disabled = anState.page === 0;
+            document.getElementById('anNext').disabled = anState.page >= pages - 1;
+        }
+        const pfState = { rows: [], year: null, sortKey: 'cost', sortDir: -1, page: 0, open: new Set() };
+
+        function setPortfolio(lots, year) {
+            const groups = {};
+            for (const l of lots) {
+                const g = groups[l.ticker] || (groups[l.ticker] = {
+                    ticker: l.ticker, currency: l.currency, quantity: 0, lots: 0, cost: 0, oldest: l.buy_date, items: []
+                });
+                g.quantity += l.quantity;
+                g.lots += 1;
+                g.cost += l.total_cost;
+                if (l.buy_date < g.oldest) g.oldest = l.buy_date;
+                g.items.push(l);
+            }
+            pfState.rows = Object.values(groups).map(g => ({ ...g, avg: g.quantity ? g.cost / g.quantity : 0 }));
+            pfState.year = year;
+            pfState.page = 0;
+            pfState.open = new Set();
+            document.getElementById('pfFilter').value = '';
+            document.getElementById('pfEmpty').classList.add('hidden');
+            document.getElementById('pfContent').classList.remove('hidden');
+            document.getElementById('pfTitle').innerText = `Portfolio ${year}`;
+            renderPortfolio();
+        }
+
+        function sortPortfolio(key) {
+            pfState.sortDir = pfState.sortKey === key ? -pfState.sortDir : 1;
+            pfState.sortKey = key;
+            pfState.page = 0;
+            renderPortfolio();
+        }
+
+        function pfPage(delta) {
+            pfState.page += delta;
+            renderPortfolio();
+        }
+
+        function togglePfLots(i) {
+            const t = pfState.rows[i].ticker;
+            pfState.open.has(t) ? pfState.open.delete(t) : pfState.open.add(t);
+            renderPortfolio();
+        }
+
+        function renderPortfolio() {
+            const fmt = money;
+            const fmtQty = n => n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+            const all = pfState.rows;
+            const q = document.getElementById('pfFilter').value.trim().toLowerCase();
+            const filtered = q ? all.filter(r => String(r.ticker).toLowerCase().includes(q)) : all;
+            const { sortKey, sortDir } = pfState;
+            const sorted = [...filtered].sort((a, b) => {
+                const x = a[sortKey], y = b[sortKey];
+                return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * sortDir;
+            });
+
+            const size = parseInt(document.getElementById('pfPageSize').value, 10);
+            const pages = Math.max(1, Math.ceil(sorted.length / size));
+            pfState.page = Math.min(Math.max(pfState.page, 0), pages - 1);
+            const start = pfState.page * size;
+            const pageRows = sorted.slice(start, start + size);
+
+            document.querySelector('#pfTable tbody').innerHTML = pageRows.map(r => {
+                const open = pfState.open.has(r.ticker);
+                const idx = all.indexOf(r);
+                let html = `<tr><td><a href="#" class="exp" aria-label="Toggle lots" onclick="togglePfLots(${idx}); return false;">${open ? '&#9662;' : '&#9656;'}</a>${tickerLink(r.ticker)}</td>` +
+                    `<td>${escapeHtml(r.currency)}</td><td class="num">${fmtQty(r.quantity)}</td><td class="num">${r.lots}</td>` +
+                    `<td class="num">${fmt(r.cost)}</td><td class="num">${fmt(r.avg)}</td><td>${escapeHtml(r.oldest)}</td></tr>`;
+                if (open) {
+                    html += r.items.map(l =>
+                        `<tr class="lot-row"><td class="hint">&nbsp;&nbsp;${escapeHtml(l.buy_date)}</td>` +
+                        `<td class="hint">${fmtRaw(l.cost_per_share)} ${escapeHtml(l.currency)}</td>` +
+                        `<td class="num hint">${fmtQty(l.quantity)}</td><td></td>` +
+                        `<td class="num hint">${fmt(l.total_cost)}</td><td colspan="2"></td></tr>`
+                    ).join('');
+                }
+                return html;
+            }).join('');
+
+            const totQty = all.reduce((s, r) => s + r.quantity, 0);
+            const totLots = all.reduce((s, r) => s + r.lots, 0);
+            const totCost = all.reduce((s, r) => s + r.cost, 0);
+            document.querySelector('#pfTable tfoot').innerHTML =
+                `<tr><td>Total ${pfState.year}</td><td></td><td class="num">${fmtQty(totQty)}</td>` +
+                `<td class="num">${totLots}</td><td class="num">${fmt(totCost)}</td><td colspan="2"></td></tr>`;
+
+            document.getElementById('pfTickers').innerText = all.length;
+            document.getElementById('pfLots').innerText = totLots;
+            document.getElementById('pfCost').innerText = fmt(totCost);
+            document.getElementById('pfNone').style.display = all.length ? 'none' : 'block';
+            document.getElementById('pfInfo').innerText = sorted.length
+                ? `Showing ${start + 1}-${start + pageRows.length} of ${sorted.length}`
+                : 'Showing 0 of 0';
+            document.getElementById('pfPrev').disabled = pfState.page === 0;
+            document.getElementById('pfNext').disabled = pfState.page >= pages - 1;
+        }        const MAX_SLICES = 10;
         let breakdownRows = [];
 
         function renderBreakdown(rows) {
@@ -475,13 +1079,13 @@
 
         function renderTickerTable() {
             const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-            const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const fmt = money;
             const cls = n => n > 0 ? 'pos' : n < 0 ? 'neg' : '';
             const q = document.getElementById('tickerFilter').value.trim().toLowerCase();
             document.querySelector('#tickerTable tbody').innerHTML = breakdownRows.map((r, i) => {
                 if (q && !String(r.ticker).toLowerCase().includes(q)) return '';
                 const color = i < MAX_SLICES ? PALETTE[i % PALETTE.length] : '#5b5b73';
-                return `<tr><td><span class="dot" style="background:${color}"></span>${esc(r.ticker)}</td>` +
+                return `<tr><td><span class="dot" style="background:${color}"></span>${tickerLink(r.ticker)}</td>` +
                     `<td>${r.sales}</td>` +
                     `<td class="${cls(r.profit)}">${fmt(r.profit)}</td>` +
                     `<td>${fmt(r.dividends)}</td>` +

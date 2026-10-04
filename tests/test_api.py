@@ -1,6 +1,8 @@
+from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
+import pytest
 
 from fastapi.testclient import TestClient
 
@@ -38,6 +40,14 @@ def test_health_reports_ready():
 
     assert response.status_code == 200
     assert response.json() == {"status": "ready"}
+
+
+def test_root_serves_the_portal_page():
+    response = TestClient(api.app).get("/")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "IBKR Tax Architect" in response.text
 
 
 def test_years_are_sorted_newest_first():
@@ -327,8 +337,22 @@ def test_calculation_returns_by_ticker_summary_with_existing_fields():
         {"ticker": "MSFT", "profit_loss": -20.0},
     ]
     dividends = [
-        {"ticker": "KO", "gross_amount_pln": 30.0},
-        {"ticker": "MSFT", "gross_amount_pln": 5.0},
+        {
+            "ex_date": "2025-03-01",
+            "ticker": "KO",
+            "gross_amount_pln": 30.0,
+            "tax_withheld_pln": 0.0,
+            "currency": "USD",
+            "rate": 4.0,
+        },
+        {
+            "ex_date": "2025-04-01",
+            "ticker": "MSFT",
+            "gross_amount_pln": 5.0,
+            "tax_withheld_pln": 0.0,
+            "currency": "USD",
+            "rate": 4.0,
+        },
     ]
     with patch.object(
         api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
@@ -357,6 +381,109 @@ def test_calculation_returns_by_ticker_summary_with_existing_fields():
     assert {"status", "complete", "errors", "pdf_available", "excel_available"} <= set(
         data
     )
+
+
+def test_calculation_returns_dividend_payment_details():
+    dividends = [
+        {
+            "ex_date": "2025-03-01",
+            "ticker": "KO",
+            "gross_amount_pln": 30.0,
+            "tax_withheld_pln": 4.5,
+            "currency": "USD",
+            "rate": 4.0,
+        }
+    ]
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=([], dividends, [], [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        data = TestClient(api.app).get("/calculate/2025").json()
+
+    assert data["dividends"] == [
+        {
+            "ex_date": "2025-03-01",
+            "ticker": "KO",
+            "currency": "USD",
+            "rate": 4.0,
+            "gross_pln": 30.0,
+            "tax_withheld_pln": 4.5,
+        }
+    ]
+    assert data["summary"]["pln_dividend_gross"] == 30.0
+    assert {"status", "complete", "errors", "pdf_available", "excel_available"} <= set(
+        data
+    )
+
+
+def test_calculation_returns_empty_dividends_list_without_dividends():
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=([], [], [], [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        data = TestClient(api.app).get("/calculate/2025").json()
+
+    assert data["dividends"] == []
+    assert data["inventory"] == []
+
+
+def test_calculation_returns_open_lot_details():
+    inventory = [
+        {
+            "ticker": "KO",
+            "buy_date": "2024-02-01",
+            "quantity": 2.5,
+            "cost_per_share": 60.0,
+            "total_cost": 600.0,
+            "currency": "USD",
+            "isin": "US1912161007",
+        },
+        {
+            "ticker": "KO",
+            "buy_date": "2024-03-01",
+            "quantity": 1.0,
+            "cost_per_share": 62.0,
+            "total_cost": 250.0,
+            "currency": "USD",
+        },
+    ]
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=([], [], inventory, [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        data = TestClient(api.app).get("/calculate/2025").json()
+
+    assert data["inventory"][0] == {
+        "ticker": "KO",
+        "buy_date": "2024-02-01",
+        "quantity": 2.5,
+        "cost_per_share": 60.0,
+        "total_cost": 600.0,
+        "currency": "USD",
+    }
+    assert len(data["inventory"]) == data["summary"]["open_positions_count"] == 2
+    assert {"status", "complete", "errors", "dividends", "by_ticker"} <= set(data)
 
 
 def test_calculation_marks_failed_export_unavailable():
@@ -478,3 +605,81 @@ def test_coverage_rejects_invalid_planned_sale():
     )
 
     assert response.status_code == 422
+
+
+@pytest.fixture(autouse=True)
+def fake_nbp_rates():
+    rates = {"USD": Decimal("4.00"), "EUR": Decimal("4.40")}
+    with patch.object(api, "get_nbp_rate", side_effect=lambda c, d: rates[c]):
+        yield
+
+
+def _calculate(gains=(), year=2024):
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=(list(gains), [], [], [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        return TestClient(api.app).get(f"/calculate/{year}").json()
+
+
+def test_calculation_returns_year_end_fx_rates():
+    data = _calculate(year=2024)
+    assert data["fx"] == {"date": "2024-12-31", "rates": {"USD": 4.0, "EUR": 4.4}}
+
+
+def test_calculation_caps_fx_date_at_today_for_current_year():
+    data = _calculate(year=date.today().year)
+    assert data["fx"]["date"] == date.today().isoformat()
+
+
+def test_calculation_omits_currency_without_rate():
+    def rate(currency, day):
+        if currency == "EUR":
+            raise RuntimeError("no rate")
+        return Decimal("4.00")
+
+    with patch.object(api, "get_nbp_rate", side_effect=rate):
+        data = _calculate()
+    assert data["fx"]["rates"] == {"USD": 4.0}
+
+
+def test_calculation_returns_sales_matching_ticker_profit():
+    gains = [
+        {
+            "ticker": "KO",
+            "sale_date": "2024-05-01",
+            "quantity": 2.0,
+            "sale_price": 60.0,
+            "currency": "USD",
+            "sale_amount": 480.0,
+            "cost_basis": 400.0,
+            "profit_loss": 80.0,
+        },
+        {"ticker": "KO", "profit_loss": -10.0},
+    ]
+    data = _calculate(gains)
+    assert data["sales"][0] == {
+        "ticker": "KO",
+        "sale_date": "2024-05-01",
+        "quantity": 2.0,
+        "sale_price": 60.0,
+        "currency": "USD",
+        "sale_amount_pln": 480.0,
+        "cost_basis_pln": 400.0,
+        "profit_loss_pln": 80.0,
+    }
+    assert (
+        sum(s["profit_loss_pln"] for s in data["sales"])
+        == data["by_ticker"][0]["profit"]
+    )
+
+
+def test_calculation_returns_empty_sales_without_sales():
+    assert _calculate()["sales"] == []
