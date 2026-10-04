@@ -92,6 +92,7 @@
         <div class="logo">T</div>
         <button class="tab active" data-page="page-dashboard" onclick="showPage('page-dashboard')">Dashboard</button>
         <button class="tab" data-page="page-dividends" onclick="showPage('page-dividends')">Dividends</button>
+        <button class="tab" data-page="page-analytics" onclick="showPage('page-analytics')">Analytics</button>
         <button class="tab" data-page="page-tax" onclick="showPage('page-tax')">Tax Calculation</button>
         <button class="tab" data-page="page-data" onclick="showPage('page-data')">Data</button>
         <button class="tab" data-page="page-coverage" onclick="showPage('page-coverage')">Coverage</button>
@@ -212,6 +213,57 @@
                         <select id="divPageSize" onchange="divState.page = 0; renderDividends()">
                             <option>10</option><option selected>25</option><option>50</option><option>100</option>
                         </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="page-analytics" class="page">
+            <div class="breadcrumb">Tax Architect / <b>Analytics</b></div>
+
+            <div class="card" id="anEmpty">
+                <h3>No report yet</h3>
+                <p class="hint">Run a calculation to see per-ticker analytics here.</p>
+                <button class="btn btn-primary" onclick="showPage('page-tax')">Go to Tax Calculation</button>
+            </div>
+
+            <div class="hidden" id="anContent">
+                <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr)">
+                    <div class="metric-box"><div class="metric-label">Realized P&amp;L (PLN)</div><div class="metric-val" id="anPl">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Dividends gross (PLN)</div><div class="metric-val" id="anDiv">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Total result (PLN)</div><div class="metric-val" id="anTotal">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Tickers</div><div class="metric-val" id="anCount">-</div></div>
+                </div>
+                <div class="card">
+                    <div class="controls" style="margin-bottom:12px">
+                        <h3 style="margin:0" id="anTitle">Analytics</h3>
+                        <div style="flex:1"></div>
+                        <label class="hint"><input type="checkbox" id="anHide" onchange="anState.page = 0; renderAnalytics()"> Hide tickers without sales</label>
+                        <input id="anFilter" class="search" style="width:220px;margin:0" type="search" placeholder="Filter ticker..." oninput="anState.page = 0; renderAnalytics()">
+                    </div>
+                    <div class="table-scroll" style="max-height:none">
+                        <table class="coverage-table" id="anTable">
+                            <thead><tr>
+                                <th class="sortable" onclick="sortAnalytics('ticker')">Ticker</th>
+                                <th class="sortable" onclick="sortAnalytics('sales')">Sales</th>
+                                <th class="sortable" onclick="sortAnalytics('profit')">Realized P&amp;L</th>
+                                <th class="sortable" onclick="sortAnalytics('dividends')">Dividends</th>
+                                <th class="sortable" onclick="sortAnalytics('total')">Total result</th>
+                            </tr></thead>
+                            <tbody></tbody>
+                            <tfoot></tfoot>
+                        </table>
+                    </div>
+                    <div class="controls" style="margin-top:14px; justify-content:space-between">
+                        <div class="controls">
+                            <button class="btn btn-outline" id="anPrev" onclick="anPage(-1)">&lsaquo; Prev</button>
+                            <button class="btn btn-outline" id="anNext" onclick="anPage(1)">Next &rsaquo;</button>
+                        </div>
+                        <div class="controls">
+                            <span class="status-text" id="anInfo"></span>
+                            <select id="anPageSize" onchange="anState.page = 0; renderAnalytics()">
+                                <option>10</option><option selected>25</option><option>50</option><option>100</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -476,6 +528,7 @@
                 // 3. Показ результата
                 renderBreakdown(data.by_ticker || []);
                 setDividends(data.dividends || [], year);
+                setAnalytics(data.by_ticker || [], year);
                 resultsCard.classList.remove('hidden');
                 document.getElementById('emptyCard').classList.add('hidden');
                 document.getElementById('resultsTitle').innerText = `Results for ${year}`;
@@ -564,6 +617,80 @@
                 : 'Showing 0 of 0';
             document.getElementById('divPrev').disabled = divState.page === 0;
             document.getElementById('divNext').disabled = divState.page >= pages - 1;
+        }
+        const anState = { rows: [], year: null, sortKey: 'total', sortDir: -1, page: 0 };
+
+        function setAnalytics(list, year) {
+            anState.rows = list.map(t => ({ ...t, total: t.profit + t.dividends }));
+            anState.year = year;
+            anState.page = 0;
+            document.getElementById('anFilter').value = '';
+            document.getElementById('anHide').checked = false;
+            document.getElementById('anEmpty').classList.add('hidden');
+            document.getElementById('anContent').classList.remove('hidden');
+            document.getElementById('anTitle').innerText = `Analytics ${year}`;
+            renderAnalytics();
+        }
+
+        function sortAnalytics(key) {
+            anState.sortDir = anState.sortKey === key ? -anState.sortDir : 1;
+            anState.sortKey = key;
+            anState.page = 0;
+            renderAnalytics();
+        }
+
+        function anPage(delta) {
+            anState.page += delta;
+            renderAnalytics();
+        }
+
+        function renderAnalytics() {
+            const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
+            const sum = (rows, k) => rows.reduce((s, r) => s + r[k], 0);
+            const all = anState.rows;
+            const q = document.getElementById('anFilter').value.trim().toLowerCase();
+            const hide = document.getElementById('anHide').checked;
+            const filtered = all.filter(r => (!hide || r.sales > 0) && (!q || String(r.ticker).toLowerCase().includes(q)));
+            const { sortKey, sortDir } = anState;
+            const sorted = [...filtered].sort((a, b) => {
+                const x = a[sortKey], y = b[sortKey];
+                return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * sortDir;
+            });
+
+            const size = parseInt(document.getElementById('anPageSize').value, 10);
+            const pages = Math.max(1, Math.ceil(sorted.length / size));
+            anState.page = Math.min(Math.max(anState.page, 0), pages - 1);
+            const start = anState.page * size;
+            const pageRows = sorted.slice(start, start + size);
+
+            const cells = r =>
+                `<td class="num ${sign(r.profit)}">${fmt(r.profit)}</td>` +
+                `<td class="num">${fmt(r.dividends)}</td>` +
+                `<td class="num ${sign(r.total)}">${fmt(r.total)}</td>`;
+            document.querySelector('#anTable tbody').innerHTML = pageRows.map(r =>
+                `<tr><td>${escapeHtml(r.ticker)}</td><td class="num">${r.sales}</td>${cells(r)}</tr>`
+            ).join('');
+
+            const tot = { profit: sum(all, 'profit'), dividends: sum(all, 'dividends'), total: sum(all, 'total') };
+            document.querySelector('#anTable tfoot').innerHTML =
+                `<tr><td>Total ${anState.year}</td><td class="num">${sum(all, 'sales')}</td>${cells(tot)}</tr>`;
+
+            const setVal = (id, n) => {
+                const el = document.getElementById(id);
+                el.innerText = fmt(n);
+                el.className = 'metric-val ' + sign(n);
+            };
+            setVal('anPl', tot.profit);
+            setVal('anDiv', tot.dividends);
+            setVal('anTotal', tot.total);
+            document.getElementById('anCount').innerText = all.length;
+
+            document.getElementById('anInfo').innerText = sorted.length
+                ? `Showing ${start + 1}-${start + pageRows.length} of ${sorted.length}`
+                : 'Showing 0 of 0';
+            document.getElementById('anPrev').disabled = anState.page === 0;
+            document.getElementById('anNext').disabled = anState.page >= pages - 1;
         }
         const MAX_SLICES = 10;
         let breakdownRows = [];
