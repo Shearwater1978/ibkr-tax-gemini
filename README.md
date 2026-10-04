@@ -87,6 +87,41 @@ npm start
 The GUI starts a local backend on `127.0.0.1:8000`, waits for its `/health`
 endpoint, and uses the same encrypted database and report output as the CLI.
 
+### Web portal (browser)
+
+The same dark, tabbed portal also runs in a normal browser, without Electron.
+It needs only Python and the `.env` from the installation steps.
+
+1.  Start the backend (keep this terminal open):
+    ```bash
+    python gui/backend/api.py
+    ```
+    It listens on `http://127.0.0.1:8000` and must be started from the project
+    root so it finds `.env` and the encrypted database.
+
+2.  Open `gui/ui/index.html` in a browser (double-click it, or open
+    `file:///<project path>/gui/ui/index.html`). The page loads the available
+    years from the backend; if it shows "Backend is unavailable", check that the
+    backend is running.
+
+3.  Choose a year in the top bar and press **Calculate**. When it finishes you
+    land on the Dashboard, and the other views fill in from the same result.
+
+Stop the backend with `Ctrl+C`. The backend only accepts requests from
+`file://` pages and `localhost`/`127.0.0.1`, so it is not reachable from other
+machines.
+
+| View | What it shows |
+|------|---------------|
+| Dashboard | P&L and dividend totals, per-ticker breakdown, buttons to open the Excel/PDF reports |
+| Reports → Dividends | Every dividend payment of the year with filter, sorting and totals |
+| Reports → Analytics | Per-ticker realized P&L, dividends and total result |
+| Reports → Portfolio | Open FIFO lots aggregated per ticker with cost basis |
+| Workspace | Calculation progress, CSV import, IB connections, FIFO coverage check |
+
+The Dividends, Analytics and Portfolio views show the most recently calculated
+year and stay empty until a calculation succeeds.
+
 ### IB Live API (optional)
 
 CSV import from `data/` remains the default and required workflow. A
