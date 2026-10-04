@@ -105,9 +105,7 @@
                 <button class="menu-item" role="menuitem" data-page="page-portfolio" onclick="showPage('page-portfolio')">Portfolio</button>
             </div>
         </div>
-        <button class="tab" data-page="page-tax" onclick="showPage('page-tax')">Tax Calculation</button>
-        <button class="tab" data-page="page-data" onclick="showPage('page-data')">Data</button>
-        <button class="tab" data-page="page-coverage" onclick="showPage('page-coverage')">Coverage</button>
+        <button class="tab" data-page="page-workspace" onclick="showPage('page-workspace')">Workspace</button>
         <div class="spacer"></div>
         <div class="topbar-controls">
             <select id="yearSelect" aria-label="Year">
@@ -119,27 +117,13 @@
     </div>
 
     <div class="container">
-        <div id="page-tax" class="page">
-            <div class="breadcrumb">Tax Architect / <b>Tax Calculation</b></div>
-
-            <div class="card">
-                <h3>Tax Calculation</h3>
-                <p class="hint">Choose a year in the top bar and press Calculate.</p>
-                <div id="loader" class="loading-box hidden">
-                    <div class="spinner"></div>
-                    <span id="loader-text">Calculating FIFO &amp; NBP Rates...</span>
-                </div>
-                <div id="status"></div>
-            </div>
-        </div>
-
         <div id="page-dashboard" class="page active">
             <div class="breadcrumb">Tax Architect / <b>Dashboard</b></div>
 
             <div class="card" id="emptyCard">
                 <h3>No report yet</h3>
                 <p class="hint">Run a calculation to see results here.</p>
-                <button class="btn btn-primary" onclick="showPage('page-tax')">Go to Tax Calculation</button>
+                <button class="btn btn-primary" onclick="showPage('page-workspace')">Go to Workspace</button>
             </div>
 
             <div class="card hidden" id="resultsCard">
@@ -190,7 +174,7 @@
             <div class="card" id="divEmpty">
                 <h3>No report yet</h3>
                 <p class="hint">Run a calculation to see dividend payments here.</p>
-                <button class="btn btn-primary" onclick="showPage('page-tax')">Go to Tax Calculation</button>
+                <button class="btn btn-primary" onclick="showPage('page-workspace')">Go to Workspace</button>
             </div>
 
             <div class="card hidden" id="divCard">
@@ -235,7 +219,7 @@
             <div class="card" id="anEmpty">
                 <h3>No report yet</h3>
                 <p class="hint">Run a calculation to see per-ticker analytics here.</p>
-                <button class="btn btn-primary" onclick="showPage('page-tax')">Go to Tax Calculation</button>
+                <button class="btn btn-primary" onclick="showPage('page-workspace')">Go to Workspace</button>
             </div>
 
             <div class="hidden" id="anContent">
@@ -286,7 +270,7 @@
             <div class="card" id="pfEmpty">
                 <h3>No report yet</h3>
                 <p class="hint">Run a calculation to see open positions here.</p>
-                <button class="btn btn-primary" onclick="showPage('page-tax')">Go to Tax Calculation</button>
+                <button class="btn btn-primary" onclick="showPage('page-workspace')">Go to Workspace</button>
             </div>
 
             <div class="hidden" id="pfContent">
@@ -331,8 +315,20 @@
                     </div>
                 </div>
             </div>
-        </div>        <div id="page-data" class="page">
-            <div class="breadcrumb">Tax Architect / <b>Data</b></div>
+        </div>
+
+        <div id="page-workspace" class="page">
+            <div class="breadcrumb">Tax Architect / <b>Workspace</b></div>
+
+            <div class="card">
+                <h3>Tax Calculation</h3>
+                <p class="hint">Choose a year in the top bar and press Calculate.</p>
+                <div id="loader" class="loading-box hidden">
+                    <div class="spinner"></div>
+                    <span id="loader-text">Calculating FIFO &amp; NBP Rates...</span>
+                </div>
+                <div id="status"></div>
+            </div>
 
             <div class="card">
                 <h3>Data Management</h3>
@@ -360,10 +356,7 @@
                 </div>
                 <ul id="ib-web-trades"></ul>
             </div>
-        </div>
 
-        <div id="page-coverage" class="page">
-            <div class="breadcrumb">Tax Architect / <b>FIFO Coverage Preflight</b></div>
             <div class="card">
                 <h3>Planned sales</h3>
                 <p class="hint">Check imported lots before a planned sale. This does not calculate tax or persist a sale.</p>
@@ -577,7 +570,7 @@
             const resultsCard = document.getElementById('resultsCard');
 
             if(!year || year === "No Data found") return;
-            showPage('page-tax');
+            showPage('page-workspace');
 
             // 1. Подготовка UI
             statusEl.innerText = "";
