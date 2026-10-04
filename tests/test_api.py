@@ -683,3 +683,43 @@ def test_calculation_returns_sales_matching_ticker_profit():
 
 def test_calculation_returns_empty_sales_without_sales():
     assert _calculate()["sales"] == []
+
+
+@pytest.fixture
+def clean_price_cache():
+    api._price_cache.clear()
+    yield
+    api._price_cache.clear()
+
+
+def _yahoo_response(status, price=None, currency="USD"):
+    body = {
+        "chart": {
+            "result": [{"meta": {"regularMarketPrice": price, "currency": currency}}]
+        }
+    }
+    return SimpleNamespace(status_code=status, json=lambda: body)
+
+
+def test_prices_returns_quotes_and_omits_unknown_symbols(clean_price_cache):
+    def fake_get(url, **kwargs):
+        if "AAPL" in url:
+            return _yahoo_response(200, 333.69)
+        return _yahoo_response(404)
+
+    with patch.object(api.requests, "get", side_effect=fake_get):
+        data = TestClient(api.app).get("/prices?tickers=aapl,NOPE,AAPL").json()
+    assert data["prices"] == {"AAPL": {"price": 333.69, "currency": "USD"}}
+
+
+def test_prices_survives_provider_failure(clean_price_cache):
+    with patch.object(api.requests, "get", side_effect=RuntimeError("offline")):
+        response = TestClient(api.app).get("/prices?tickers=AAPL")
+    assert response.status_code == 200
+    assert response.json()["prices"] == {}
+
+
+def test_prices_rejects_invalid_input():
+    client = TestClient(api.app)
+    assert client.get("/prices?tickers=").status_code == 422
+    assert client.get("/prices?tickers=../x").status_code == 422
