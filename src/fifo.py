@@ -1,6 +1,7 @@
 # src/fifo.py
 
 import json
+import re
 from decimal import Decimal
 from collections import deque
 from typing import List, Dict, Any
@@ -16,6 +17,7 @@ class TradeMatcher:
         self.realized_pnl = []
         self.observed_isins = {}
         self.identity_sensitive_tickers = set()
+        self._carry = {}
 
     def process_trades(self, trades_list: List[Dict[str, Any]]):
         newly_sensitive = set()
@@ -47,6 +49,18 @@ class TradeMatcher:
             trades_list, key=lambda x: (x["date"], type_priority.get(x["type"], 99))
         )
 
+        added_qty = {}
+        removal_groups = {}
+        for trade in sorted_trades:
+            group = self._action_group(trade)
+            if not group:
+                continue
+            if trade.get("qty", Decimal(0)) > 0:
+                added_qty[group] = added_qty.get(group, Decimal(0)) + trade["qty"]
+            elif trade.get("qty", Decimal(0)) < 0:
+                removal_groups[group] = removal_groups.get(group, 0) + 1
+        deferred = {}
+
         for trade in sorted_trades:
             ticker = trade["ticker"]
             inventory_key = self._inventory_key(trade)
@@ -70,7 +84,14 @@ class TradeMatcher:
                     # Corporate Action Additions (Zero Cost usually)
                     # Force price to 0 if it's a Corp Action to avoid messing up cost basis
                     trade["price"] = Decimal(0)
-                    self._process_buy(trade)
+                    group = self._action_group(trade)
+                    if group in self._carry and removal_groups.get(group) == 0:
+                        self._process_carried_add(trade, group, added_qty[group])
+                    elif removal_groups.get(group):
+                        # Wait for the matching removal so its cost can move over.
+                        deferred.setdefault(group, []).append(trade)
+                    else:
+                        self._process_buy(trade)
 
             # --- 2. NEGATIVE QUANTITY (REMOVE FROM INVENTORY) ---
             elif qty < 0:
@@ -79,7 +100,57 @@ class TradeMatcher:
                     self._process_sell(trade)
                 else:
                     # Corporate Action Removals (Non-Taxable Transfer Out)
-                    self._process_transfer_out(trade)
+                    consumed = self._consume_inventory(trade, is_taxable=False)
+                    group = self._action_group(trade)
+                    if group:
+                        removal_groups[group] -= 1
+                        if consumed:
+                            entry = self._carry.setdefault(group, {"lots": []})
+                            entry["lots"].extend(consumed)
+                        if removal_groups[group] == 0:
+                            for pending in deferred.pop(group, []):
+                                if group in self._carry:
+                                    self._process_carried_add(
+                                        pending, group, added_qty[group]
+                                    )
+                                else:
+                                    self._process_buy(pending)
+
+        for pending_trades in deferred.values():
+            for pending in pending_trades:
+                self._process_buy(pending)
+
+    @staticmethod
+    def _action_group(trade):
+        """Key shared by the removal and addition rows of one corporate action."""
+        description = trade.get("description") or ""
+        if trade.get("type") not in ("MERGER", "STOCK_DIV") or not description:
+            return None
+        stem = re.sub(r"\s*\([^()]*\)\s*$", "", description)
+        return (trade["date"], stem) if stem != description else None
+
+    def _process_carried_add(self, trade, group, group_added_qty):
+        # Cost basis and purchase dates of the old shares move to the new ones.
+        lots = self._carry[group]["lots"]
+        removed_qty = sum(lot["qty"] for lot in lots)
+        share = trade["qty"] / group_added_qty
+        scale = group_added_qty / removed_qty
+        for lot in lots:
+            new_qty = lot["qty"] * scale * share
+            cost = money(lot["cost_pln"] * share)
+            self.inventory[self._inventory_key(trade)].append(
+                {
+                    "ticker": trade["ticker"],
+                    "isin": trade.get("isin", ""),
+                    "date": lot["date"],
+                    "qty": new_qty,
+                    "price": lot["price"] / scale,
+                    "rate": lot["rate"],
+                    "cost_pln": cost,
+                    "currency": lot["currency"],
+                    "source": lot.get("source", "UNKNOWN"),
+                }
+            )
 
     def _process_split(self, trade):
         inventory_key = self._inventory_key(trade)
@@ -140,9 +211,6 @@ class TradeMatcher:
 
     def _process_sell(self, trade):
         self._consume_inventory(trade, is_taxable=True)
-
-    def _process_transfer_out(self, trade):
-        self._consume_inventory(trade, is_taxable=False)
 
     def _consume_inventory(self, trade, is_taxable):
         ticker = trade["ticker"]
@@ -234,6 +302,8 @@ class TradeMatcher:
             if ticker in self.identity_sensitive_tickers:
                 result["isin"] = isin
             self.realized_pnl.append(result)
+
+        return matched_buys
 
     def get_realized_gains(self):
         return self.realized_pnl

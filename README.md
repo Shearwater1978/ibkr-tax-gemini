@@ -121,7 +121,7 @@ machines.
 | Dashboard | P&L and dividend totals, per-ticker breakdown, buttons to open the Excel/PDF reports |
 | Reports → Dividends | Every dividend payment of the year with filter, sorting and totals |
 | Reports → Analytics | Per-ticker realized P&L, dividends and total result |
-| Reports → Portfolio | Open FIFO lots aggregated per ticker with cost basis |
+| Reports → Portfolio | Open FIFO lots per ticker: cost basis, original-currency cost, and market value / unrealized P&L from current Yahoo Finance quotes (shown as `-` when no quote exists; needs internet) |
 | Workspace | Calculation progress, CSV import, IB connections, FIFO coverage check |
 
 The Dividends, Analytics and Portfolio views show the most recently calculated

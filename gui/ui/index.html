@@ -92,12 +92,15 @@
         .neg { color: var(--red); }
         a.tk { color: var(--blue); text-decoration: none; font-weight: 600; }
         a.tk:hover, a.tk:focus { text-decoration: underline; }
+        a.crumb-link { color: var(--blue); text-decoration: none; font-weight: 600; }
+        a.crumb-link:hover, a.crumb-link:focus { text-decoration: underline; }
         a.exp { color: var(--muted); text-decoration: none; margin-right: 6px; }
         .ticker-card { position: fixed; z-index: 40; min-width: 220px; background: var(--card-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); pointer-events: none; }
         .ticker-card b { font-size: 15px; }
         .ticker-card .row { display: flex; justify-content: space-between; gap: 18px; margin-top: 6px; }
         .ticker-card .row span:first-child { color: var(--muted); }
-        body.ticker-mode .topbar, body.ticker-mode .container:not(#tickerView) { display: none; }
+        body.ticker-mode .container:not(#tickerView) { display: none; }
+        body.ticker-mode .topbar > :not(.spacer):not(.topbar-controls), body.ticker-mode #yearSelect, body.ticker-mode #calcBtn { display: none; }
         #tickerView { display: none; }
         body.ticker-mode #tickerView { display: block; }
         #ib-web-trades { font-size: 13px; color: var(--muted); margin: 12px 0 0; padding-left: 18px; }
@@ -301,6 +304,7 @@
                         <div style="flex:1"></div>
                         <input id="pfFilter" class="search" style="width:220px;margin:0" type="search" placeholder="Filter ticker..." oninput="pfState.page = 0; renderPortfolio()">
                     </div>
+                    <p class="hint" id="pfPriceNote"></p>
                     <p class="hint" id="pfNone" style="display:none">No open positions at the end of this year.</p>
                     <div class="table-scroll" style="max-height:none">
                         <table class="coverage-table" id="pfTable">
@@ -311,6 +315,10 @@
                                 <th class="sortable" onclick="sortPortfolio('lots')">Lots</th>
                                 <th class="sortable" onclick="sortPortfolio('cost')">Total cost (<span class="curCode">PLN</span>)</th>
                                 <th class="sortable" onclick="sortPortfolio('avg')">Avg cost (<span class="curCode">PLN</span>)</th>
+                                <th class="sortable" onclick="sortPortfolio('costOrig')" title="Original currency, excluding fees">Cost (orig.)</th>
+                                <th class="sortable" onclick="sortPortfolio('price')" title="Latest price from Yahoo Finance">Price</th>
+                                <th class="sortable" onclick="sortPortfolio('mv')" title="Quantity x price, original currency">Market value</th>
+                                <th class="sortable" onclick="sortPortfolio('unreal')" title="Market value minus original cost, before fees">Unrealized P&amp;L</th>
                                 <th class="sortable" onclick="sortPortfolio('oldest')">Oldest buy</th>
                             </tr></thead>
                             <tbody></tbody>
@@ -636,6 +644,7 @@
                 setDividends(data.dividends || [], year);
                 setAnalytics(data.by_ticker || [], year);
                 setPortfolio(data.inventory || [], year);
+                loadPrices();
                 updateCurrencyUi();
                 saveSnapshot(year, data);
                 resultsCard.classList.remove('hidden');
@@ -704,6 +713,7 @@
             renderDividends();
             renderAnalytics();
             renderPortfolio();
+            if (document.body.classList.contains('ticker-mode')) renderTickerView(tickerParam);
         }
 
         const SNAPSHOT_KEY = 'taxSnapshot';
@@ -741,6 +751,7 @@
         const tickerCard = document.getElementById('tickerCard');
 
         function showTickerCard(a) {
+            if (!a.dataset.ticker) return;
             const st = tickerStats(a.dataset.ticker);
             if (!st) return;
             const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
@@ -771,13 +782,14 @@
             document.body.classList.add('ticker-mode');
             document.title = `${sym} - Tax Architect`;
             const view = document.getElementById('tickerView');
-            const head = `<div class="breadcrumb"><a class="tk" href="${location.pathname}">Tax Architect</a> / <b>${escapeHtml(sym)}</b></div>`;
+            const head = `<div class="breadcrumb"><a class="crumb-link" href="${location.pathname}">Tax Architect</a> / <b>${escapeHtml(sym)}</b></div>`;
             snap = loadSnapshot();
             if (!snap) {
                 view.innerHTML = head + `<div class="card"><h3>No data yet</h3><p class="hint">Open the portal and run a calculation first.</p></div>`;
                 return;
             }
             setFx(snap.fx);
+            updateCurrencyUi();
             const st = tickerStats(sym);
             const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
             const qty = n => n.toLocaleString('en-US', { maximumFractionDigits: 4 });
@@ -956,21 +968,25 @@
             document.getElementById('anPrev').disabled = anState.page === 0;
             document.getElementById('anNext').disabled = anState.page >= pages - 1;
         }
-        const pfState = { rows: [], year: null, sortKey: 'cost', sortDir: -1, page: 0, open: new Set() };
+        const pfState = { quotes: {}, rows: [], year: null, sortKey: 'cost', sortDir: -1, page: 0, open: new Set() };
 
         function setPortfolio(lots, year) {
             const groups = {};
             for (const l of lots) {
                 const g = groups[l.ticker] || (groups[l.ticker] = {
-                    ticker: l.ticker, currency: l.currency, quantity: 0, lots: 0, cost: 0, oldest: l.buy_date, items: []
+                    ticker: l.ticker, currency: l.currency, quantity: 0, lots: 0, cost: 0, costOrig: 0,
+                    mixed: false, oldest: l.buy_date, items: []
                 });
+                if (l.currency !== g.currency) g.mixed = true;
+                g.costOrig += l.cost_per_share * l.quantity;
                 g.quantity += l.quantity;
                 g.lots += 1;
                 g.cost += l.total_cost;
                 if (l.buy_date < g.oldest) g.oldest = l.buy_date;
                 g.items.push(l);
             }
-            pfState.rows = Object.values(groups).map(g => ({ ...g, avg: g.quantity ? g.cost / g.quantity : 0 }));
+            pfState.rows = Object.values(groups).map(g => ({ ...g, avg: g.quantity ? g.cost / g.quantity : 0, price: 0, mv: 0, unreal: 0, unrealPct: 0, priced: false }));
+            pfState.quotes = {};
             pfState.year = year;
             pfState.page = 0;
             pfState.open = new Set();
@@ -990,6 +1006,41 @@
 
         function pfPage(delta) {
             pfState.page += delta;
+            renderPortfolio();
+        }
+
+        async function loadPrices() {
+            const note = document.getElementById('pfPriceNote');
+            const symbols = pfState.rows.map(r => r.ticker);
+            if (!symbols.length) { note.innerText = ''; return; }
+            const token = pfState.year;
+            note.innerText = 'Loading prices from Yahoo Finance...';
+            const quotes = {};
+            try {
+                for (let i = 0; i < symbols.length; i += 100) {
+                    const res = await fetch(`${API_URL}/prices?tickers=${encodeURIComponent(symbols.slice(i, i + 100).join(','))}`);
+                    if (!res.ok) throw new Error('prices unavailable');
+                    Object.assign(quotes, (await res.json()).prices);
+                }
+            } catch (e) {
+                note.innerText = 'Prices unavailable right now; showing cost basis only.';
+                return;
+            }
+            if (token !== pfState.year) return;
+            pfState.quotes = quotes;
+            for (const r of pfState.rows) {
+                const q = quotes[r.ticker];
+                r.priced = !!q && !r.mixed && q.currency === r.currency;
+                if (r.priced) {
+                    r.price = q.price;
+                    r.mv = q.price * r.quantity;
+                    r.unreal = r.mv - r.costOrig;
+                    r.unrealPct = r.costOrig ? r.unreal / r.costOrig * 100 : 0;
+                }
+            }
+            const n = pfState.rows.filter(r => r.priced).length;
+            note.innerText = `Prices: Yahoo Finance, delayed, for ${n} of ${pfState.rows.length} tickers (others have no quote). ` +
+                'Cost, price, market value and P&L are in the instrument currency, before fees, and are not affected by the currency switcher.';
             renderPortfolio();
         }
 
@@ -1022,13 +1073,19 @@
                 const idx = all.indexOf(r);
                 let html = `<tr><td><a href="#" class="exp" aria-label="Toggle lots" onclick="togglePfLots(${idx}); return false;">${open ? '&#9662;' : '&#9656;'}</a>${tickerLink(r.ticker)}</td>` +
                     `<td>${escapeHtml(r.currency)}</td><td class="num">${fmtQty(r.quantity)}</td><td class="num">${r.lots}</td>` +
-                    `<td class="num">${fmt(r.cost)}</td><td class="num">${fmt(r.avg)}</td><td>${escapeHtml(r.oldest)}</td></tr>`;
+                    `<td class="num">${fmt(r.cost)}</td><td class="num">${fmt(r.avg)}</td>` +
+                    `<td class="num">${r.mixed ? '-' : `${fmtRaw(r.costOrig)} ${escapeHtml(r.currency)}`}</td>` +
+                    (r.priced
+                        ? `<td class="num">${fmtRaw(r.price)}</td><td class="num">${fmtRaw(r.mv)}</td>` +
+                          `<td class="num ${r.unreal > 0 ? 'pos' : r.unreal < 0 ? 'neg' : ''}">${fmtRaw(r.unreal)} (${r.unrealPct.toFixed(1)}%)</td>`
+                        : `<td class="num">-</td><td class="num">-</td><td class="num">-</td>`) +
+                    `<td>${escapeHtml(r.oldest)}</td></tr>`;
                 if (open) {
                     html += r.items.map(l =>
                         `<tr class="lot-row"><td class="hint">&nbsp;&nbsp;${escapeHtml(l.buy_date)}</td>` +
                         `<td class="hint">${fmtRaw(l.cost_per_share)} ${escapeHtml(l.currency)}</td>` +
                         `<td class="num hint">${fmtQty(l.quantity)}</td><td></td>` +
-                        `<td class="num hint">${fmt(l.total_cost)}</td><td colspan="2"></td></tr>`
+                        `<td class="num hint">${fmt(l.total_cost)}</td><td></td><td class="num hint">${fmtRaw(l.cost_per_share * l.quantity)} ${escapeHtml(l.currency)}</td><td colspan="4"></td></tr>`
                     ).join('');
                 }
                 return html;
@@ -1039,7 +1096,7 @@
             const totCost = all.reduce((s, r) => s + r.cost, 0);
             document.querySelector('#pfTable tfoot').innerHTML =
                 `<tr><td>Total ${pfState.year}</td><td></td><td class="num">${fmtQty(totQty)}</td>` +
-                `<td class="num">${totLots}</td><td class="num">${fmt(totCost)}</td><td colspan="2"></td></tr>`;
+                `<td class="num">${totLots}</td><td class="num">${fmt(totCost)}</td><td colspan="6"></td></tr>`;
 
             document.getElementById('pfTickers').innerText = all.length;
             document.getElementById('pfLots').innerText = totLots;

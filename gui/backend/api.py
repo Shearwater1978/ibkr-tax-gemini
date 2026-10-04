@@ -1,13 +1,17 @@
 import os
 import platform
+import re
 import subprocess
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
 from datetime import date
 from decimal import Decimal
 from typing import List
 
+import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -301,6 +305,52 @@ def get_fx_rates(year: int) -> dict:
         except Exception:
             continue
     return {"date": rate_date, "rates": rates}
+
+
+YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+PRICE_CACHE_SECONDS = 300
+MAX_PRICE_TICKERS = 200
+_price_cache: dict = {}
+
+
+def fetch_yahoo_price(symbol: str):
+    cached = _price_cache.get(symbol)
+    if cached and time.time() - cached[0] < PRICE_CACHE_SECONDS:
+        return cached[1]
+    result = None
+    try:
+        response = requests.get(
+            YAHOO_CHART_URL.format(symbol=symbol),
+            params={"interval": "1d", "range": "1d"},
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=8,
+        )
+        if response.status_code == 200:
+            meta = response.json()["chart"]["result"][0]["meta"]
+            price = float(meta["regularMarketPrice"])
+            if price > 0:
+                result = {"price": price, "currency": meta["currency"]}
+    except Exception:
+        result = None
+    _price_cache[symbol] = (time.time(), result)
+    return result
+
+
+@app.get("/prices")
+def get_prices(tickers: str):
+    symbols = []
+    for raw in tickers.split(","):
+        symbol = raw.strip().upper()
+        if re.fullmatch(r"[A-Z0-9.\-]{1,12}", symbol) and symbol not in symbols:
+            symbols.append(symbol)
+    if not symbols or len(symbols) > MAX_PRICE_TICKERS:
+        raise HTTPException(status_code=422, detail="Provide 1-200 valid tickers")
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        quotes = list(pool.map(fetch_yahoo_price, symbols))
+    return {
+        "source": "Yahoo Finance",
+        "prices": {s: q for s, q in zip(symbols, quotes) if q},
+    }
 
 
 @app.get("/calculate/{year}")

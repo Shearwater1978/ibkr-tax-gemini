@@ -124,6 +124,7 @@ def process_yearly_data(
                 "rate": rate,
                 "source": "DB",
                 "isin": isin,
+                "description": description,
             }
 
             if matcher_type == "SPLIT":
