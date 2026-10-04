@@ -29,6 +29,7 @@ from src.db_connector import DBConnector
 from src.diagnostics import CalculationError, ReportExportError
 from src.excel_exporter import export_to_excel
 from src.processing import process_yearly_data
+from src.nbp import get_nbp_rate
 from src.fifo_coverage import PlannedSale, check_coverage
 from src.ib_connector import (
     IBConnector,
@@ -291,6 +292,17 @@ def coverage_check(request: CoverageRequest):
         raise HTTPException(status_code=503, detail="Database is unavailable") from exc
 
 
+def get_fx_rates(year: int) -> dict:
+    rate_date = min(date(year, 12, 31), date.today()).isoformat()
+    rates = {}
+    for currency in ("USD", "EUR"):
+        try:
+            rates[currency] = float(get_nbp_rate(currency, rate_date))
+        except Exception:
+            continue
+    return {"date": rate_date, "rates": rates}
+
+
 @app.get("/calculate/{year}")
 def calculate_report(year: int):
     try:
@@ -362,6 +374,20 @@ def calculate_report(year: int):
                 }
                 for d in dividends
             ],
+            "sales": [
+                {
+                    "ticker": r["ticker"],
+                    "sale_date": r.get("sale_date"),
+                    "quantity": r.get("quantity"),
+                    "sale_price": r.get("sale_price"),
+                    "currency": r.get("currency"),
+                    "sale_amount_pln": r.get("sale_amount"),
+                    "cost_basis_pln": r.get("cost_basis"),
+                    "profit_loss_pln": r["profit_loss"],
+                }
+                for r in realized_gains
+            ],
+            "fx": get_fx_rates(year),
             "complete": not errors,
             "inventory": [
                 {

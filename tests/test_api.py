@@ -1,6 +1,8 @@
+from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
+import pytest
 
 from fastapi.testclient import TestClient
 
@@ -603,3 +605,81 @@ def test_coverage_rejects_invalid_planned_sale():
     )
 
     assert response.status_code == 422
+
+
+@pytest.fixture(autouse=True)
+def fake_nbp_rates():
+    rates = {"USD": Decimal("4.00"), "EUR": Decimal("4.40")}
+    with patch.object(api, "get_nbp_rate", side_effect=lambda c, d: rates[c]):
+        yield
+
+
+def _calculate(gains=(), year=2024):
+    with patch.object(
+        api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
+    ), patch.object(
+        api, "process_yearly_data", return_value=(list(gains), [], [], [])
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
+        api, "export_to_excel", side_effect=ReportExportError("write failed")
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
+        return TestClient(api.app).get(f"/calculate/{year}").json()
+
+
+def test_calculation_returns_year_end_fx_rates():
+    data = _calculate(year=2024)
+    assert data["fx"] == {"date": "2024-12-31", "rates": {"USD": 4.0, "EUR": 4.4}}
+
+
+def test_calculation_caps_fx_date_at_today_for_current_year():
+    data = _calculate(year=date.today().year)
+    assert data["fx"]["date"] == date.today().isoformat()
+
+
+def test_calculation_omits_currency_without_rate():
+    def rate(currency, day):
+        if currency == "EUR":
+            raise RuntimeError("no rate")
+        return Decimal("4.00")
+
+    with patch.object(api, "get_nbp_rate", side_effect=rate):
+        data = _calculate()
+    assert data["fx"]["rates"] == {"USD": 4.0}
+
+
+def test_calculation_returns_sales_matching_ticker_profit():
+    gains = [
+        {
+            "ticker": "KO",
+            "sale_date": "2024-05-01",
+            "quantity": 2.0,
+            "sale_price": 60.0,
+            "currency": "USD",
+            "sale_amount": 480.0,
+            "cost_basis": 400.0,
+            "profit_loss": 80.0,
+        },
+        {"ticker": "KO", "profit_loss": -10.0},
+    ]
+    data = _calculate(gains)
+    assert data["sales"][0] == {
+        "ticker": "KO",
+        "sale_date": "2024-05-01",
+        "quantity": 2.0,
+        "sale_price": 60.0,
+        "currency": "USD",
+        "sale_amount_pln": 480.0,
+        "cost_basis_pln": 400.0,
+        "profit_loss_pln": 80.0,
+    }
+    assert (
+        sum(s["profit_loss_pln"] for s in data["sales"])
+        == data["by_ticker"][0]["profit"]
+    )
+
+
+def test_calculation_returns_empty_sales_without_sales():
+    assert _calculate()["sales"] == []

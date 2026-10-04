@@ -108,6 +108,12 @@
         <button class="tab" data-page="page-workspace" onclick="showPage('page-workspace')">Workspace</button>
         <div class="spacer"></div>
         <div class="topbar-controls">
+            <span class="hint" id="fxNote"></span>
+            <select id="currencySelect" aria-label="Currency" title="Display currency (conversion is for display only)" onchange="setCurrency(this.value)">
+                <option value="PLN" selected>PLN</option>
+                <option value="USD" disabled>USD</option>
+                <option value="EUR" disabled>EUR</option>
+            </select>
             <select id="yearSelect" aria-label="Year">
                 <option value="" disabled selected>Loading...</option>
             </select>
@@ -159,7 +165,7 @@
                     <input id="tickerFilter" class="search" type="search" placeholder="Filter ticker..." oninput="renderTickerTable()">
                     <div class="table-scroll">
                     <table class="coverage-table" id="tickerTable">
-                        <thead><tr><th>Ticker</th><th>Sales</th><th>P&amp;L (PLN)</th><th>Dividends (PLN)</th><th>Share</th></tr></thead>
+                        <thead><tr><th>Ticker</th><th>Sales</th><th>P&amp;L (<span class="curCode">PLN</span>)</th><th>Dividends (<span class="curCode">PLN</span>)</th><th>Share</th></tr></thead>
                         <tbody></tbody>
                     </table>
                     </div>
@@ -191,9 +197,9 @@
                             <th class="sortable" onclick="sortDividends('ticker')">Ticker</th>
                             <th class="sortable" onclick="sortDividends('currency')">Currency</th>
                             <th class="sortable" onclick="sortDividends('rate')">NBP rate</th>
-                            <th class="sortable" onclick="sortDividends('gross_pln')">Gross (PLN)</th>
-                            <th class="sortable" onclick="sortDividends('tax_withheld_pln')">Withheld (PLN)</th>
-                            <th class="sortable" onclick="sortDividends('net_pln')">Net (PLN)</th>
+                            <th class="sortable" onclick="sortDividends('gross_pln')">Gross (<span class="curCode">PLN</span>)</th>
+                            <th class="sortable" onclick="sortDividends('tax_withheld_pln')">Withheld (<span class="curCode">PLN</span>)</th>
+                            <th class="sortable" onclick="sortDividends('net_pln')">Net (<span class="curCode">PLN</span>)</th>
                         </tr></thead>
                         <tbody></tbody>
                         <tfoot></tfoot>
@@ -224,9 +230,9 @@
 
             <div class="hidden" id="anContent">
                 <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr)">
-                    <div class="metric-box"><div class="metric-label">Realized P&amp;L (PLN)</div><div class="metric-val" id="anPl">-</div></div>
-                    <div class="metric-box"><div class="metric-label">Dividends gross (PLN)</div><div class="metric-val" id="anDiv">-</div></div>
-                    <div class="metric-box"><div class="metric-label">Total result (PLN)</div><div class="metric-val" id="anTotal">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Realized P&amp;L (<span class="curCode">PLN</span>)</div><div class="metric-val" id="anPl">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Dividends gross (<span class="curCode">PLN</span>)</div><div class="metric-val" id="anDiv">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Total result (<span class="curCode">PLN</span>)</div><div class="metric-val" id="anTotal">-</div></div>
                     <div class="metric-box"><div class="metric-label">Tickers</div><div class="metric-val" id="anCount">-</div></div>
                 </div>
                 <div class="card">
@@ -277,7 +283,7 @@
                 <div class="metrics-grid">
                     <div class="metric-box"><div class="metric-label">Open tickers</div><div class="metric-val" id="pfTickers">-</div></div>
                     <div class="metric-box"><div class="metric-label">Open lots</div><div class="metric-val" id="pfLots">-</div></div>
-                    <div class="metric-box"><div class="metric-label">Total cost (PLN)</div><div class="metric-val" id="pfCost">-</div></div>
+                    <div class="metric-box"><div class="metric-label">Total cost (<span class="curCode">PLN</span>)</div><div class="metric-val" id="pfCost">-</div></div>
                 </div>
                 <div class="card">
                     <div class="controls" style="margin-bottom:12px">
@@ -293,8 +299,8 @@
                                 <th class="sortable" onclick="sortPortfolio('currency')">Currency</th>
                                 <th class="sortable" onclick="sortPortfolio('quantity')">Quantity</th>
                                 <th class="sortable" onclick="sortPortfolio('lots')">Lots</th>
-                                <th class="sortable" onclick="sortPortfolio('cost')">Total cost (PLN)</th>
-                                <th class="sortable" onclick="sortPortfolio('avg')">Avg cost (PLN)</th>
+                                <th class="sortable" onclick="sortPortfolio('cost')">Total cost (<span class="curCode">PLN</span>)</th>
+                                <th class="sortable" onclick="sortPortfolio('avg')">Avg cost (<span class="curCode">PLN</span>)</th>
                                 <th class="sortable" onclick="sortPortfolio('oldest')">Oldest buy</th>
                             </tr></thead>
                             <tbody></tbody>
@@ -597,10 +603,9 @@
                 }
 
                 // 2. Заполнение данных
-                const plEl = document.getElementById('pl');
-                plEl.innerText = data.summary.pln_profit.toFixed(2) + " PLN";
-                plEl.className = 'metric-val ' + (data.summary.pln_profit >= 0 ? 'pos' : 'neg');
-                document.getElementById('divs').innerText = data.summary.pln_dividend_gross.toFixed(2) + " PLN";
+                setFx(data.fx);
+                lastSummary = data.summary;
+                renderDashboardMetrics();
                 document.getElementById('inv').innerText = data.summary.open_positions_count;
                 
                 // Кнопки отчетов
@@ -612,6 +617,7 @@
                 setDividends(data.dividends || [], year);
                 setAnalytics(data.by_ticker || [], year);
                 setPortfolio(data.inventory || [], year);
+                updateCurrencyUi();
                 resultsCard.classList.remove('hidden');
                 document.getElementById('emptyCard').classList.add('hidden');
                 document.getElementById('resultsTitle').innerText = `Results for ${year}`;
@@ -629,6 +635,55 @@
                 loader.classList.add('hidden'); // Скрываем спиннер
                 calcBtn.disabled = false;       // Разблокируем кнопку
             }
+        }
+
+        const CURRENCY_KEY = 'taxCurrency';
+        let fx = { date: null, rates: {} };
+        let curCode = 'PLN';
+        let lastSummary = null;
+        let calculated = false;
+
+        const fmtRaw = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const curRate = () => (curCode === 'PLN' ? 1 : fx.rates[curCode] || 1);
+        const money = n => fmtRaw(n / curRate());
+
+        function setFx(newFx) {
+            fx = newFx && newFx.rates ? newFx : { date: null, rates: {} };
+            calculated = true;
+            for (const opt of document.getElementById('currencySelect').options) {
+                opt.disabled = opt.value !== 'PLN' && !fx.rates[opt.value];
+            }
+            let saved = null;
+            try { saved = localStorage.getItem(CURRENCY_KEY); } catch (e) {}
+            curCode = saved === 'PLN' || (saved && fx.rates[saved]) ? saved : 'PLN';
+        }
+
+        function updateCurrencyUi() {
+            document.getElementById('currencySelect').value = curCode;
+            document.querySelectorAll('.curCode').forEach(el => { el.innerText = curCode; });
+            document.getElementById('fxNote').innerText = curCode === 'PLN'
+                ? ''
+                : `1 ${curCode} = ${fx.rates[curCode].toFixed(4)} PLN (${fx.date}) \u00b7 display only`;
+        }
+
+        function renderDashboardMetrics() {
+            if (!lastSummary) return;
+            const pl = document.getElementById('pl');
+            pl.innerText = `${money(lastSummary.pln_profit)} ${curCode}`;
+            pl.className = 'metric-val ' + (lastSummary.pln_profit >= 0 ? 'pos' : 'neg');
+            document.getElementById('divs').innerText = `${money(lastSummary.pln_dividend_gross)} ${curCode}`;
+        }
+
+        function setCurrency(code) {
+            if (!calculated || (code !== 'PLN' && !fx.rates[code])) code = 'PLN';
+            curCode = code;
+            try { localStorage.setItem(CURRENCY_KEY, code); } catch (e) {}
+            updateCurrencyUi();
+            renderDashboardMetrics();
+            renderTickerTable();
+            renderDividends();
+            renderAnalytics();
+            renderPortfolio();
         }
 
         const PALETTE = ['#4a90e2', '#52d1dc', '#6a5acd', '#7c2fc9', '#2ec4b6', '#a020f0', '#6ee7d8', '#00e5a0', '#b388ff', '#3b4cca'];
@@ -663,7 +718,7 @@
         }
 
         function renderDividends() {
-            const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const fmt = money;
             const sum = (rows, k) => rows.reduce((s, r) => s + r[k], 0);
             const q = document.getElementById('divFilter').value.trim().toLowerCase();
             const all = divState.rows;
@@ -728,7 +783,7 @@
         }
 
         function renderAnalytics() {
-            const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const fmt = money;
             const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
             const sum = (rows, k) => rows.reduce((s, r) => s + r[k], 0);
             const all = anState.rows;
@@ -819,7 +874,7 @@
         }
 
         function renderPortfolio() {
-            const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const fmt = money;
             const fmtQty = n => n.toLocaleString('en-US', { maximumFractionDigits: 4 });
             const all = pfState.rows;
             const q = document.getElementById('pfFilter').value.trim().toLowerCase();
@@ -845,7 +900,7 @@
                 if (open) {
                     html += r.items.map(l =>
                         `<tr class="lot-row"><td class="hint">&nbsp;&nbsp;${escapeHtml(l.buy_date)}</td>` +
-                        `<td class="hint">${fmt(l.cost_per_share)} ${escapeHtml(l.currency)}</td>` +
+                        `<td class="hint">${fmtRaw(l.cost_per_share)} ${escapeHtml(l.currency)}</td>` +
                         `<td class="num hint">${fmtQty(l.quantity)}</td><td></td>` +
                         `<td class="num hint">${fmt(l.total_cost)}</td><td colspan="2"></td></tr>`
                     ).join('');
@@ -898,7 +953,7 @@
 
         function renderTickerTable() {
             const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-            const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const fmt = money;
             const cls = n => n > 0 ? 'pos' : n < 0 ? 'neg' : '';
             const q = document.getElementById('tickerFilter').value.trim().toLowerCase();
             document.querySelector('#tickerTable tbody').innerHTML = breakdownRows.map((r, i) => {
