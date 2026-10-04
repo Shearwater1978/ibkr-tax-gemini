@@ -40,6 +40,14 @@ def test_health_reports_ready():
     assert response.json() == {"status": "ready"}
 
 
+def test_root_serves_the_portal_page():
+    response = TestClient(api.app).get("/")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert "IBKR Tax Architect" in response.text
+
+
 def test_years_are_sorted_newest_first():
     database = FakeDatabase([("2022",), ("2025",), ("2024",), ("2025",)])
     with patch.object(api, "DBConnector", return_value=database):

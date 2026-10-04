@@ -11,6 +11,7 @@ from typing import List
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 current_dir = Path(__file__).resolve().parent
@@ -137,6 +138,11 @@ def open_file_system(filepath: Path):
         raise HTTPException(
             status_code=500, detail="Could not open report file"
         ) from exc
+
+
+@app.get("/", include_in_schema=False)
+def portal_page():
+    return FileResponse(current_dir.parent / "ui" / "index.html")
 
 
 @app.get("/health")

@@ -99,10 +99,10 @@ It needs only Python and the `.env` from the installation steps.
     It listens on `http://127.0.0.1:8000` and must be started from the project
     root so it finds `.env` and the encrypted database.
 
-2.  Open `gui/ui/index.html` in a browser (double-click it, or open
-    `file:///<project path>/gui/ui/index.html`). The page loads the available
-    years from the backend; if it shows "Backend is unavailable", check that the
-    backend is running.
+2.  Open **http://127.0.0.1:8000/** in a browser. The backend serves the portal
+    itself, and the page loads the available years; if it shows "Backend is
+    unavailable", check that the backend is running. (Opening
+    `gui/ui/index.html` directly from disk also works.)
 
 3.  Choose a year in the top bar and press **Calculate**. When it finishes you
     land on the Dashboard, and the other views fill in from the same result.
