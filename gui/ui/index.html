@@ -92,6 +92,8 @@
         .neg { color: var(--red); }
         a.tk { color: var(--blue); text-decoration: none; font-weight: 600; }
         a.tk:hover, a.tk:focus { text-decoration: underline; }
+        a.crumb-link { color: var(--blue); text-decoration: none; font-weight: 600; }
+        a.crumb-link:hover, a.crumb-link:focus { text-decoration: underline; }
         a.exp { color: var(--muted); text-decoration: none; margin-right: 6px; }
         .ticker-card { position: fixed; z-index: 40; min-width: 220px; background: var(--card-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); pointer-events: none; }
         .ticker-card b { font-size: 15px; }
@@ -749,6 +751,7 @@
         const tickerCard = document.getElementById('tickerCard');
 
         function showTickerCard(a) {
+            if (!a.dataset.ticker) return;
             const st = tickerStats(a.dataset.ticker);
             if (!st) return;
             const sign = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
@@ -779,7 +782,7 @@
             document.body.classList.add('ticker-mode');
             document.title = `${sym} - Tax Architect`;
             const view = document.getElementById('tickerView');
-            const head = `<div class="breadcrumb"><a class="tk" href="${location.pathname}">Tax Architect</a> / <b>${escapeHtml(sym)}</b></div>`;
+            const head = `<div class="breadcrumb"><a class="crumb-link" href="${location.pathname}">Tax Architect</a> / <b>${escapeHtml(sym)}</b></div>`;
             snap = loadSnapshot();
             if (!snap) {
                 view.innerHTML = head + `<div class="card"><h3>No data yet</h3><p class="hint">Open the portal and run a calculation first.</p></div>`;
