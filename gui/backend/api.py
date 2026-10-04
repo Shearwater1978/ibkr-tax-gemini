@@ -330,13 +330,15 @@ def calculate_report(year: int):
         by_ticker: dict = {}
         for r in realized_gains:
             row = by_ticker.setdefault(
-                r["ticker"], {"ticker": r["ticker"], "profit": 0.0, "dividends": 0.0, "sales": 0}
+                r["ticker"],
+                {"ticker": r["ticker"], "profit": 0.0, "dividends": 0.0, "sales": 0},
             )
             row["profit"] += r["profit_loss"]
             row["sales"] += 1
         for d in dividends:
             row = by_ticker.setdefault(
-                d["ticker"], {"ticker": d["ticker"], "profit": 0.0, "dividends": 0.0, "sales": 0}
+                d["ticker"],
+                {"ticker": d["ticker"], "profit": 0.0, "dividends": 0.0, "sales": 0},
             )
             row["dividends"] += d["gross_amount_pln"]
 

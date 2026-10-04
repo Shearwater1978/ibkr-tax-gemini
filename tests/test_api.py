@@ -334,9 +334,13 @@ def test_calculation_returns_by_ticker_summary_with_existing_fields():
         api, "DBConnector", return_value=FakeDatabase([{"TradeId": 1}])
     ), patch.object(
         api, "process_yearly_data", return_value=(gains, dividends, [], [])
-    ), patch.object(api, "collect_all_trade_data", return_value=({}, {})), patch.object(
+    ), patch.object(
+        api, "collect_all_trade_data", return_value=({}, {})
+    ), patch.object(
         api, "export_to_excel", side_effect=ReportExportError("write failed")
-    ), patch.object(api, "generate_pdf", None):
+    ), patch.object(
+        api, "generate_pdf", None
+    ):
         response = TestClient(api.app).get("/calculate/2025")
 
     data = response.json()
