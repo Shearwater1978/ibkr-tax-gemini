@@ -13,12 +13,18 @@
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
 
         /* Top nav */
-        .topbar { display: flex; align-items: center; gap: 8px; padding: 10px 24px; background: var(--nav); border-bottom: 1px solid var(--line); }
+        .topbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; white-space: nowrap; padding: 10px 24px; background: var(--nav); border-bottom: 1px solid var(--line); }
         .logo { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--violet), var(--blue)); display: grid; place-items: center; font-weight: 700; margin-right: 16px; }
         .tab { background: transparent; border: none; color: var(--muted); padding: 9px 16px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
         .tab:hover { color: var(--text); }
         .tab.active { background: #3a3a4d; color: var(--text); }
         .topbar .spacer { flex: 1; }
+        .menu { position: relative; }
+        .menu-list { position: absolute; top: calc(100% + 6px); left: 0; min-width: 170px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px; z-index: 20; display: none; }
+        .menu.open .menu-list { display: block; }
+        .menu-item { display: block; width: 100%; text-align: left; background: transparent; border: none; color: var(--muted); padding: 9px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .menu-item:hover, .menu-item.active { background: #3a3a4d; color: var(--text); }
+        .topbar-controls { display: flex; align-items: center; gap: 8px; margin-right: 12px; }
         .pill { background: #2e3b4e; color: var(--blue); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; }
 
         .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
@@ -91,13 +97,24 @@
     <div class="topbar">
         <div class="logo">T</div>
         <button class="tab active" data-page="page-dashboard" onclick="showPage('page-dashboard')">Dashboard</button>
-        <button class="tab" data-page="page-dividends" onclick="showPage('page-dividends')">Dividends</button>
-        <button class="tab" data-page="page-analytics" onclick="showPage('page-analytics')">Analytics</button>
-        <button class="tab" data-page="page-portfolio" onclick="showPage('page-portfolio')">Portfolio</button>
+        <div class="menu" id="reportsMenu">
+            <button class="tab" id="reportsBtn" aria-haspopup="true" aria-expanded="false" onclick="toggleMenu(event)">Reports &#9662;</button>
+            <div class="menu-list" role="menu">
+                <button class="menu-item" role="menuitem" data-page="page-dividends" onclick="showPage('page-dividends')">Dividends</button>
+                <button class="menu-item" role="menuitem" data-page="page-analytics" onclick="showPage('page-analytics')">Analytics</button>
+                <button class="menu-item" role="menuitem" data-page="page-portfolio" onclick="showPage('page-portfolio')">Portfolio</button>
+            </div>
+        </div>
         <button class="tab" data-page="page-tax" onclick="showPage('page-tax')">Tax Calculation</button>
         <button class="tab" data-page="page-data" onclick="showPage('page-data')">Data</button>
         <button class="tab" data-page="page-coverage" onclick="showPage('page-coverage')">Coverage</button>
         <div class="spacer"></div>
+        <div class="topbar-controls">
+            <select id="yearSelect" aria-label="Year">
+                <option value="" disabled selected>Loading...</option>
+            </select>
+            <button class="btn btn-primary" id="calcBtn" onclick="calculate()">Calculate</button>
+        </div>
         <span class="pill">SQLCipher • FIFO • NBP</span>
     </div>
 
@@ -107,13 +124,7 @@
 
             <div class="card">
                 <h3>Tax Calculation</h3>
-                <div class="controls">
-                    <label>Year</label>
-                    <select id="yearSelect">
-                        <option value="" disabled selected>Loading...</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="calculate()">Calculate Report</button>
-                </div>
+                <p class="hint">Choose a year in the top bar and press Calculate.</p>
                 <div id="loader" class="loading-box hidden">
                     <div class="spinner"></div>
                     <span id="loader-text">Calculating FIFO &amp; NBP Rates...</span>
@@ -369,8 +380,29 @@
     <script>
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === id));
-            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.page === id));
+            document.querySelectorAll('.tab[data-page]').forEach(t => t.classList.toggle('active', t.dataset.page === id));
+            document.querySelectorAll('.menu-item').forEach(t => t.classList.toggle('active', t.dataset.page === id));
+            document.getElementById('reportsBtn').classList.toggle('active', !!document.querySelector('.menu-item.active'));
+            closeMenu();
         }
+
+        function closeMenu() {
+            document.getElementById('reportsMenu').classList.remove('open');
+            document.getElementById('reportsBtn').setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleMenu(e) {
+            e.stopPropagation();
+            const open = document.getElementById('reportsMenu').classList.toggle('open');
+            document.getElementById('reportsBtn').setAttribute('aria-expanded', String(open));
+        }
+
+        document.addEventListener('click', e => {
+            if (!e.target.closest('#reportsMenu')) closeMenu();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeMenu();
+        });
     </script>
     <script>
         const API_URL = window.taxApi?.baseUrl || 'http://127.0.0.1:8000';
@@ -540,11 +572,12 @@
         async function calculate() {
             const yearSelect = document.getElementById('yearSelect');
             const year = yearSelect.value;
-            const calcBtn = document.querySelector('button[onclick="calculate()"]');
+            const calcBtn = document.getElementById('calcBtn');
             const loader = document.getElementById('loader');
             const resultsCard = document.getElementById('resultsCard');
 
             if(!year || year === "No Data found") return;
+            showPage('page-tax');
 
             // 1. Подготовка UI
             statusEl.innerText = "";
