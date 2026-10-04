@@ -100,12 +100,17 @@ It needs only Python and the `.env` from the installation steps.
     root so it finds `.env` and the encrypted database.
 
 2.  Open **http://127.0.0.1:8000/** in a browser. The backend serves the portal
-    itself, and the page loads the available years; if it shows "Backend is
-    unavailable", check that the backend is running. (Opening
-    `gui/ui/index.html` directly from disk also works.)
+    itself. On start the portal imports the statement files from `data/`,
+    loads the available years and calculates the latest one, so the Dashboard
+    fills in without any clicks. If it shows "Backend is unavailable", check
+    that the backend is running. (Opening `gui/ui/index.html` directly from
+    disk also works.)
 
-3.  Choose a year in the top bar and press **Calculate**. When it finishes you
-    land on the Dashboard, and the other views fill in from the same result.
+3.  To look at another year, choose it in the top bar and press **Calculate**.
+    The **currency** selector next to it shows amounts in PLN, USD or EUR at
+    the NBP rate of the year's last day (display only; reports stay in PLN).
+    Click any ticker to open its sales, dividends and open lots in a new tab,
+    or hover it for a short summary.
 
 Stop the backend with `Ctrl+C`. The backend only accepts requests from
 `file://` pages and `localhost`/`127.0.0.1`, so it is not reachable from other
