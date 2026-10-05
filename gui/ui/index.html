@@ -297,6 +297,7 @@
                     <div class="metric-box"><div class="metric-label">Open tickers</div><div class="metric-val" id="pfTickers">-</div></div>
                     <div class="metric-box"><div class="metric-label">Open lots</div><div class="metric-val" id="pfLots">-</div></div>
                     <div class="metric-box"><div class="metric-label">Total cost (<span class="curCode">PLN</span>)</div><div class="metric-val" id="pfCost">-</div></div>
+                    <div class="metric-box hidden" id="pfNavBox"><div class="metric-label">IBKR value (<span id="pfNavCur">USD</span>)</div><div class="metric-val" id="pfNavStock">-</div><div class="metric-sub" id="pfNavSub"></div></div>
                 </div>
                 <div class="card">
                     <div class="controls" style="margin-bottom:12px">
@@ -643,7 +644,7 @@
                 renderBreakdown(data.by_ticker || []);
                 setDividends(data.dividends || [], year);
                 setAnalytics(data.by_ticker || [], year);
-                setPortfolio(data.inventory || [], year);
+                setPortfolio(data.inventory || [], year, data.broker_nav);
                 loadPrices();
                 updateCurrencyUi();
                 saveSnapshot(year, data);
@@ -970,7 +971,15 @@
         }
         const pfState = { quotes: {}, rows: [], year: null, sortKey: 'cost', sortDir: -1, page: 0, open: new Set() };
 
-        function setPortfolio(lots, year) {
+        function setPortfolio(lots, year, brokerNav) {
+            const navBox = document.getElementById('pfNavBox');
+            navBox.classList.toggle('hidden', !brokerNav);
+            if (brokerNav) {
+                document.getElementById('pfNavCur').innerText = brokerNav.currency;
+                document.getElementById('pfNavStock').innerText = fmtRaw(brokerNav.stock_value);
+                document.getElementById('pfNavSub').innerText =
+                    `Net asset value ${fmtRaw(brokerNav.net_asset_value)} as of ${brokerNav.as_of}`;
+            }
             const groups = {};
             for (const l of lots) {
                 const g = groups[l.ticker] || (groups[l.ticker] = {
