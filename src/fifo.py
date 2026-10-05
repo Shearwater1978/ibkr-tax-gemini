@@ -164,26 +164,30 @@ class TradeMatcher:
         if qty < 0:
             return
 
-        if inventory_key not in self.inventory or not self.inventory[inventory_key]:
+        keys = [inventory_key] if self.inventory.get(inventory_key) else []
+        if not keys and isinstance(inventory_key, tuple):
+            # A split that changes the ISIN is booked under the new ISIN while
+            # the shares still sit under the old one.
+            keys = [
+                key
+                for key, lots in self.inventory.items()
+                if isinstance(key, tuple) and key[0] == trade["ticker"] and lots
+            ]
+        if not keys:
             return
 
         # Apply split to all existing batches in inventory
         # New Qty = Old Qty * Ratio
         # New Price = Old Price / Ratio (Cost basis per batch stays same)
-        new_deque = deque()
-        while self.inventory[inventory_key]:
-            batch = self.inventory[inventory_key].popleft()
-
-            # Adjust Quantity
-            batch["qty"] = batch["qty"] * ratio
-
-            # Adjust Unit Price (Total Cost remains unchanged)
-            if ratio != 0:
-                batch["price"] = batch["price"] / ratio
-
-            new_deque.append(batch)
-
-        self.inventory[inventory_key] = new_deque
+        for key in keys:
+            new_deque = deque()
+            while self.inventory[key]:
+                batch = self.inventory[key].popleft()
+                batch["qty"] = batch["qty"] * ratio
+                if ratio != 0:
+                    batch["price"] = batch["price"] / ratio
+                new_deque.append(batch)
+            self.inventory[key] = new_deque
 
     def _process_buy(self, trade):
         if "rate" in trade and trade["rate"]:
