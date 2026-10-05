@@ -28,6 +28,7 @@ from main import (
     run_ib_sync_routine,
     run_ib_web_sync_routine,
 )
+from src.broker_nav import find_broker_nav
 from src.data_collector import collect_all_trade_data
 from src.db_connector import DBConnector
 from src.diagnostics import CalculationError, ReportExportError
@@ -450,6 +451,7 @@ def calculate_report(year: int):
                 }
                 for lot in inventory
             ],
+            "broker_nav": find_broker_nav(project_root / "data", year),
             "errors": errors,
             "pdf_available": pdf_generated,
             "excel_available": excel_generated,
