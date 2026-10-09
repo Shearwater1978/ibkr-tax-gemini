@@ -128,6 +128,25 @@ class ReportImporterInstrumentedTest {
     }
 
     @Test
+    fun holdingsAggregateAcrossImportedReports() {
+        importer().import(fixture("valid_basic.csv"))
+        importer().import(fixture("valid_followup.csv"))
+
+        val holdings = (PortfolioRepository(helper).holdings() as HoldingsResult.Success).holdings
+        // MSFT was fully sold; SAP split 2-for-1 (4 -> 8) then 3 were sold.
+        assertEquals(listOf("AAPL" to "USD", "SAP" to "EUR"), holdings.map { it.ticker to it.currency })
+
+        val aapl = holdings.first { it.ticker == "AAPL" }
+        assertEquals(0, java.math.BigDecimal("9").compareTo(aapl.quantity))
+        // Lots left: 2 @ 150, 5 @ 160, 2 @ 185 -> 1470 / 9
+        assertEquals(0, java.math.BigDecimal("163.3333333333333333333333333").compareTo(aapl.averagePrice))
+
+        val sap = holdings.first { it.ticker == "SAP" }
+        assertEquals(0, java.math.BigDecimal("5").compareTo(sap.quantity))
+        assertEquals(0, java.math.BigDecimal("60").compareTo(sap.averagePrice))
+    }
+
+    @Test
     fun reportStoresOnlyPseudonymousAccountData() {
         importer().import(fixture("valid_basic.csv"))
 
