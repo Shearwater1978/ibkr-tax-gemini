@@ -34,7 +34,10 @@ class AppContainer(context: Context) {
     val importHistory: ImportHistory by lazy { ImportHistory(database) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
     private val finnhubLimiter = RateLimiter.forFinnhubFreeTier()
-    val prices: PriceService by lazy { PriceService(priceStore, priceStore, { key -> FinnhubProvider(key, limiter = finnhubLimiter) }) }
+    val prices: PriceService by lazy { PriceService(priceStore, priceStore, ::finnhub) }
+
+    /** Finnhub client for [key]; all clients share one rate limiter. */
+    fun finnhub(key: String): FinnhubProvider = FinnhubProvider(key, limiter = finnhubLimiter)
     val fxStore: FxStore by lazy { FxStore(database) }
     val fx: FxService by lazy { FxService(NbpClient(), fxStore) }
 }

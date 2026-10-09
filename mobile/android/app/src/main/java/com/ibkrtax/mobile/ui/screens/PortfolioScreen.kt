@@ -118,7 +118,7 @@ suspend fun refreshMarketData(context: Context): RefreshOutcome = coroutineScope
 }
 
 @Composable
-fun PortfolioScreen(onImportReport: () -> Unit) {
+fun PortfolioScreen(onImportReport: () -> Unit, onOpenSettings: () -> Unit = {}) {
     val context = LocalContext.current
     var refreshTick by remember { mutableIntStateOf(0) }
     // Show cached data at once, then refresh when the page opens or the user asks.
@@ -138,7 +138,7 @@ fun PortfolioScreen(onImportReport: () -> Unit) {
         is PortfolioUiState.Incomplete -> Centered {
             Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center)
         }
-        is PortfolioUiState.Loaded -> Positions(current, onRefresh = { refreshTick++ })
+        is PortfolioUiState.Loaded -> Positions(current, onRefresh = { refreshTick++ }, onOpenSettings = onOpenSettings)
     }
 }
 
@@ -175,13 +175,13 @@ private fun signColor(value: BigDecimal?): Color =
     }
 
 @Composable
-private fun Positions(state: PortfolioUiState.Loaded, onRefresh: () -> Unit) {
+private fun Positions(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
     var sort by remember { mutableStateOf(SortOrder()) }
     var mode by rememberSaveable { mutableStateOf(PnlMode.DAILY) }
     val rows = MainPage.sorted(state.rows, sort, mode)
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-        item { Header(state, onRefresh) }
+        item { Header(state, onRefresh, onOpenSettings) }
         item {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 PnlMode.entries.forEachIndexed { index, option ->
@@ -207,7 +207,7 @@ private fun Positions(state: PortfolioUiState.Loaded, onRefresh: () -> Unit) {
 }
 
 @Composable
-private fun Header(state: PortfolioUiState.Loaded, onRefresh: () -> Unit) {
+private fun Header(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
     val totals = state.totals
     Column(modifier = Modifier.padding(top = 16.dp)) {
         Text(stringResource(R.string.portfolio_title), style = MaterialTheme.typography.titleMedium)
@@ -239,7 +239,7 @@ private fun Header(state: PortfolioUiState.Loaded, onRefresh: () -> Unit) {
             if (!totals.isComplete) add(stringResource(R.string.header_incomplete, totals.missingValues, state.rows.size))
         }
         Text(notes.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-        PriceStatus(state.prices, onRefresh)
+        PriceStatus(state.prices, onRefresh, onOpenSettings)
     }
 }
 
@@ -313,7 +313,7 @@ private fun PositionLine(row: PositionRow, mode: PnlMode) {
 }
 
 @Composable
-private fun PriceStatus(prices: RefreshOutcome?, onRefresh: () -> Unit) {
+private fun PriceStatus(prices: RefreshOutcome?, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
     val message = when (prices) {
         null -> stringResource(R.string.prices_refreshing)
         RefreshOutcome.NoKey -> stringResource(R.string.prices_no_key)
@@ -331,7 +331,9 @@ private fun PriceStatus(prices: RefreshOutcome?, onRefresh: () -> Unit) {
         )
     }
     message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-    if (prices != null && prices != RefreshOutcome.NoKey) {
-        TextButton(onClick = onRefresh) { Text(stringResource(R.string.prices_refresh)) }
+    when (prices) {
+        null -> Unit
+        RefreshOutcome.NoKey -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.prices_add_key)) }
+        else -> TextButton(onClick = onRefresh) { Text(stringResource(R.string.prices_refresh)) }
     }
 }
