@@ -15,6 +15,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -39,6 +41,7 @@ android {
 
     // Synthetic Flex Query fixtures shared with iOS and the Python reference tests.
     sourceSets["test"].resources.srcDir("../../fixtures")
+    sourceSets["androidTest"].assets.srcDir("../../fixtures")
 
     testOptions {
         unitTests.all {
@@ -59,8 +62,15 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.sqlite)
+    implementation(libs.sqlcipher.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Real org.json for JVM unit tests; android.jar only ships stubs.
+    testImplementation(libs.json)
+
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

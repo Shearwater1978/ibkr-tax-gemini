@@ -6,6 +6,11 @@ composeBom = "2024.12.01"
 navigationCompose = "2.8.5"
 junit = "4.13.2"
 kotlinxCoroutines = "1.9.0"
+json = "20240303"
+sqlite = "2.4.0"
+sqlcipher = "4.6.1"
+testRunner = "1.6.2"
+testExtJunit = "1.2.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -16,6 +21,11 @@ androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+androidx-sqlite = { group = "androidx.sqlite", name = "sqlite", version.ref = "sqlite" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
+androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "testExtJunit" }
+sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
+json = { group = "org.json", name = "json", version.ref = "json" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }

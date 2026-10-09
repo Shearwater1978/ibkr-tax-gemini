@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Report data must never go to Android cloud/device-transfer backups. -->
+    <!-- Report data must never go to Android cloud/device-transfer backups.
+         allowBackup alone does not stop Android 12+ device transfer, hence the extraction rules. -->
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
         android:label="@string/app_name"
         android:supportsRtl="true"

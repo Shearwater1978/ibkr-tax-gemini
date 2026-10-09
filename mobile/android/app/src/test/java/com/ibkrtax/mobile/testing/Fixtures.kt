@@ -16,6 +16,10 @@ object Fixtures {
     fun expectedJson(fixtureName: String): String =
         read("flex-query/expected/${fixtureName.removeSuffix(".csv")}.json").decodeToString()
 
+    /** Source keys Python `_source_key` produces for a valid fixture, in import order. */
+    fun expectedSourceKeysJson(fixtureName: String): String =
+        read("flex-query/expected/source_keys/${fixtureName.removeSuffix(".csv")}.json").decodeToString()
+
     private fun read(path: String): ByteArray {
         val stream = Fixtures::class.java.classLoader?.getResourceAsStream(path)
             ?: error("Missing test fixture: $path")

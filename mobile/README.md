@@ -31,7 +31,10 @@ When you change a destination, change it on both platforms and in this table.
    cd mobile/android
    .\gradlew.bat testDebugUnitTest assembleDebug
    .\gradlew.bat installDebug   # with an emulator running
+   .\gradlew.bat connectedDebugAndroidTest   # Keystore and SQLCipher tests, needs an emulator
    ```
+
+   Emulator Keystore is usually software-backed, so hardware key protection must still be checked on a physical device.
 
 ## iOS
 
