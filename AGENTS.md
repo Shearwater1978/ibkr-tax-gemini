@@ -6,7 +6,7 @@ Project: **IBKR Tax Assistant** — Python tool that turns Interactive Brokers d
 - **Never work directly on `main`/`master`.** Check `git branch --show-current` before editing or committing; if on `main`, create a feature branch first (`feat/...`, `fix/...`, `docs/...`).
 - Never force-push or rewrite shared history. Do not push or open PRs unless asked.
 - CI (`.github/workflows/python-app.yml`) runs on PRs to `main`; Markdown-only PRs skip the Python checks. Do not turn that job into a job-level `if:` (it breaks required checks).
-- Commit messages end with the trailer: `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
+- Commits made with AI help end with the trailer `Assisted-by: AI`, whichever tool was used. Do not add `Co-authored-by` lines for AI tools.
 
 ### Branches and pull requests
 - **One task, one branch, one PR.** Before starting a task, run `git fetch` and branch from the current `origin/main`. Do not keep adding unrelated tasks to a long-lived branch; once a task is done, propose a PR and start the next task from `main`.
