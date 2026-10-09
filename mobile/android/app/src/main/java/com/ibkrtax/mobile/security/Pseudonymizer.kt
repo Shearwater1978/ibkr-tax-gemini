@@ -9,6 +9,9 @@ enum class IdentifierKind {
     NAME,
     TAX_ID,
     SOURCE_FILE,
+
+    /** SHA-256 of a report's bytes; keyed so the fingerprint cannot be matched outside the device. */
+    REPORT_CONTENT,
 }
 
 /**

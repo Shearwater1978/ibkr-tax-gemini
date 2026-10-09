@@ -41,6 +41,7 @@ android {
 
     // Synthetic Flex Query fixtures shared with iOS and the Python reference tests.
     sourceSets["test"].resources.srcDir("../../fixtures")
+    sourceSets["androidTest"].assets.srcDir("../../fixtures")
 
     testOptions {
         unitTests.all {

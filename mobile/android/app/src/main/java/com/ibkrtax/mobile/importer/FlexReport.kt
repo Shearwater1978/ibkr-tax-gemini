@@ -49,6 +49,8 @@ data class FlexReport(
     val dividends: List<CashRecord>,
     val taxes: List<CashRecord>,
     val corporateActions: List<CorporateActionRecord>,
+    /** Raw account number: a direct identifier, to be pseudonymized before storage or display. */
+    val accountId: String? = null,
 )
 
 sealed interface FlexParseResult {

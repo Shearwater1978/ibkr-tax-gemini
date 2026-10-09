@@ -19,9 +19,10 @@ object FlexQueryParser {
     private const val DIVIDENDS = "Dividends"
     private const val WITHHOLDING_TAX = "Withholding Tax"
     private const val INSTRUMENTS = "Financial Instrument Information"
+    private const val ACCOUNT_INFORMATION = "Account Information"
 
     /** A Header row for one of these sections identifies an IBKR statement. */
-    private val RECOGNIZED_SECTIONS = setOf("Statement", TRADES, CORPORATE_ACTIONS, DIVIDENDS, WITHHOLDING_TAX, INSTRUMENTS)
+    private val RECOGNIZED_SECTIONS = setOf("Statement", ACCOUNT_INFORMATION, TRADES, CORPORATE_ACTIONS, DIVIDENDS, WITHHOLDING_TAX, INSTRUMENTS)
 
     private val STOCK_ASSETS = setOf("Stocks", "Equity")
     private val CORPORATE_ACTION_TYPES = setOf("SPLIT", "STOCK_DIV", "MERGER", "SPINOFF")
@@ -64,6 +65,7 @@ object FlexQueryParser {
         val corporateActions = mutableListOf<CorporateActionRecord>()
         val instruments = mutableMapOf<String, MutableList<InstrumentInfo>>()
         val sections = mutableMapOf<String, Section>()
+        var accountId: String? = null
 
         for (row in rows) {
             val fields = row.fields
@@ -86,10 +88,11 @@ object FlexQueryParser {
                 INSTRUMENTS -> parseInstrument(reader)?.let { (symbol, info) ->
                     instruments.getOrPut(symbol) { mutableListOf() }.add(info)
                 }
+                ACCOUNT_INFORMATION -> parseAccountId(reader)?.let { accountId = it }
             }
         }
 
-        return resolveIdentities(FlexReport(trades, dividends, taxes, corporateActions), instruments)
+        return resolveIdentities(FlexReport(trades, dividends, taxes, corporateActions, accountId), instruments)
     }
 
     private fun decodeUtf8(bytes: ByteArray): String =
@@ -231,6 +234,13 @@ object FlexQueryParser {
         )
     }
 
+    private fun parseAccountId(reader: RowReader): String? {
+        val name = reader.section.column("Field Name") ?: return null
+        val value = reader.section.column("Field Value") ?: return null
+        if (reader.text(name).trim() != "Account") return null
+        return reader.text(value).trim().ifEmpty { null }
+    }
+
     /** Port of the identity back-fill at the end of Python `parse_csv`. */
     private fun resolveIdentities(report: FlexReport, instruments: Map<String, List<InstrumentInfo>>): FlexReport {
         val all = report.trades.map { it.identity to it.currency } +
@@ -272,7 +282,7 @@ object FlexQueryParser {
             )
         }
 
-        return FlexReport(
+        return report.copy(
             trades = report.trades.map { it.copy(identity = resolve(it.identity, it.currency)) },
             dividends = report.dividends.map { it.copy(identity = resolve(it.identity, it.currency)) },
             taxes = report.taxes.map { it.copy(identity = resolve(it.identity, it.currency)) },
