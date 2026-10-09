@@ -1,41 +1,52 @@
-﻿## Purpose
+## Purpose
 
-Gives the user one accumulated view of all stocks they hold, derived from imported broker reports.
+Gives users a privacy-preserving, informational view of current holdings aggregated from imported IBKR reports.
 
 ## ADDED Requirements
 
-### Requirement: Accumulated holdings per stock
-The app SHALL show, for each stock, the total quantity held and the average purchase price, aggregated across all imported reports and accounts.
+### Requirement: Show accumulated holdings using FIFO open lots
+The app SHALL show current quantity and average purchase price for each current instrument position, aggregated across imported reports and accounts. Quantities and average prices SHALL be derived from remaining FIFO lots using the established instrument identity and corporate-action rules. Lots in different currencies SHALL be shown as separate currency subpositions rather than averaged together.
 
-#### Scenario: Same stock in several reports
-- **WHEN** the same stock appears in several imported reports
-- **THEN** the overview shows a single row with the combined quantity and average cost
+#### Scenario: Same instrument and currency in multiple reports
+- **WHEN** the same instrument and currency appears in multiple imported reports
+- **THEN** the app shows one subposition with the combined remaining quantity and FIFO-based average purchase price
 
 #### Scenario: Fully sold position
-- **WHEN** a stock's quantity is zero after all trades
-- **THEN** it is not listed among current holdings
+- **WHEN** an instrument has no remaining quantity after FIFO matching
+- **THEN** it is not listed as a current holding
 
-### Requirement: Portfolio totals
-The app SHALL show total cost and total current value of all holdings, and unrealized gain or loss, using the current prices from `mobile-market-prices`.
+#### Scenario: Multiple currencies
+- **WHEN** remaining lots for an instrument use different currencies
+- **THEN** the app shows separate subpositions and does not combine their prices or costs
 
-#### Scenario: Totals with prices
-- **WHEN** prices are available for all holdings
-- **THEN** totals equal the sum of quantity multiplied by price and cost for each holding
+### Requirement: Show currency-specific portfolio values
+The app SHALL show cost, current value, and unrealized gain or loss as subtotals by currency and SHALL NOT show a converted grand total in the MVP. Market value SHALL use the corresponding current price from `mobile-market-prices`.
 
-#### Scenario: Missing price
-- **WHEN** a price is unavailable for some holding
-- **THEN** the app marks that holding as having no price and states that totals are partial
+#### Scenario: Prices are available
+- **WHEN** current prices are available for holdings
+- **THEN** the app shows currency-specific values and gains or losses without converting between currencies
 
-### Requirement: Privacy of displayed data
-The overview SHALL NOT show raw account numbers, names or tax IDs; any account reference SHALL be masked as defined by `mobile-encrypted-drive-backup`.
+#### Scenario: Price is unavailable
+- **WHEN** a current price is unavailable for a holding
+- **THEN** the app marks that value unavailable and identifies the affected currency subtotal as incomplete
 
-#### Scenario: Account shown
+### Requirement: Keep portfolio values informational
+The app SHALL label portfolio values as informational and SHALL NOT calculate or export a Polish PIT-38 report or present portfolio values as tax output.
+
+#### Scenario: User reviews portfolio
+- **WHEN** the user views holdings or portfolio values
+- **THEN** the app identifies them as informational and provides no PIT-38 calculation or tax-report export action
+
+### Requirement: Protect displayed personal data
+The overview SHALL NOT show raw account numbers, names, or tax identifiers. Any account reference SHALL be masked according to `mobile-encrypted-drive-backup`.
+
+#### Scenario: Account reference shown
 - **WHEN** an account is referenced in the overview
-- **THEN** only a masked value is shown
+- **THEN** only the permitted masked value is shown
 
-### Requirement: Empty state
-The app SHALL show a prompt to import a report when no reports have been imported.
+### Requirement: Show empty state
+The app SHALL prompt the user to import a supported report when there are no imported reports.
 
-#### Scenario: No data
-- **WHEN** the user opens the overview without any imported report
-- **THEN** the app shows an empty state with an action to upload a report
+#### Scenario: No imported reports
+- **WHEN** the user opens the overview before importing a report
+- **THEN** the app shows an empty state with an action to import a report

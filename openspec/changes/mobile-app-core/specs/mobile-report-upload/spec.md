@@ -1,49 +1,63 @@
-﻿## Purpose
+## Purpose
 
-Lets the user add broker reports to the mobile app from the UI, with personal identifiers anonymized during processing and the original report secured via the encrypted Drive backup.
+Lets users import supported IBKR reports safely from their device and review import progress without exposing report contents or direct identifiers.
 
 ## ADDED Requirements
 
-### Requirement: Upload broker report from UI
-The app SHALL let the user select one or more broker report files from the device and import them through the UI.
+### Requirement: Import supported IBKR report
+The app SHALL let the user select an IBKR Activity Flex Query CSV file through the system file picker. The app SHALL validate the file format and parseability on-device before creating a backup or storing derived records.
 
-#### Scenario: Successful import
-- **WHEN** the user selects a supported broker report file
-- **THEN** the app parses it and reports the number of imported records
+#### Scenario: Supported report selected
+- **WHEN** the user selects a valid IBKR Activity Flex Query CSV file
+- **THEN** the app validates and processes it on-device and reports the import result
 
-#### Scenario: Unsupported or corrupted file
-- **WHEN** the user selects a file that is not a supported report or cannot be parsed
-- **THEN** the app shows a clear error and stores nothing from that file
+#### Scenario: Unsupported or corrupted report
+- **WHEN** the user selects a different format or a CSV file that cannot be parsed
+- **THEN** the app explains the error and creates neither a backup nor partial derived records
 
-#### Scenario: Duplicate import
-- **WHEN** the user imports a report that was already imported
-- **THEN** the app does not create duplicate records and tells the user the report was already imported
+### Requirement: Process reports locally and atomically
+The app SHALL parse and normalize reports on-device without sending report contents over the network. A report import SHALL either store all valid derived records or store none.
 
-### Requirement: Anonymization during processing
-The app SHALL pseudonymize direct identifiers (such as name, account number and tax ID) in a report during processing, before processed data is stored, logged or displayed. Pseudonymization SHALL follow the `data-anonymization` requirements of `mobile-encrypted-drive-backup`.
+#### Scenario: Offline processing
+- **WHEN** the device has no network connection and the user imports a valid report
+- **THEN** parsing and local processing complete without a network request
 
-#### Scenario: Processed data contains no raw identifiers
-- **WHEN** a report is processed
-- **THEN** the stored processed records contain pseudonyms or masked values instead of raw direct identifiers
+#### Scenario: Import failure
+- **WHEN** parsing or validation fails
+- **THEN** no partial derived records are committed and the user receives a clear error
 
-#### Scenario: Logs
-- **WHEN** processing succeeds or fails
-- **THEN** no raw identifiers or full report contents appear in logs or error messages
+### Requirement: Protect report data and identifiers
+The app SHALL encrypt report data before any network request and SHALL store processed records only in the encrypted local database. Direct identifiers SHALL be pseudonymized before derived records are persisted, logged, or displayed. Logs and diagnostics SHALL NOT contain report contents, direct identifiers, or person-linked financial values.
 
-### Requirement: Secure storage of the report
-The app SHALL store each imported report in Google Drive only in encrypted form, as defined by `mobile-encrypted-drive-backup`.
+#### Scenario: Successful processing
+- **WHEN** a report is processed successfully
+- **THEN** derived records contain pseudonymized identifiers and are stored in encrypted local storage
 
-#### Scenario: Backup of imported report
-- **WHEN** a report is imported
-- **THEN** the app encrypts it on the device and uploads it to the Drive app data folder
+#### Scenario: Processing error
+- **WHEN** report processing succeeds or fails
+- **THEN** logs and diagnostics contain no raw report contents or direct identifiers
 
-#### Scenario: Drive unavailable
-- **WHEN** the upload to Google Drive fails (offline, auth expired, quota)
-- **THEN** the app keeps the report locally in encrypted form, shows the backup as pending, and retries later without losing data
+### Requirement: Back up reports securely
+The app SHALL upload imported reports only in client-side encrypted form to the Google Drive app data folder, following `mobile-encrypted-drive-backup`. It SHALL verify the uploaded backup before removing the app-managed source copy. A backup failure SHALL NOT lose the local import or its protected source data.
 
-### Requirement: Import progress and result
-The app SHALL show the user the status of each import: processing, backed up, or failed.
+#### Scenario: Backup verified
+- **WHEN** the encrypted upload's size and checksum match the local encrypted file
+- **THEN** the app marks the backup complete and may remove the app-managed source copy
 
-#### Scenario: Status visible
-- **WHEN** an import is running or has finished
-- **THEN** the UI shows its current status and, for failures, the reason
+#### Scenario: Backup unavailable
+- **WHEN** the network, authorization, or quota prevents backup completion
+- **THEN** the app retains protected local data, marks the backup pending, and retries without blocking local processing
+
+### Requirement: Report duplicate imports
+The app SHALL detect a report that has already been imported and SHALL NOT create duplicate derived records.
+
+#### Scenario: Duplicate report selected
+- **WHEN** the user imports the same report again
+- **THEN** the app reports that it was already imported and leaves the existing records unchanged
+
+### Requirement: Show import progress and result
+The app SHALL show the status of each import and distinguish processing, backup pending, backed up, and failed states.
+
+#### Scenario: Import status changes
+- **WHEN** processing or backup status changes
+- **THEN** the user can see the current status and a useful reason for any failure

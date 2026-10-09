@@ -1,29 +1,27 @@
-﻿## Why
+## Why
 
-The project has a desktop/CLI tax tool and a separate change (`mobile-encrypted-drive-backup`) that defines the security model for a mobile app, but no spec for the app's user-facing behavior. Users want to work with their broker data from an iPhone or Android phone. This change defines the first feature set of that app; more features will be added in later changes.
+Users need a secure way to review imported IBKR holdings from a phone. The first release needs a clear, testable mobile scope that complements the existing tax tool without changing tax-report behavior.
 
 ## What Changes
 
-- Add a mobile app (iOS and Android) as a new client.
-- Users upload broker reports from the app UI (file picker).
-- Reports are anonymized (pseudonymized) while being processed, before results are stored or shown.
-- Reports are stored securely in Google Drive using the encryption, key management and backup rules from `mobile-encrypted-drive-backup`; this change does not redefine them.
-- The app shows accumulated information about all stocks the user holds.
-- The app fetches current stock prices to display up-to-date values.
+- Define matching iOS and Android apps using the existing Kotlin and Swift platform direction.
+- Support importing the IBKR Flex Query CSV format through the system file picker, with on-device processing and secure backup.
+- Show current holdings using remaining FIFO lots and display market prices with freshness information.
+- Keep portfolio values informational: show subtotals by currency, with no converted grand total.
+- Exclude PIT-38 calculation or export, a new backend, and broker connectivity from this MVP.
 
 ## Capabilities
 
 ### New Capabilities
-- `mobile-report-upload`: Uploading broker reports from the UI, anonymization during processing, and handing the result to the secure Drive backup.
-- `mobile-portfolio-overview`: Accumulated per-stock and total holdings view built from processed reports.
-- `mobile-market-prices`: Fetching and displaying current stock prices, with freshness and failure behavior.
+- `mobile-report-upload`: Import and validate IBKR Flex Query CSV reports, protect report data, and expose import status.
+- `mobile-portfolio-overview`: Show privacy-preserving current holdings and informational FIFO-based values.
+- `mobile-market-prices`: Retrieve and display licensed market prices with currency, freshness, and failure behavior.
 
 ### Modified Capabilities
 
 ## Impact
 
-- New mobile client; no change to existing desktop/CLI behavior or specs.
-- Depends on `mobile-encrypted-drive-backup` (key management, encrypted backup, local storage, data anonymization, device hardening). That change must land before or together with implementation.
-- Requires a third-party market data provider and its terms of use (see design.md, open question).
-- Only ticker symbols leave the device to fetch prices; no personal or account data.
-- The feature list is expected to grow; later features get their own changes.
+- Adds iOS and Android client behavior; does not change existing desktop/CLI behavior, tax calculations, or APIs.
+- Depends on the encryption, local storage, pseudonymization, and Google Drive backup rules in `mobile-encrypted-drive-backup`.
+- Uses the repository's existing IBKR Flex Query CSV parsing and instrument identity rules as the behavioral reference.
+- A market-data provider must be selected before price integration, with licensing and data-minimization requirements met.
