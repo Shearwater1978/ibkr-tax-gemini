@@ -71,10 +71,13 @@
     <string name="settings_prices_title">Market prices</string>
     <string name="settings_prices_body">Prices for US listings come from Finnhub, using your own free personal API key. The key is stored encrypted on this phone and sent only to Finnhub, together with ticker symbols. Without a key the app still works; prices are shown as unavailable.</string>
     <string name="key_guide_title">How to get a free key</string>
-    <string name="key_guide_step1">1. Open finnhub.io and create a free account (email and password).</string>
-    <string name="key_guide_step2">2. After signing in, your API key is shown on the dashboard. Copy it.</string>
-    <string name="key_guide_step3">3. Paste it below and tap Save. The app checks it with one test request.</string>
-    <string name="key_guide_open">Open finnhub.io sign-up</string>
+    <string name="key_guide_step1">1. Tap Get key from Finnhub. Finnhub opens in a browser tab; create a free account or sign in. This app never sees your Finnhub password.</string>
+    <string name="key_guide_step2">2. On Finnhub, copy your API key.</string>
+    <string name="key_guide_step3">3. Come back to this app: it offers to use the key you copied. You can also paste it below. The key is checked with one test request.</string>
+    <string name="key_guide_open">Get key from Finnhub</string>
+    <string name="key_suggestion">Use the Finnhub key you just copied (%1$s)?</string>
+    <string name="key_suggestion_use">Use this key</string>
+    <string name="key_suggestion_dismiss">Not now</string>
     <string name="key_guide_no_browser">No browser found. Open %1$s on another device.</string>
     <string name="key_paste">Paste</string>
     <string name="key_checking">Checking…</string>
