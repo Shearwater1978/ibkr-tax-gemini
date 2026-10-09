@@ -38,7 +38,19 @@ Aggregate positions by the repository's instrument identity and derive current q
 
 Use a replaceable provider adapter. Before implementing or releasing price requests, select a provider whose terms permit the intended app distribution and whose interface can request prices using instrument identifiers only. Request updates when the overview opens and on user refresh, cache the last price and timestamp locally, and mark stale prices visibly. Show currency-specific values and do not calculate a converted grand total.
 
+### Development and test environment
+
+- **Supported OS versions:** Android 10 (API 29) and later; iOS 16 and later.
+- **Toolchains:** Android Studio with the Android SDK and Android Emulator (buildable on Windows); Xcode with the iOS Simulator on a local Mac (iOS builds require macOS).
+- **Emulator and simulator scope:** use them for build, launch, UI flow, parser, aggregation, price-staleness, and offline/error-state tests. They are not sufficient evidence for hardware-backed security behavior: Secure Enclave is unavailable in the iOS Simulator, Android Keystore on emulators may not be hardware-backed, and biometrics are only simulated. Play Integrity and App Attest, and the real hardware-backed key, biometric, and screenshot-protection behavior, must be verified on at least one physical Android device and one physical iOS device before release.
+- **Test data:** use only synthetic IBKR Flex Query CSV fixtures shared by both platforms; never use real broker reports, real account identifiers, or real tax data in tests, emulators, simulators, or repositories.
+- **Test isolation:** unit and UI tests must use a test Google OAuth client or a mocked Drive service, and a mocked market-data provider; automated tests must not call live services or use real credentials.
+- **Automation:** unit and parity tests run without a device where possible; emulator/simulator suites are run locally. Adding CI for them (including a macOS runner) is deferred, and any CI added must keep the existing required-check behavior.
+
 ## Risks / Trade-offs
+
+- Emulators and simulators can hide or mask security-feature differences → run the hardware-dependent security checks on physical devices before release.
+- iOS work depends on access to a Mac and Xcode → keep platform-independent logic covered by shared fixtures so Android progress is not blocked.
 
 - Separate native clients can drift → use shared behavioral acceptance cases and verify parity on both platforms.
 - Market-data licensing or availability may change → complete provider and terms review before integration and retain a replaceable adapter.
