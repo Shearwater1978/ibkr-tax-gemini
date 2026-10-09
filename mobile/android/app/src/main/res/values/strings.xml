@@ -59,6 +59,12 @@
     <string name="debug_samples_already">%1$s: already imported</string>
     <string name="debug_samples_rejected">%1$s: rejected</string>
 
+    <string name="lock_locked">Locked to protect your portfolio data.</string>
+    <string name="lock_unlock">Unlock</string>
+    <string name="lock_prompt_title">Unlock IBKR Tax Assistant</string>
+    <string name="lock_no_screen_lock">This device has no screen lock, so the app cannot verify it is you. Set a PIN, pattern or fingerprint in system settings to protect your data.</string>
+    <string name="lock_continue">Continue without lock</string>
+
     <string name="settings_title">Settings</string>
     <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>
     <string name="settings_version">Version %1$s</string>

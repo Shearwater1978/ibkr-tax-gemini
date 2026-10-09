@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.biometric)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.sqlite)
     implementation(libs.sqlcipher.android)
