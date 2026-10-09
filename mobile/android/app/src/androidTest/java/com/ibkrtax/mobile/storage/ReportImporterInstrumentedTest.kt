@@ -141,6 +141,11 @@ class ReportImporterInstrumentedTest {
         // Lots left: 2 @ 150, 5 @ 160, 2 @ 185 -> 1470 / 9
         assertEquals(0, java.math.BigDecimal("163.3333333333333333333333333").compareTo(aapl.averagePrice))
 
+        assertEquals(
+            mapOf(("AAPL" to "US0378331005") to "NASDAQ", ("SAP" to "DE0007164600") to "IBIS", ("MSFT" to "US5949181045") to "NASDAQ"),
+            PortfolioRepository(helper).listingExchanges(),
+        )
+
         val sap = holdings.first { it.ticker == "SAP" }
         assertEquals(0, java.math.BigDecimal("5").compareTo(sap.quantity))
         assertEquals(0, java.math.BigDecimal("60").compareTo(sap.averagePrice))

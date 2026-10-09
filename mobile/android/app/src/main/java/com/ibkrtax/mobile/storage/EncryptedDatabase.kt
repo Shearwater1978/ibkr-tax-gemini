@@ -17,7 +17,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 object EncryptedDatabase {
     const val NAME = "ibkrtax.db"
     private const val WRAPPED_KEY_FILE = "ibkrtax.db.key"
-    private const val SCHEMA_VERSION = 3
+    private const val SCHEMA_VERSION = 4
 
     init {
         System.loadLibrary("sqlcipher")
@@ -54,11 +54,13 @@ object EncryptedDatabase {
             db.execSQL("INSERT INTO schema_info (key, value) VALUES ('created_version', '$SCHEMA_VERSION')")
             createImportTables(db)
             createPriceTables(db)
+            addMainPageColumns(db)
         }
 
         override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
             if (oldVersion < 2) createImportTables(db)
             if (oldVersion < 3) createPriceTables(db)
+            if (oldVersion < 4) addMainPageColumns(db)
         }
 
         override fun onConfigure(db: SupportSQLiteDatabase) {
@@ -118,6 +120,21 @@ object EncryptedDatabase {
                     currency TEXT NOT NULL,
                     quote_time TEXT NOT NULL,
                     retrieved_at TEXT NOT NULL
+                )
+                """.trimIndent(),
+            )
+        }
+
+        /** Main page (mobile-app-core section 6): listing exchange, previous close, and NBP rates. */
+        private fun addMainPageColumns(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE transactions ADD COLUMN listing_exchange TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE price_cache ADD COLUMN previous_close TEXT")
+            db.execSQL(
+                """
+                CREATE TABLE fx_rates (
+                    code TEXT PRIMARY KEY NOT NULL,
+                    mid TEXT NOT NULL,
+                    effective_date TEXT NOT NULL
                 )
                 """.trimIndent(),
             )

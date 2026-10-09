@@ -42,7 +42,7 @@ The app SHALL NOT ship with a market-data provider API key. Price retrieval SHAL
 - **THEN** the app informs the user and shows only stale last-known prices or an unavailable state
 
 ### Requirement: Show quote currency and freshness
-The app SHALL show the currency and retrieval time for each price. During market hours, a price older than 15 minutes SHALL be marked stale. Outside market hours, the last available close MAY be shown as the latest close, but SHALL NOT be described as a live price. Values SHALL remain in their quote currency without FX conversion.
+The app SHALL show the currency and retrieval time for each price. During market hours, a price older than 15 minutes SHALL be marked stale. Outside market hours, the last available close MAY be shown as the latest close, but SHALL NOT be described as a live price. Each price SHALL also show its change since the previous close. Prices and per-position values SHALL remain in their quote currency; only the informational header total in `mobile-portfolio-overview` is converted.
 
 #### Scenario: Fresh market-hours quote
 - **WHEN** a quote is no more than 15 minutes old during market hours
@@ -62,3 +62,18 @@ The app SHALL remain usable when a price request fails and SHALL show the last k
 #### Scenario: Offline or provider error
 - **WHEN** a price request fails
 - **THEN** the app informs the user and shows only a stale last-known price or an unavailable state
+
+### Requirement: Retrieve exchange rates from NBP
+The app SHALL retrieve the latest NBP table A mid rates for the informational USD total. Requests SHALL contain only currency codes and SHALL NOT require a key. Rates SHALL be cached locally with their table date.
+
+#### Scenario: Rates available
+- **WHEN** the main page opens or the user refreshes and NBP responds
+- **THEN** the app caches the rates with their table date and uses them for the USD total
+
+#### Scenario: Offline
+- **WHEN** NBP cannot be reached and cached rates exist
+- **THEN** the app uses the cached rates and shows their table date
+
+#### Scenario: No rate available
+- **WHEN** no rate exists for a position's currency
+- **THEN** the USD total is marked incomplete

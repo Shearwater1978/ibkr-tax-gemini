@@ -23,6 +23,16 @@ class PortfolioRepository(private val database: SupportSQLiteOpenHelper) {
             is FifoResult.UnmatchedSell -> HoldingsResult.Incomplete(result.ticker, result.date)
         }
 
+    /** Listing exchange per (ticker, ISIN), from the most recent record that has one. */
+    fun listingExchanges(): Map<Pair<String, String>, String> =
+        database.readableDatabase.query(
+            "SELECT ticker, isin, listing_exchange FROM transactions WHERE listing_exchange <> '' ORDER BY date, id",
+        ).use { cursor ->
+            buildMap {
+                while (cursor.moveToNext()) put(cursor.getString(0) to cursor.getString(1), cursor.getString(2))
+            }
+        }
+
     private fun events(): List<PortfolioEvent> =
         database.readableDatabase.query(
             "SELECT id, date, event_type, ticker, quantity, price, currency, isin, description, split_ratio " +

@@ -8,6 +8,8 @@ data class InstrumentIdentity(
     val isin: String,
     val conid: String = "",
     val instrumentDescription: String = "",
+    /** Listing exchange from Financial Instrument Information (display only; not part of the identity). */
+    val listingExchange: String = "",
 )
 
 data class TradeRecord(

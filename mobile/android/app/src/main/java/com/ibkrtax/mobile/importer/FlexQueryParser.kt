@@ -36,7 +36,7 @@ object FlexQueryParser {
 
     private class ImportException(val error: FlexImportError) : Exception()
 
-    private class InstrumentInfo(val isin: String, val conid: String, val description: String)
+    private class InstrumentInfo(val isin: String, val conid: String, val description: String, val exchange: String)
 
     private class Section(val name: String, val line: Int, private val columns: Map<String, Int>) {
         fun column(vararg names: String): Int? = names.firstNotNullOfOrNull { columns[it] }
@@ -231,6 +231,7 @@ object FlexQueryParser {
             isin = IbkrText.extractIsin("$symbol($securityId)"),
             conid = reader.optionalText(section.column("Conid", "ConID")).trim(),
             description = reader.optionalText(section.column("Description")).trim(),
+            exchange = reader.optionalText(section.column("Listing Exch")).trim(),
         )
     }
 
@@ -279,6 +280,7 @@ object FlexQueryParser {
                 isin = isin,
                 conid = identity.conid.ifEmpty { instrument?.conid.orEmpty() },
                 instrumentDescription = identity.instrumentDescription.ifEmpty { instrument?.description.orEmpty() },
+                listingExchange = identity.listingExchange.ifEmpty { instrument?.exchange.orEmpty() },
             )
         }
 
