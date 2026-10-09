@@ -33,7 +33,8 @@ class AppContainer(context: Context) {
     val importHistory: ImportHistory by lazy { ImportHistory(database) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
     val prices: PriceService by lazy { PriceService(priceStore, priceStore, { key -> FinnhubProvider(key) }) }
-    val fx: FxService by lazy { FxService(NbpClient(), FxStore(database)) }
+    val fxStore: FxStore by lazy { FxStore(database) }
+    val fx: FxService by lazy { FxService(NbpClient(), fxStore) }
 }
 
 val Context.appContainer: AppContainer

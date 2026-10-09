@@ -65,8 +65,12 @@ fun ImportsScreen() {
             OutlinedButton(onClick = {
                 scope.launch {
                     debugMessages = withContext(Dispatchers.IO) {
+                        val container = context.appContainer
+                        // Synthetic, past-dated prices and rates so the table and USD total can be checked offline.
+                        container.priceStore.putAll(SampleReports.samplePrices())
+                        SampleReports.sampleRates()?.let(container.fxStore::put)
                         SampleReports.names.map { name ->
-                            messages.describe(name, context.appContainer.importer.import(SampleReports.read(context, name)))
+                            messages.describe(name, container.importer.import(SampleReports.read(context, name)))
                         }
                     }
                     refresh++
