@@ -62,7 +62,7 @@ pytest -v
 
 ## 6. Spec-driven workflow (OpenSpec)
 - Non-trivial features/behavior changes go through OpenSpec (`openspec/`, schema `spec-driven`) using the skills in `.github/skills/` (`openspec-propose`, `-apply-change`, `-update-change`, `-sync-specs`, `-archive-change`, `-explore`).
-- Specs live in `openspec/specs/` (calculation-reliability, database-security, fifo-coverage-check, gui-api, ib-web-api, pit-38-filling, web-portal, desktop-dashboard). Keep code, specs, and docs consistent; update [README.md](README.md) / [SPECIFICATION.md](SPECIFICATION.md) when behavior changes.
+- Specs live in `openspec/specs/` (calculation-reliability, database-security, desktop-dashboard, fifo-coverage-check, gui-api, ib-live-api, ib-web-api, isin-change-handling, pit-38-filling, web-portal). Keep code, specs, and docs consistent; update [README.md](README.md) / [SPECIFICATION.md](SPECIFICATION.md) when behavior changes.
 - Explore/propose/update modes never edit code.
 
 ## 7. Agent behavior
