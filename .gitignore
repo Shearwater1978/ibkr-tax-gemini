@@ -44,3 +44,6 @@ Thumbs.db
 
 # --- Node ---
 **/node_modules/
+
+# Synthetic mobile test fixtures are safe to commit
+!mobile/fixtures/**/*.csv

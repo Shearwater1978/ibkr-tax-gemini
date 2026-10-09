@@ -36,6 +36,17 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // Synthetic Flex Query fixtures shared with iOS and the Python reference tests.
+    sourceSets["test"].resources.srcDir("../../fixtures")
+
+    testOptions {
+        unitTests.all {
+            // Route any socket through a closed local SOCKS port so tests cannot reach the network.
+            it.systemProperty("socksProxyHost", "127.0.0.1")
+            it.systemProperty("socksProxyPort", "9")
+        }
+    }
 }
 
 dependencies {
@@ -47,7 +58,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.coroutines.core)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
