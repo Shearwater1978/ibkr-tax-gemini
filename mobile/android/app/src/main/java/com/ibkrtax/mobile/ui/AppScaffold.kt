@@ -52,7 +52,10 @@ fun AppScaffold(navController: NavHostController = rememberNavController()) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(AppDestination.PORTFOLIO.route) {
-                PortfolioScreen(onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) })
+                PortfolioScreen(
+                    onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) },
+                    onOpenSettings = { navController.navigateToTab(AppDestination.SETTINGS) },
+                )
             }
             composable(AppDestination.IMPORTS.route) { ImportsScreen() }
             composable(AppDestination.SETTINGS.route) { SettingsScreen() }
