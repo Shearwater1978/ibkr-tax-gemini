@@ -8,6 +8,20 @@ Project: **IBKR Tax Assistant** — Python tool that turns Interactive Brokers d
 - CI (`.github/workflows/python-app.yml`) runs on PRs to `main`; Markdown-only PRs skip the Python checks. Do not turn that job into a job-level `if:` (it breaks required checks).
 - Commit messages end with the trailer: `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
 
+### Branches and pull requests
+- **One task, one branch, one PR.** Before starting a task, run `git fetch` and branch from the current `origin/main`. Do not keep adding unrelated tasks to a long-lived branch; once a task is done, propose a PR and start the next task from `main`.
+- Keep each PR reviewable: aim for roughly 1,500 changed lines or fewer. Split larger work into separate tasks up front rather than splitting a finished branch afterwards.
+- Every PR must pass CI on its own. CI runs only on PRs targeting `main`, so a PR based on another feature branch gets no checks until it is retargeted.
+- **Avoid stacked PRs** (a PR whose base is another unmerged PR). If one is unavoidable:
+  - merge bottom-up, and only after the PR below it is in `main`;
+  - merge every PR in the stack with **"Create a merge commit"**, not "Squash and merge": squashing a base PR makes the next PR conflict (add/add) with `main`.
+- If a base PR was already squash-merged, fix the next branch without rebasing or force-pushing: confirm `git diff <old-base-branch> origin/main` is empty, run `git merge origin/main` on the next branch, keep that branch's version of each conflicted file, and check that the merged tree equals the previously tested tree (`git diff --cached <tested-commit>` is empty) before committing and pushing.
+- Delete a branch after its PR is merged.
+
+### Agents: pushing and PRs
+- Before promising to push or open a PR, check that it is possible (`gh auth status`, or `git push --dry-run`). If it is not, say so plainly and give the user the exact commands to run.
+- A PR exists only when the push and `gh pr create` succeeded. Confirm it (`gh pr view` or the PR URL) before reporting it; never describe a PR as ready, opened, or "prepared" when it has not been created.
+
 ## 2. Security and privacy (hard limits)
 - **Never read, print, log, or commit secrets or personal data**: `.env` (`SQLCIPHER_KEY`, `DATABASE_PATH`, `IB_*`), `data/`, `data.bkp/`, `db/`, `output/`, `*.csv`, `*.db`, `snapshot_*.json`, `manual_history.csv`, `manual_fixes.csv`. They are git-ignored; keep them that way.
 - Do not share code or data with third-party services.
