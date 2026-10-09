@@ -12,7 +12,7 @@ The mobile security change defines Kotlin/Swift platform targets, encrypted loca
 **Non-Goals:**
 - PIT-38 calculation, tax-report generation/export, or changes to tax calculation rules.
 - A server-side processing service, broker account connection, or order placement.
-- Converting portfolio values across currencies in the first release.
+- Converting individual positions across currencies: rows stay in their own currency; only the informational header total is converted.
 
 ## Decisions
 
@@ -32,11 +32,15 @@ Direct identifiers are pseudonymized before derived data is persisted, logged, o
 
 ### Informational holdings based on FIFO open lots
 
-Aggregate positions by the repository's instrument identity and derive current quantity and average purchase price from remaining FIFO lots, including the established split/corporate-action handling. The overview is informational only and does not compute or export PIT-38. Keep holdings and market values in their own currencies; where an instrument has lots in different currencies, show separate currency subpositions rather than inventing an FX conversion.
+Aggregate positions by the repository's instrument identity and derive current quantity and average purchase price from remaining FIFO lots, including the established split/corporate-action handling. The overview is informational only and does not compute or export PIT-38. Keep holdings and market values in their own currencies; where an instrument has lots in different currencies, show separate currency rows rather than averaging them together.
 
 ### Market-price integration
 
-Use a replaceable provider adapter. The MVP adapter uses Finnhub's quote endpoint for USD holdings of US-listed instruments only; holdings in other currencies are not requested and show an unavailable price. The project embeds no secrets in the app and has no backend, and low-cost provider tiers are licensed for personal use, so each user enters their own provider API key. The key is stored encrypted with the device key, never logged or backed up in plaintext, and sent only to the provider. Requests carry only the ticker symbol. Request updates when the overview opens and on user refresh, cache the last price and timestamp locally, and mark stale prices visibly. Show currency-specific values and do not calculate a converted grand total. EU and other non-US prices require a later change that selects a provider covering those listings; delayed-only feeds would also need the freshness rule revisited.
+Use a replaceable provider adapter. The MVP adapter uses Finnhub's quote endpoint for USD holdings of US-listed instruments only; holdings in other currencies are not requested and show an unavailable price. The project embeds no secrets in the app and has no backend, and low-cost provider tiers are licensed for personal use, so each user enters their own provider API key. The key is stored encrypted with the device key, never logged or backed up in plaintext, and sent only to the provider. Requests carry only the ticker symbol. Request updates when the overview opens and on user refresh, cache the last price and timestamp locally, and mark stale prices visibly. The adapter also uses the provider's previous close to derive each position's daily change. EU and other non-US prices require a later change that selects a provider covering those listings; delayed-only feeds would also need the freshness rule revisited.
+
+### Main page and USD total
+
+The main page follows the familiar broker layout: one compact row per position showing symbol and listing exchange, last price, daily change, position, and P&L, sorted alphabetically by default and sortable by each column. The P&L column switches between daily P&L (quantity × daily change) and unrealized P&L (market value minus FIFO cost). The header shows total market value and daily P&L, as an amount and a percentage, in USD. Non-USD values convert through PLN cross rates from the latest NBP table A mid rates (for example EUR→USD = EUR/PLN ÷ USD/PLN). These informational rates are not the tax T-1 rule. The total is labelled approximate, shows the rate date, and is marked incomplete whenever a position lacks a price or a rate. NBP requests carry only currency codes and need no key. Cash balances are deferred to a later change.
 
 ### Development and test environment
 
@@ -55,5 +59,5 @@ Use a replaceable provider adapter. The MVP adapter uses Finnhub's quote endpoin
 - Separate native clients can drift → use shared behavioral acceptance cases and verify parity on both platforms.
 - Market-data licensing or availability may change, including the provider's free-tier terms → complete the terms review before release and retain a replaceable adapter.
 - Users must create their own provider API key → provide clear setup instructions; without a key the app stays usable and shows prices as unavailable.
-- Currency-specific subtotals are less convenient than one portfolio total → avoid unsupported FX assumptions and add conversion only in a separately specified change.
+- NBP mid rates and PLN cross rates differ from market FX rates → label the USD total approximate and informational and show the rate date.
 - On-device parser behavior may differ from Python → use synthetic shared test cases for supported report variations and normalization.

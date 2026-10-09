@@ -16,7 +16,7 @@
 ## 3. Portfolio overview
 
 - [ ] 3.1 Aggregate holdings using the established instrument identity, FIFO open-lot, and corporate-action rules and verify quantities and average prices with synthetic cases.
-- [ ] 3.2 Add currency-specific holdings and value subtotals, account masking, and empty states and verify mixed-currency cases never produce a converted grand total.
+- [ ] 3.2 Add currency-specific holding values, account masking, and empty states, and verify rows never convert between currencies.
 - [ ] 3.3 Label the overview informational and verify neither client offers PIT-38 calculation or tax-report export in this MVP.
 
 ## 4. Market prices
@@ -31,3 +31,11 @@
 - [ ] 5.1 Run import, backup, portfolio, and price acceptance cases on an Android emulator and an iOS simulator and verify matching observable behavior.
 - [ ] 5.2 Verify hardware-backed key protection, biometric auto-lock/reveal, screenshot and app-switcher protection, and integrity checks on one physical Android device and one physical iOS device, and record the results before release.
 - [ ] 5.3 Update user-facing project documentation with supported report format, informational-only scope, privacy behavior, currency limitations, price scope, and API key setup and verify it matches the approved specs.
+
+## 6. Main page
+
+- [ ] 6.1 Read the listing exchange from the report's Financial Instrument Information and verify it with synthetic fixtures.
+- [ ] 6.2 Derive the daily change from the provider's previous close, cache it with the quote, and verify it with mocked responses.
+- [ ] 6.3 Retrieve and cache NBP table A rates and compute PLN cross rates to USD, and verify requests send only currency codes and the offline and missing-rate states.
+- [ ] 6.4 Build the compact positions table with default alphabetical order, column sorting, and the daily/unrealized P&L switch, and verify it with synthetic holdings.
+- [ ] 6.5 Add the header with the approximate USD total, daily P&L amount and percentage, rate date, and incomplete marking, and verify mixed-currency synthetic cases.

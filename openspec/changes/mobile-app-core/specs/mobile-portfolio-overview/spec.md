@@ -19,16 +19,42 @@ The app SHALL show current quantity and average purchase price for each current 
 - **WHEN** remaining lots for an instrument use different currencies
 - **THEN** the app shows separate subpositions and does not combine their prices or costs
 
-### Requirement: Show currency-specific portfolio values
-The app SHALL show cost, current value, and unrealized gain or loss as subtotals by currency and SHALL NOT show a converted grand total in the MVP. Market value SHALL use the corresponding current price from `mobile-market-prices`.
+### Requirement: Show positions with an approximate USD total
+Each position SHALL show its values in its own currency. The page header SHALL show the total market value in USD, converting non-USD values with PLN cross rates from the latest NBP table A, labelled approximate and informational, with the rate date. Market value SHALL use the corresponding current price from `mobile-market-prices`.
 
-#### Scenario: Prices are available
-- **WHEN** current prices are available for holdings
-- **THEN** the app shows currency-specific values and gains or losses without converting between currencies
+#### Scenario: Mixed currencies
+- **WHEN** positions are held in more than one currency and all prices and rates are available
+- **THEN** each row keeps its own currency and the header shows one approximate USD total with the NBP rate date
 
 #### Scenario: Price is unavailable
-- **WHEN** a current price is unavailable for a holding
-- **THEN** the app marks that value unavailable and identifies the affected currency subtotal as incomplete
+- **WHEN** a current price is unavailable for a position
+- **THEN** the app marks that value unavailable and marks the USD total incomplete
+
+#### Scenario: Rate is unavailable
+- **WHEN** no NBP rate is available for a position's currency
+- **THEN** the position keeps its own-currency values and the USD total is marked incomplete
+
+### Requirement: Show positions in a sortable table
+The app SHALL list positions in a compact table with symbol and listing exchange, last price, daily change, position, and P&L, sorted alphabetically by symbol by default. The user SHALL be able to sort by each column.
+
+#### Scenario: Default order
+- **WHEN** the user opens the main page
+- **THEN** positions are listed alphabetically by symbol
+
+#### Scenario: Sort by column
+- **WHEN** the user selects a column header
+- **THEN** positions are sorted by that column, and selecting it again reverses the order
+
+### Requirement: Switch P&L between daily and unrealized
+The P&L column SHALL switch between daily P&L (quantity × change since the previous close) and unrealized P&L (market value minus FIFO cost). The header SHALL show daily P&L in USD as an amount and a percentage.
+
+#### Scenario: Daily P&L
+- **WHEN** the P&L column is set to daily
+- **THEN** each row shows quantity × daily change in its own currency
+
+#### Scenario: Unrealized P&L
+- **WHEN** the P&L column is set to unrealized
+- **THEN** each row shows market value minus FIFO cost in its own currency
 
 ### Requirement: Keep portfolio values informational
 The app SHALL label portfolio values as informational and SHALL NOT calculate or export a Polish PIT-38 report or present portfolio values as tax output.
