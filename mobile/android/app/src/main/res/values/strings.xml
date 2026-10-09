@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">IBKR Tax Assistant</string>
+
+    <string name="tab_portfolio">Portfolio</string>
+    <string name="tab_imports">Imports</string>
+    <string name="tab_settings">Settings</string>
+
+    <string name="informational_notice">Informational only. Not a tax calculation or PIT-38 output.</string>
+
+    <string name="portfolio_empty_title">No reports imported</string>
+    <string name="portfolio_empty_body">Import an IBKR Activity Flex Query CSV report to see your holdings.</string>
+    <string name="action_import_report">Import report</string>
+
+    <string name="imports_title">Report imports</string>
+    <string name="imports_supported_format">Supported format: IBKR Activity Flex Query CSV.</string>
+    <string name="imports_unavailable">Import is unavailable until encrypted local storage is set up.</string>
+    <string name="imports_empty">No imports yet.</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>
+    <string name="settings_version">Version %1$s</string>
+</resources>
