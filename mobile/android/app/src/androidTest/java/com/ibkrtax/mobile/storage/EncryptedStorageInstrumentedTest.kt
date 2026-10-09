@@ -1,0 +1,98 @@
+package com.ibkrtax.mobile.storage
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.ibkrtax.mobile.security.DeviceKeys
+import com.ibkrtax.mobile.security.IdentifierKind
+import com.ibkrtax.mobile.security.Pseudonymizer
+import java.io.File
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * Runs on an emulator or device. Emulator Keystore may be software-backed, so
+ * hardware backing is recorded, not asserted; physical-device checks are separate.
+ */
+@RunWith(AndroidJUnit4::class)
+class EncryptedStorageInstrumentedTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val dbName = "instrumented-test.db"
+    private val testAliases = listOf("test.wrap", "test.hmac")
+
+    @Before
+    @After
+    fun cleanUp() {
+        EncryptedDatabase.delete(context, dbName)
+        testAliases.forEach(DeviceKeys::delete)
+    }
+
+    @Test
+    fun deviceKeysAreNonExportableAndReused() {
+        val wrap = DeviceKeys.aesWrappingKey("test.wrap")
+        val hmac = DeviceKeys.hmacKey("test.hmac")
+
+        assertNull("Keystore keys must not expose key material", wrap.encoded)
+        assertNull(hmac.encoded)
+        assertEquals(wrap, DeviceKeys.aesWrappingKey("test.wrap"))
+        android.util.Log.i("EncryptedStorageTest", "hardwareBacked=${DeviceKeys.isHardwareBacked(wrap)}")
+    }
+
+    @Test
+    fun pseudonymsUseTheKeystoreHmacKey() {
+        val pseudonymizer = Pseudonymizer { DeviceKeys.hmacKey("test.hmac") }
+        val pseudonym = pseudonymizer.pseudonym(IdentifierKind.ACCOUNT, "U00000001")
+
+        assertEquals(64, pseudonym.length)
+        assertEquals(pseudonym, pseudonymizer.pseudonym(IdentifierKind.ACCOUNT, "U00000001"))
+    }
+
+    @Test
+    fun databaseFileIsEncryptedAtRest() {
+        EncryptedDatabase.open(context, dbName).use { helper ->
+            helper.writableDatabase.execSQL(
+                "INSERT INTO schema_info (key, value) VALUES ('marker', 'SYNTHETIC_PLAINTEXT_MARKER')",
+            )
+        }
+
+        val bytes = context.getDatabasePath(dbName).readBytes()
+        val text = String(bytes, Charsets.ISO_8859_1)
+        assertFalse("SQLite plaintext header found", text.startsWith("SQLite format 3"))
+        assertFalse("Plaintext value found in file", text.contains("SYNTHETIC_PLAINTEXT_MARKER"))
+        assertTrue(File(context.noBackupFilesDir, "$dbName.key").exists())
+    }
+
+    @Test
+    fun reopeningWithTheDeviceKeyReadsData() {
+        EncryptedDatabase.open(context, dbName).use { helper ->
+            helper.writableDatabase.execSQL("INSERT INTO schema_info (key, value) VALUES ('marker', 'kept')")
+        }
+        EncryptedDatabase.open(context, dbName).use { helper ->
+            helper.readableDatabase.query("SELECT value FROM schema_info WHERE key = 'marker'").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("kept", cursor.getString(0))
+            }
+        }
+    }
+
+    @Test
+    fun databaseCannotBeReadWithoutTheKey() {
+        EncryptedDatabase.open(context, dbName).use { it.writableDatabase }
+
+        try {
+            EncryptedDatabase.openWithKey(context, dbName, ByteArray(32)).use { helper ->
+                helper.readableDatabase.query("SELECT count(*) FROM schema_info").use { it.moveToFirst() }
+            }
+            fail("Database opened with the wrong key")
+        } catch (expected: Exception) {
+            // SQLCipher reports "file is not a database".
+        }
+    }
+}
