@@ -4,6 +4,7 @@
 - [ ] 1.3 Create Android OAuth client (package name, SHA-1 for debug and release)
 - [ ] 1.4 Create iOS OAuth client (bundle ID) and configure URL scheme
 - [ ] 1.5 Move OAuth app to production status
+- [ ] 1.6 Verify Google DPA and SCC or DPF status for the chosen Google services
 
 ## 2. Key management
 - [ ] 2.1 Implement device key in Keystore / Secure Enclave
@@ -37,3 +38,13 @@
 - [ ] 6.3 Verify no sensitive data in logs in release builds
 - [ ] 6.4 Review third-party SDKs for data collection
 - [ ] 6.5 Integrate Play Integrity and App Attest
+
+## 7. Data anonymization and pseudonymization
+- [ ] 7.1 Define field classification (direct identifiers, quasi-identifiers, financial values)
+- [ ] 7.2 Implement HMAC-SHA256 pseudonymization with device-bound key
+- [ ] 7.3 Implement masking for account numbers and tax IDs in UI and notifications
+- [ ] 7.4 Ensure logs, crash reports, and analytics receive only pseudonyms or masked values
+- [ ] 7.5 Restrict full identity to tax output and its export, and document the exception
+- [ ] 7.6 Implement erasure across local DB, Drive backups, and keys
+- [ ] 7.7 Implement export of tax output in CSV or PDF for portability
+- [ ] 7.8 Write privacy notice and record processing activities (Art. 30 GDPR)
