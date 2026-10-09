@@ -1,0 +1,58 @@
+# AGENTS.md — Rules and Limitations for Working in This Project
+
+Project: **IBKR Tax Assistant** — Python tool that turns Interactive Brokers data into Polish PIT-38 tax reports (FIFO, NBP FX rates, encrypted local DB).
+
+## 1. Git workflow
+- **Never work directly on `main`/`master`.** Check `git branch --show-current` before editing or committing; if on `main`, create a feature branch first (`feat/...`, `fix/...`, `docs/...`).
+- Never force-push or rewrite shared history. Do not push or open PRs unless asked.
+- CI (`.github/workflows/python-app.yml`) runs on PRs to `main`; Markdown-only PRs skip the Python checks. Do not turn that job into a job-level `if:` (it breaks required checks).
+- Commit messages end with the trailer: `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>`.
+
+## 2. Security and privacy (hard limits)
+- **Never read, print, log, or commit secrets or personal data**: `.env` (`SQLCIPHER_KEY`, `DATABASE_PATH`, `IB_*`), `data/`, `data.bkp/`, `db/`, `output/`, `*.csv`, `*.db`, `snapshot_*.json`, `manual_history.csv`, `manual_fixes.csv`. They are git-ignored; keep them that way.
+- Do not share code or data with third-party services.
+- The DB is encrypted with **SQLCipher** (`sqlcipher3`); plaintext SQLite fallback is forbidden. Key rotation only via `python tools/change_key.py`; the key is never printed. See [DOCS_SECURITY.md](DOCS_SECURITY.md).
+- IBKR connectors (`src/ib_connector.py`, `src/ib_web_connector.py`) are **read-only**: never place, modify, or cancel orders. Keep `IB_WEB_VERIFY_SSL` and timeouts configurable; the local CPGW listens on `127.0.0.1` only.
+- Do not commit secrets, real trade data, or generated reports.
+
+## 2a. Tax-logic invariants (do not change without an OpenSpec change)
+- **FIFO** matching (queue-based), per instrument identity.
+- **NBP FX rates**: strict **T-1** (previous business day) rule; monthly batch caching (cache in `cache/`, git-ignored).
+- Withholding tax is linked to its dividends; split/corporate-action handling must stay covered by tests.
+- Parser normalizes dates to ISO, strips metadata/total rows; `transactions` table is the single source of truth.
+- Results must be reproducible and covered by tests — never "fix" numbers by editing fixtures to match output.
+
+## 3. Architecture
+```
+[IBKR CSV / Flex / Web API] -> parser / ib_normalizer -> SQLCipher DB -> FIFO core -> reporters (PDF / Excel / GUI)
+```
+- `main.py` CLI entry; `src/` logic modules; `gui/` dashboard/API; `tools/` maintenance scripts; `tests/` pytest suite; `openspec/` specs and changes.
+- Keep module boundaries; put new logic in `src/`, not `main.py`.
+- Windows is the primary dev OS (PowerShell); keep code cross-platform and use `pathlib`/`os.path`.
+
+## 4. Code style and quality
+- Python **3.12**. Dependencies in `requirements.txt`; add new ones only when necessary.
+- Formatting: **black 26.5.1** (`black --check .` must pass). Pre-commit also enforces trailing whitespace, EOF newline, YAML validity, no large files.
+- Lint: **flake8**, blocking set `E9,F63,F7,F82`, max line length 127.
+- Make surgical changes; no unrelated refactors. Comment only non-obvious code.
+- The repo root holds only `main.py` as a Python entry point; put helper scripts in `tools/`.
+
+## 5. Testing — before declaring done
+```powershell
+black --check .
+flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+pytest -v
+```
+- Add or update tests for any behavior change (`tests/`). Tests must not use real credentials, the real DB, or live network (mock NBP/IBKR).
+- Docs-only changes need no test run.
+
+## 6. Spec-driven workflow (OpenSpec)
+- Non-trivial features/behavior changes go through OpenSpec (`openspec/`, schema `spec-driven`) using the skills in `.github/skills/` (`openspec-propose`, `-apply-change`, `-update-change`, `-sync-specs`, `-archive-change`, `-explore`).
+- Specs live in `openspec/specs/` (calculation-reliability, database-security, fifo-coverage-check, gui-api, ib-web-api, pit-38-filling, web-portal, desktop-dashboard). Keep code, specs, and docs consistent; update [README.md](README.md) / [SPECIFICATION.md](SPECIFICATION.md) when behavior changes.
+- Explore/propose/update modes never edit code.
+
+## 7. Agent behavior
+- Be concise; ask the user when a requirement is ambiguous or affects tax correctness.
+- Prefer built-in search/view tools; avoid destructive commands.
+- Do not create planning/notes markdown files in the repo unless requested.
+- Clean up temporary files you create.
