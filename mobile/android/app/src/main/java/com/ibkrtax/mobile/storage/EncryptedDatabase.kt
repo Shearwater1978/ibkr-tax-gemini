@@ -17,7 +17,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 object EncryptedDatabase {
     const val NAME = "ibkrtax.db"
     private const val WRAPPED_KEY_FILE = "ibkrtax.db.key"
-    private const val SCHEMA_VERSION = 2
+    private const val SCHEMA_VERSION = 3
 
     init {
         System.loadLibrary("sqlcipher")
@@ -53,10 +53,12 @@ object EncryptedDatabase {
             db.execSQL("CREATE TABLE schema_info (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)")
             db.execSQL("INSERT INTO schema_info (key, value) VALUES ('created_version', '$SCHEMA_VERSION')")
             createImportTables(db)
+            createPriceTables(db)
         }
 
         override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
             if (oldVersion < 2) createImportTables(db)
+            if (oldVersion < 3) createPriceTables(db)
         }
 
         override fun onConfigure(db: SupportSQLiteDatabase) {
@@ -103,6 +105,22 @@ object EncryptedDatabase {
                 """.trimIndent(),
             )
             db.execSQL("CREATE INDEX transactions_ticker_date ON transactions (ticker, date)")
+        }
+
+        /** Market prices (mobile-market-prices): the user's provider key and the quote cache. */
+        private fun createPriceTables(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE app_settings (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)")
+            db.execSQL(
+                """
+                CREATE TABLE price_cache (
+                    symbol TEXT PRIMARY KEY NOT NULL,
+                    price TEXT NOT NULL,
+                    currency TEXT NOT NULL,
+                    quote_time TEXT NOT NULL,
+                    retrieved_at TEXT NOT NULL
+                )
+                """.trimIndent(),
+            )
         }
     }
 }

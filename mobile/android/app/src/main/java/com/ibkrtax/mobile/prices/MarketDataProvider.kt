@@ -4,23 +4,26 @@ import java.math.BigDecimal
 import java.time.Instant
 
 /**
- * Replaceable market-data adapter. Requests carry ISINs only: never quantities,
- * account data, names, or report contents (mobile-market-prices spec).
+ * Replaceable market-data adapter. Requests carry only instrument symbols (and the
+ * user's provider key): never quantities, account data, names, or report contents
+ * (mobile-market-prices spec).
  */
 interface MarketDataProvider {
-    suspend fun latestQuotes(isins: Set<String>): PriceResult
+    suspend fun latestQuotes(symbols: Set<String>): PriceResult
 }
 
 data class Quote(
-    val isin: String,
+    val symbol: String,
     val price: BigDecimal,
     val currency: String,
+    /** When the provider says the price was set (last trade or close). */
+    val quoteTime: Instant,
+    /** When this app retrieved it. */
     val retrievedAt: Instant,
-    /** True when the quote is the prior market close rather than a live price. */
-    val isClose: Boolean,
 )
 
 sealed interface PriceResult {
+    /** Symbols the provider does not know are simply absent from [quotes]. */
     data class Success(val quotes: Map<String, Quote>) : PriceResult
 
     data class Failure(val reason: PriceFailure) : PriceResult
@@ -30,4 +33,5 @@ enum class PriceFailure {
     OFFLINE,
     PROVIDER_ERROR,
     RATE_LIMITED,
+    INVALID_KEY,
 }

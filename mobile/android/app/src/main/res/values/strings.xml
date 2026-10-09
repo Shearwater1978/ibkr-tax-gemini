@@ -14,10 +14,55 @@
 
     <string name="imports_title">Report imports</string>
     <string name="imports_supported_format">Supported format: IBKR Activity Flex Query CSV.</string>
-    <string name="imports_unavailable">Import is unavailable until encrypted local storage is set up.</string>
+    <string name="imports_unavailable">Import is unavailable until encrypted backup is set up.</string>
     <string name="imports_empty">No imports yet.</string>
+
+    <string name="loading">Loadingâ€¦</string>
+    <string name="storage_unavailable">Secure storage is unavailable on this device, so imported data cannot be opened.</string>
+
+    <string name="portfolio_title">Holdings</string>
+    <string name="portfolio_accounts">Accounts: %1$s</string>
+    <string name="portfolio_no_holdings">All imported positions are fully sold.</string>
+    <string name="portfolio_incomplete">Imported reports sell more %1$s than they buy (on %2$s). Import the missing earlier reports to see holdings.</string>
+    <string name="holding_position">%1$s shares Â· avg %2$s</string>
+    <string name="holding_cost">Cost %1$s</string>
+    <string name="holding_value">Value %1$s Â· %2$s</string>
+    <string name="holding_price_unavailable">Price unavailable</string>
+    <string name="holding_price_out_of_scope">Prices for this market are not available yet</string>
+    <string name="holding_price_live">Live %1$s · retrieved %2$s</string>
+    <string name="holding_price_latest_close">Latest close %1$s · retrieved %2$s</string>
+    <string name="holding_price_stale">Stale %1$s · retrieved %2$s</string>
+    <string name="prices_refresh">Refresh prices</string>
+    <string name="prices_refreshing">Refreshing prices…</string>
+    <string name="prices_no_key">Add your Finnhub API key in Settings to see prices for US listings.</string>
+    <string name="prices_failed">Prices could not be refreshed (%1$s). Last known prices are shown as stale.</string>
+    <string name="prices_failure_offline">offline</string>
+    <string name="prices_failure_invalid_key">API key rejected</string>
+    <string name="prices_failure_rate_limited">rate limit reached</string>
+    <string name="prices_failure_provider">provider error</string>
+    <string name="subtotal_stale">Includes %1$d stale price(s)</string>
+    <string name="subtotal_title">%1$s subtotal</string>
+    <string name="subtotal_cost">Cost %1$s</string>
+    <string name="subtotal_value">Market value %1$s Â· gain/loss %2$s</string>
+    <string name="subtotal_incomplete">Market value incomplete: %1$d of %2$d prices unavailable</string>
+
+    <string name="imports_history_title">Imported reports</string>
+    <string name="imports_history_item">%1$s Â· account %2$s</string>
+    <string name="imports_history_counts">%1$d new records, %2$d already present Â· stored encrypted on this device</string>
+    <string name="imports_account_unknown">unknown</string>
+    <string name="debug_samples_title">Debug build</string>
+    <string name="debug_samples_action">Load synthetic sample reports</string>
+    <string name="debug_samples_imported">%1$s: %2$d new, %3$d skipped</string>
+    <string name="debug_samples_already">%1$s: already imported</string>
+    <string name="debug_samples_rejected">%1$s: rejected</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>
     <string name="settings_version">Version %1$s</string>
+    <string name="settings_prices_title">Market prices</string>
+    <string name="settings_prices_body">Prices for US listings come from Finnhub using your own free personal API key (finnhub.io). The key is stored encrypted on this device and sent only to Finnhub, together with the ticker symbol.</string>
+    <string name="settings_api_key_label">Finnhub API key</string>
+    <string name="settings_api_key_save">Save key</string>
+    <string name="settings_api_key_saved">Key saved: %1$s</string>
+    <string name="settings_api_key_remove">Remove key</string>
 </resources>

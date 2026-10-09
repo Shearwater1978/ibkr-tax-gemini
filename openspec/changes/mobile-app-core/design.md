@@ -36,7 +36,7 @@ Aggregate positions by the repository's instrument identity and derive current q
 
 ### Market-price integration
 
-Use a replaceable provider adapter. Before implementing or releasing price requests, select a provider whose terms permit the intended app distribution and whose interface can request prices using instrument identifiers only. Request updates when the overview opens and on user refresh, cache the last price and timestamp locally, and mark stale prices visibly. Show currency-specific values and do not calculate a converted grand total.
+Use a replaceable provider adapter. The MVP adapter uses Finnhub's quote endpoint for USD holdings of US-listed instruments only; holdings in other currencies are not requested and show an unavailable price. The project embeds no secrets in the app and has no backend, and low-cost provider tiers are licensed for personal use, so each user enters their own provider API key. The key is stored encrypted with the device key, never logged or backed up in plaintext, and sent only to the provider. Requests carry only the ticker symbol. Request updates when the overview opens and on user refresh, cache the last price and timestamp locally, and mark stale prices visibly. Show currency-specific values and do not calculate a converted grand total. EU and other non-US prices require a later change that selects a provider covering those listings; delayed-only feeds would also need the freshness rule revisited.
 
 ### Development and test environment
 
@@ -53,6 +53,7 @@ Use a replaceable provider adapter. Before implementing or releasing price reque
 - iOS work depends on access to a Mac and Xcode → keep platform-independent logic covered by shared fixtures so Android progress is not blocked.
 
 - Separate native clients can drift → use shared behavioral acceptance cases and verify parity on both platforms.
-- Market-data licensing or availability may change → complete provider and terms review before integration and retain a replaceable adapter.
+- Market-data licensing or availability may change, including the provider's free-tier terms → complete the terms review before release and retain a replaceable adapter.
+- Users must create their own provider API key → provide clear setup instructions; without a key the app stays usable and shows prices as unavailable.
 - Currency-specific subtotals are less convenient than one portfolio total → avoid unsupported FX assumptions and add conversion only in a separately specified change.
 - On-device parser behavior may differ from Python → use synthetic shared test cases for supported report variations and normalization.

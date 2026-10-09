@@ -8,7 +8,7 @@ enum Strings {
 
     static let importsTitle = "Report imports"
     static let importsSupportedFormat = "Supported format: IBKR Activity Flex Query CSV."
-    static let importsUnavailable = "Import is unavailable until encrypted local storage is set up."
+    static let importsUnavailable = "Import is unavailable until encrypted backup is set up."
     static let importsEmpty = "No imports yet."
 
     static let settingsTitle = "Settings"

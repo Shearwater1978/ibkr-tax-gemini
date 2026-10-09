@@ -7,6 +7,7 @@ Users need a secure way to review imported IBKR holdings from a phone. The first
 - Define matching iOS and Android apps using the existing Kotlin and Swift platform direction.
 - Support importing the IBKR Flex Query CSV format through the system file picker, with on-device processing and secure backup.
 - Show current holdings using remaining FIFO lots and display market prices with freshness information.
+- In the MVP, retrieve prices only for USD holdings of US-listed instruments, using the user's own provider API key; other holdings show prices as unavailable.
 - Keep portfolio values informational: show subtotals by currency, with no converted grand total.
 - Exclude PIT-38 calculation or export, a new backend, and broker connectivity from this MVP.
 
@@ -24,4 +25,4 @@ Users need a secure way to review imported IBKR holdings from a phone. The first
 - Adds iOS and Android client behavior; does not change existing desktop/CLI behavior, tax calculations, or APIs.
 - Depends on the encryption, local storage, pseudonymization, and Google Drive backup rules in `mobile-encrypted-drive-backup`.
 - Uses the repository's existing IBKR Flex Query CSV parsing and instrument identity rules as the behavioral reference.
-- A market-data provider must be selected before price integration, with licensing and data-minimization requirements met.
+- Finnhub is the initial market-data provider, used with a personal API key supplied by each user; the app ships no key and needs no commercial data licence. Prices for EU and other non-US listings are deferred to a later change.

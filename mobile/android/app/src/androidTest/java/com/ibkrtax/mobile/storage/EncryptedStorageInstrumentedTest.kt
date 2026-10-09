@@ -83,6 +83,30 @@ class EncryptedStorageInstrumentedTest {
     }
 
     @Test
+    fun providerKeyAndQuotesAreStoredOnlyInsideTheEncryptedDatabase() {
+        val apiKey = "SYNTHETIC_TEST_API_KEY_1234"
+        EncryptedDatabase.open(context, dbName).use { helper ->
+            val store = PriceStore(helper)
+            assertNull("A new install must not contain a provider key", store.get())
+
+            store.set("  $apiKey  ")
+            val time = java.time.Instant.parse("2024-01-03T16:00:00Z")
+            store.putAll(listOf(com.ibkrtax.mobile.prices.Quote("AAPL", java.math.BigDecimal("190.10"), "USD", time, time)))
+
+            assertEquals(apiKey, store.get())
+            assertEquals(0, java.math.BigDecimal("190.10").compareTo(store.get(setOf("AAPL", "MSFT")).getValue("AAPL").price))
+        }
+
+        val text = String(context.getDatabasePath(dbName).readBytes(), Charsets.ISO_8859_1)
+        assertFalse("API key found in plaintext", text.contains(apiKey))
+
+        EncryptedDatabase.open(context, dbName).use { helper ->
+            PriceStore(helper).clear()
+            assertNull(PriceStore(helper).get())
+        }
+    }
+
+    @Test
     fun databaseCannotBeReadWithoutTheKey() {
         EncryptedDatabase.open(context, dbName).use { it.writableDatabase }
 

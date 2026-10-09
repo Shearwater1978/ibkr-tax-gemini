@@ -42,6 +42,8 @@ android {
     // Synthetic Flex Query fixtures shared with iOS and the Python reference tests.
     sourceSets["test"].resources.srcDir("../../fixtures")
     sourceSets["androidTest"].assets.srcDir("../../fixtures")
+    // Debug builds can load the synthetic reports to exercise the UI; release builds never package them.
+    sourceSets["debug"].assets.srcDir("../../fixtures")
 
     testOptions {
         unitTests.all {

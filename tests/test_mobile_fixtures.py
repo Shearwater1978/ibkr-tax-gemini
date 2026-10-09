@@ -61,6 +61,83 @@ def test_source_keys_match_mobile_expectations(keys_file):
     assert keys == json.loads(keys_file.read_text(encoding="utf-8"))
 
 
+FIFO = Path(__file__).resolve().parents[1] / "mobile" / "fixtures" / "fifo"
+
+
+def reference_open_lots(transactions):
+    """Open FIFO lots from the desktop pipeline (identity resolution + TradeMatcher).
+
+    NBP rates are stubbed to 1: open lots do not depend on PLN conversion, and
+    tests must not use the network.
+    """
+    import src.processing as processing
+    from src.diagnostics import UnmatchedInventoryError
+
+    rows = [
+        {
+            "TradeId": index,
+            "Date": t["date"],
+            "EventType": t["event_type"],
+            "Ticker": t["ticker"],
+            "Quantity": t["quantity"],
+            "Price": t["price"],
+            "Amount": t.get("amount", "0"),
+            "Fee": t["fee"],
+            "Currency": t["currency"],
+            "ISIN": t.get("isin", ""),
+            "Description": t.get("description", ""),
+            "SplitRatio": t.get("split_ratio"),
+        }
+        for index, t in enumerate(transactions)
+    ]
+    captured = []
+
+    class CapturingMatcher(processing.TradeMatcher):
+        def __init__(self):
+            super().__init__()
+            captured.append(self)
+
+    original = (processing.TradeMatcher, processing.get_nbp_rate)
+    processing.TradeMatcher = CapturingMatcher
+    processing.get_nbp_rate = lambda currency, date: Decimal("1")
+    try:
+        processing.process_yearly_data(rows, 2000)
+    except UnmatchedInventoryError as error:
+        diagnostic = error.diagnostic
+        return {
+            "error": diagnostic.code,
+            "ticker": diagnostic.ticker,
+            "date": diagnostic.date,
+        }
+    finally:
+        processing.TradeMatcher, processing.get_nbp_rate = original
+
+    return {
+        "lots": [
+            {
+                "ticker": lot["ticker"],
+                "isin": lot["isin"],
+                "date": lot["date"],
+                "quantity": str(lot["qty"]),
+                "price": str(lot["price"]),
+                "currency": lot["currency"],
+            }
+            for lots in captured[0].inventory.values()
+            for lot in lots
+        ]
+    }
+
+
+def test_fifo_scenarios_match_mobile_expectations():
+    scenarios = json.loads((FIFO / "scenarios.json").read_text(encoding="utf-8"))
+    expected = json.loads(
+        (FIFO / "expected_open_lots.json").read_text(encoding="utf-8")
+    )
+
+    actual = {s["name"]: reference_open_lots(s["transactions"]) for s in scenarios}
+    assert actual == expected
+
+
 @pytest.mark.parametrize("fixture", sorted(FIXTURES.glob("*.csv")), ids=str)
 def test_fixtures_use_only_synthetic_account_identifiers(fixture):
     text = fixture.read_text(encoding="utf-8")
