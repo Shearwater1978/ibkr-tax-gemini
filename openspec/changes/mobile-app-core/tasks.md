@@ -1,8 +1,10 @@
 ## 1. Platform and security foundation
 
-- [ ] 1.1 Create Kotlin Android and Swift iOS app shells with matching navigation and verify both platforms build and launch.
+- [ ] 1.0 Document the development environment (Android Studio/SDK/emulator on Windows, Xcode/iOS Simulator on a Mac, minimum Android 10 and iOS 16, setup steps) and verify a new developer can follow it to run both app shells on an emulator and a simulator.
+- [ ] 1.1 Create Kotlin Android and Swift iOS app shells with matching navigation, targeting Android 10 (API 29) and iOS 16 minimums, and verify both build and launch on an emulator and a simulator.
 - [ ] 1.2 Verify the required `mobile-encrypted-drive-backup` storage, key, pseudonymization, and backup capabilities are implemented and their security tests pass before enabling report import.
 - [ ] 1.3 Add platform parity test cases for privacy defaults, import states, and portfolio calculations and verify both clients use the same expected outcomes.
+- [ ] 1.4 Add shared synthetic IBKR Flex Query CSV fixtures and mocked Drive and market-data services for automated tests, and verify the test suites need no real credentials, broker data, or network access.
 
 ## 2. Report import
 
@@ -25,5 +27,6 @@
 
 ## 5. Integration and documentation
 
-- [ ] 5.1 Run import, backup, portfolio, and price acceptance cases on Android and iOS and verify matching observable behavior.
-- [ ] 5.2 Update user-facing project documentation with supported report format, informational-only scope, privacy behavior, and currency limitations and verify it matches the approved specs.
+- [ ] 5.1 Run import, backup, portfolio, and price acceptance cases on an Android emulator and an iOS simulator and verify matching observable behavior.
+- [ ] 5.2 Verify hardware-backed key protection, biometric auto-lock/reveal, screenshot and app-switcher protection, and integrity checks on one physical Android device and one physical iOS device, and record the results before release.
+- [ ] 5.3 Update user-facing project documentation with supported report format, informational-only scope, privacy behavior, and currency limitations and verify it matches the approved specs.
