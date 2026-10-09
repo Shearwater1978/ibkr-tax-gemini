@@ -3,7 +3,8 @@
 ## Why
 Users need a recoverable copy of imported broker reports after the original files are
 removed from the device, without giving up on-device-only processing or
-exposing plaintext data to Google.
+exposing plaintext data to Google. Personal data must be minimized and pseudonymized
+wherever the full identity is not required.
 
 ## What Changes
 - Import broker reports from user-selected files.
@@ -13,9 +14,12 @@ exposing plaintext data to Google.
 - Encrypt the local database and include an encrypted database backup.
 - Add restore flow on new devices.
 - Add device hardening measures (screenshots, app switcher, backups, logs, SDK).
+- Add data anonymization and pseudonymization for non-essential processing paths
+  (logs, diagnostics, analytics, UI masking, statistics).
 
 ## Impact
 - New capabilities: report-ingestion, key-management, encrypted-backup,
-  local-storage, google-drive-access, device-hardening.
+  local-storage, google-drive-access, device-hardening, data-anonymization.
 - Requires Google Cloud OAuth clients for Android and iOS.
 - Requires user-facing onboarding step for passphrase or recovery code creation.
+- Requires privacy notice, documented legal basis, and transfer mechanism review for Google Drive (GDPR).
