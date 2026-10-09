@@ -4,10 +4,6 @@ on:
   # Trigger only on Pull Requests (avoids duplicate runs on merge to main)
   pull_request:
     branches: [ "main", "master" ]
-    # Docs and OpenSpec files cannot affect Python behavior.
-    paths-ignore:
-      - "**.md"
-      - "openspec/**"
   # Allow manual trigger via GitHub UI
   workflow_dispatch:
 
@@ -20,15 +16,35 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
+    - name: Detect Python-relevant changes
+      id: change_scope
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+          echo "run_checks=true" >> "$GITHUB_OUTPUT"
+        else
+          changed_files=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+          if printf '%s\n' "$changed_files" | grep -Ev '(^openspec/|\.md$)' >/dev/null; then
+            echo "run_checks=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_checks=false" >> "$GITHUB_OUTPUT"
+          fi
+        fi
 
     - name: Set up Python 3.12
+      if: steps.change_scope.outputs.run_checks == 'true'
       uses: actions/setup-python@v5  # Updated to v5 (recommended)
       with:
         python-version: "3.12"
         cache: 'pip' # Bonus: Enable dependency caching for speed
         
     - name: Install dependencies
+      if: steps.change_scope.outputs.run_checks == 'true'
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
@@ -36,6 +52,7 @@ jobs:
         pip install flake8 black==26.5.1 pytest
 
     - name: Lint with flake8
+      if: steps.change_scope.outputs.run_checks == 'true'
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
@@ -43,6 +60,7 @@ jobs:
         flake8 src tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Check formatting with black
+      if: steps.change_scope.outputs.run_checks == 'true'
       run: |
         # IMPORTANT: Added --check flag.
         # Without it, this step would just format files in the runner and exit silently.
@@ -50,5 +68,6 @@ jobs:
         black --check .
 
     - name: Test with pytest
+      if: steps.change_scope.outputs.run_checks == 'true'
       run: |
         pytest -v

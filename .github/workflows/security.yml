@@ -4,10 +4,6 @@ on:
   # Trigger only on Pull Requests
   pull_request:
     branches: [ "main", "master" ]
-    # Docs and OpenSpec files cannot affect Python behavior.
-    paths-ignore:
-      - "**.md"
-      - "openspec/**"
   # Allow manual trigger via GitHub UI
   workflow_dispatch:
 
@@ -20,17 +16,38 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
+    - name: Detect Python-relevant changes
+      id: change_scope
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+          echo "run_checks=true" >> "$GITHUB_OUTPUT"
+        else
+          changed_files=$(git diff --name-only "$BASE_SHA...$HEAD_SHA")
+          if printf '%s\n' "$changed_files" | grep -Ev '(^openspec/|\.md$)' >/dev/null; then
+            echo "run_checks=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_checks=false" >> "$GITHUB_OUTPUT"
+          fi
+        fi
 
     - name: Set up Python 3.12
+      if: steps.change_scope.outputs.run_checks == 'true'
       uses: actions/setup-python@v5 # Updated to v5
       with:
         python-version: "3.12"
         
     - name: Install Bandit
+      if: steps.change_scope.outputs.run_checks == 'true'
       run: pip install bandit
       
     - name: Run Bandit Scan
+      if: steps.change_scope.outputs.run_checks == 'true'
       run: |
         # Generate JSON report (won't break build due to --exit-zero, per configuration)
         bandit -r src/ -f json -o bandit-report.json --exit-zero
@@ -39,6 +56,7 @@ jobs:
         bandit -r src/ -ll
 
     - name: Upload Security Report
+      if: steps.change_scope.outputs.run_checks == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: bandit-report

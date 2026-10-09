@@ -1,37 +1,45 @@
-﻿## Purpose
+## Purpose
 
-Defines how the app obtains and shows current stock prices so that displayed values are correct and clearly up to date.
+Defines how the app retrieves and presents market prices with clear currency, freshness, privacy, and failure behavior.
 
 ## ADDED Requirements
 
-### Requirement: Current price retrieval
-The app SHALL retrieve the latest available price for each held stock from a market data provider while the overview is open and on user refresh.
+### Requirement: Retrieve prices for held instruments
+The app SHALL retrieve the latest available price for held instruments when the overview opens and when the user refreshes it. Before price integration is released, the selected provider SHALL be verified as licensed for the intended app distribution.
 
 #### Scenario: Price refresh
-- **WHEN** the user opens the overview or pulls to refresh
-- **THEN** the app requests current prices for the held stocks and updates the displayed values
+- **WHEN** the user opens the overview or refreshes prices
+- **THEN** the app requests and displays the latest available prices for held instruments
 
-### Requirement: Price freshness and currency
-The app SHALL show the time of each price and its currency, and SHALL mark a price as stale when it is older than the freshness limit defined in design.md.
+#### Scenario: Provider not approved
+- **WHEN** the provider's distribution rights have not been verified
+- **THEN** the app does not enable that provider for release
 
-#### Scenario: Fresh price
-- **WHEN** a price was retrieved within the freshness limit
-- **THEN** it is shown with its timestamp and currency
-
-#### Scenario: Stale price
-- **WHEN** the last successful price is older than the freshness limit
-- **THEN** the app shows it as stale and never presents it as current
-
-### Requirement: Failure handling
-The app SHALL keep working when prices cannot be retrieved.
-
-#### Scenario: Offline or provider error
-- **WHEN** the price request fails
-- **THEN** the app shows the last known price marked as stale, or no price if none exists, and informs the user
-
-### Requirement: Minimal data sent to provider
-The app SHALL send only the instrument identifiers (ticker symbols) needed to get prices, and SHALL NOT send quantities, account data, names or other personal data.
+### Requirement: Minimize price-request data
+The app SHALL send only the instrument identifiers required to retrieve prices and SHALL NOT send quantities, account data, names, report contents, or other personal data.
 
 #### Scenario: Price request content
-- **WHEN** the app requests prices
-- **THEN** the request contains only instrument identifiers
+- **WHEN** the app requests market prices
+- **THEN** the request contains only the required instrument identifiers
+
+### Requirement: Show quote currency and freshness
+The app SHALL show the currency and retrieval time for each price. During market hours, a price older than 15 minutes SHALL be marked stale. Outside market hours, the last available close MAY be shown as the latest close, but SHALL NOT be described as a live price. Values SHALL remain in their quote currency without FX conversion.
+
+#### Scenario: Fresh market-hours quote
+- **WHEN** a quote is no more than 15 minutes old during market hours
+- **THEN** the app shows its currency and retrieval time without a stale marker
+
+#### Scenario: Stale market-hours quote
+- **WHEN** a quote is more than 15 minutes old during market hours
+- **THEN** the app marks it stale and does not present it as current
+
+#### Scenario: Outside market hours
+- **WHEN** the latest available quote is the prior market close
+- **THEN** the app labels it as the latest close and shows its currency and timestamp
+
+### Requirement: Handle price retrieval failures
+The app SHALL remain usable when a price request fails and SHALL show the last known price as stale, or indicate that no price is available.
+
+#### Scenario: Offline or provider error
+- **WHEN** a price request fails
+- **THEN** the app informs the user and shows only a stale last-known price or an unavailable state

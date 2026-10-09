@@ -1,34 +1,46 @@
-﻿## Context
+## Context
 
-Builds on `mobile-encrypted-drive-backup`, which owns encryption, key management, local storage, Drive access, device hardening and anonymization. This change defines app behavior on top of it and reuses its rules rather than duplicating them. The app is for iOS and Android.
+The mobile security change defines Kotlin/Swift platform targets, encrypted local storage, on-device processing, pseudonymization, and encrypted Google Drive backup. The existing Python parser handles IBKR Activity Flex Query CSV files; the existing tax logic uses FIFO matching and instrument identity rules.
+
+## Goals / Non-Goals
+
+**Goals:**
+- Deliver matching iOS and Android behavior while using native platform security features.
+- Keep report processing local and make portfolio figures consistent with remaining FIFO lots.
+- Make backup, price freshness, currency, privacy, and error behavior explicit before implementation.
+
+**Non-Goals:**
+- PIT-38 calculation, tax-report generation/export, or changes to tax calculation rules.
+- A server-side processing service, broker account connection, or order placement.
+- Converting portfolio values across currencies in the first release.
 
 ## Decisions
 
-### Decision 1: Process on device
-Parsing, anonymization and aggregation happen on the device. No server of our own is introduced.
+### Native platform clients with behavioral parity
 
-### Decision 2: Order of operations
-Import -> parse -> pseudonymize -> store processed data -> encrypt original and back up to Drive (per `mobile-encrypted-drive-backup`). Aggregation reads only pseudonymized, locally stored data.
+Implement the Android client in Kotlin and the iOS client in Swift, matching user-visible behavior and using each platform's secure storage and lifecycle protections. This follows the mobile security plan; a single shared framework would require revisiting its security architecture.
 
-### Decision 3: Reuse the existing parsing rules
-Report formats and normalization follow the existing Python logic (`src/parser.py`, `src/ib_normalizer.py`). Whether the app reimplements it natively or shares it via a cross-platform module is left to the apply phase.
+### IBKR Flex Query CSV as the initial report format
 
-### Decision 4: Prices
-- Prices come from a third-party market data provider; the provider is an open question below.
-- Freshness limit: 15 minutes during market hours; outside market hours the last close is current. Refresh on screen open and manual pull-to-refresh.
-- Only ticker symbols are sent. Last known prices are cached locally (in the encrypted local DB) with timestamp and currency.
-- Prices in different currencies are shown in their own currency; totals need a conversion rate (open question).
+The first release accepts only IBKR Activity Flex Query CSV reports selected through the system file picker. Validate the format and parseability locally before creating a backup or derived records. Other report formats require a later spec change. Parser normalization and instrument identity behavior must match the repository's established rules.
 
-### Decision 5: Instrument identity
-Holdings are keyed by instrument identity (ISIN where available, ticker otherwise), aligned with `src/instrument_identity.py` and the pending `isin-change-handling` change.
+### On-device import and protected backup
 
-## Open Questions
-- Which market data provider (free tier limits, licensing for a distributed app, delay vs real-time)?
-- Base currency for totals and the FX source (NBP is used for tax; display may differ).
-- Which broker report formats must be supported at launch (IBKR Activity Statement / Flex only?).
-- Is the average purchase price FIFO-based, as in the tax logic, or a simple weighted average?
+All parsing and aggregation run on-device and work without a network connection. Keep temporary source data in app-private storage, encrypt it before network access, and store derived records only in the encrypted local database after a complete successful import. Upload the encrypted report to the Google Drive app data folder and verify it before removing the app-managed source copy. If backup is unavailable, retain only the protected local copy, show a pending status, and retry without blocking local processing. Never delete the user's original file outside app-managed storage.
 
-## Risks
-- Provider rate limits or terms change; mitigate with caching and a replaceable provider interface.
-- Delayed prices could be mistaken for live ones; mitigate with visible timestamps and stale markers.
-- Differences between the app's aggregation and the tax FIFO results could confuse users; mitigate by labeling the overview as informational, not a tax report.
+Direct identifiers are pseudonymized before derived data is persisted, logged, or displayed; report contents and financial values tied to a person are excluded from logs. The encrypted-backup change remains the authority for key management, cryptographic formats, device hardening, erasure, and Drive access.
+
+### Informational holdings based on FIFO open lots
+
+Aggregate positions by the repository's instrument identity and derive current quantity and average purchase price from remaining FIFO lots, including the established split/corporate-action handling. The overview is informational only and does not compute or export PIT-38. Keep holdings and market values in their own currencies; where an instrument has lots in different currencies, show separate currency subpositions rather than inventing an FX conversion.
+
+### Market-price integration
+
+Use a replaceable provider adapter. Before implementing or releasing price requests, select a provider whose terms permit the intended app distribution and whose interface can request prices using instrument identifiers only. Request updates when the overview opens and on user refresh, cache the last price and timestamp locally, and mark stale prices visibly. Show currency-specific values and do not calculate a converted grand total.
+
+## Risks / Trade-offs
+
+- Separate native clients can drift → use shared behavioral acceptance cases and verify parity on both platforms.
+- Market-data licensing or availability may change → complete provider and terms review before integration and retain a replaceable adapter.
+- Currency-specific subtotals are less convenient than one portfolio total → avoid unsupported FX assumptions and add conversion only in a separately specified change.
+- On-device parser behavior may differ from Python → use synthetic shared test cases for supported report variations and normalization.
