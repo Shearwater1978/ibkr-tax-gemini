@@ -55,6 +55,19 @@ class PricesTest {
     }
 
     @Test
+    fun finnhubPreviousCloseGivesTheDailyChange() = runBlocking {
+        val withClose = FinnhubProvider("k", RecordingTransport { quoteJson("190.1", marketOpen.epochSecond) })
+            .latestQuotes(setOf("AAPL")) as PriceResult.Success
+        val quote = withClose.quotes.getValue("AAPL")
+        assertEquals(0, BigDecimal("189.5").compareTo(quote.previousClose))
+        assertEquals(0, BigDecimal("0.6").compareTo(quote.dailyChange))
+
+        val noClose = FinnhubProvider("k", RecordingTransport { HttpResponse(200, """{"c":190.1,"pc":0,"t":${marketOpen.epochSecond}}""") })
+            .latestQuotes(setOf("AAPL")) as PriceResult.Success
+        assertEquals(null, noClose.quotes.getValue("AAPL").dailyChange)
+    }
+
+    @Test
     fun finnhubUnknownSymbolIsLeftOut() = runBlocking {
         val transport = RecordingTransport { quoteJson("0", 0) }
         val result = FinnhubProvider("k", transport).latestQuotes(setOf("NOPE"))

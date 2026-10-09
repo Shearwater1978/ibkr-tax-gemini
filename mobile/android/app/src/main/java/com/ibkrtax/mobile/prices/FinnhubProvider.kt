@@ -76,7 +76,8 @@ class FinnhubProvider(
             if (price.signum() <= 0 || time <= 0) {
                 null
             } else {
-                Quote(symbol, price, "USD", Instant.ofEpochSecond(time), clock.instant())
+                val previousClose = json.opt("pc")?.toString()?.let(::BigDecimal)?.takeIf { it.signum() > 0 }
+                Quote(symbol, price, "USD", Instant.ofEpochSecond(time), clock.instant(), previousClose)
             }
         } catch (e: JSONException) {
             null

@@ -18,6 +18,14 @@ class FlexQueryParserTest {
     }
 
     @Test
+    fun listingExchangeComesFromInstrumentInformation() {
+        val report = parseSuccess(Fixtures.flexQuery(Fixtures.VALID_BASIC))
+        assertEquals("NASDAQ", report.trades.first { it.identity.ticker == "AAPL" }.identity.listingExchange)
+        assertEquals("IBIS", report.corporateActions.single().identity.listingExchange)
+        assertEquals("NASDAQ", report.dividends.single().identity.listingExchange)
+    }
+
+    @Test
     fun emptyFileIsRejected() {
         assertEquals(FlexImportError.EmptyFile, parseFailure(Fixtures.flexQuery(Fixtures.EMPTY)))
     }

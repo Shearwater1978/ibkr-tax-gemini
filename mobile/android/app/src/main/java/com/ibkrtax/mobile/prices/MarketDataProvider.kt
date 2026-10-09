@@ -20,7 +20,11 @@ data class Quote(
     val quoteTime: Instant,
     /** When this app retrieved it. */
     val retrievedAt: Instant,
-)
+    /** Previous session's close, for the daily change; null when the provider has none. */
+    val previousClose: BigDecimal? = null,
+) {
+    val dailyChange: BigDecimal? get() = previousClose?.let { price.subtract(it) }
+}
 
 sealed interface PriceResult {
     /** Symbols the provider does not know are simply absent from [quotes]. */

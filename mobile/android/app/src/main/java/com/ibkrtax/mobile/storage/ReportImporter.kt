@@ -109,9 +109,13 @@ class ReportImporter(
             "UPDATE transactions SET " +
                 "isin = CASE WHEN ? <> '' THEN ? ELSE isin END, " +
                 "conid = CASE WHEN ? <> '' THEN ? ELSE conid END, " +
-                "instrument_description = CASE WHEN ? <> '' THEN ? ELSE instrument_description END " +
+                "instrument_description = CASE WHEN ? <> '' THEN ? ELSE instrument_description END, " +
+                "listing_exchange = CASE WHEN ? <> '' THEN ? ELSE listing_exchange END " +
                 "WHERE source_key = ?",
-            arrayOf(t.isin, t.isin, t.conid, t.conid, t.instrumentDescription, t.instrumentDescription, t.sourceKey),
+            arrayOf(
+                t.isin, t.isin, t.conid, t.conid, t.instrumentDescription, t.instrumentDescription,
+                t.listingExchange, t.listingExchange, t.sourceKey,
+            ),
         )
     }
 
@@ -131,5 +135,6 @@ class ReportImporter(
         put("isin", isin)
         put("conid", conid)
         put("instrument_description", instrumentDescription)
+        put("listing_exchange", listingExchange)
     }
 }

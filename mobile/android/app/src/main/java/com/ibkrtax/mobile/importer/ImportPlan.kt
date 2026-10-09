@@ -19,6 +19,7 @@ data class StoredTransaction(
     val isin: String,
     val conid: String,
     val instrumentDescription: String,
+    val listingExchange: String = "",
 )
 
 enum class InvalidRecordReason {
@@ -72,6 +73,7 @@ object ImportPlan {
         isin = t.identity.isin,
         conid = t.identity.conid,
         instrumentDescription = t.identity.instrumentDescription,
+        listingExchange = t.identity.listingExchange,
     )
 
     private fun fromCorporateAction(c: CorporateActionRecord): StoredTransaction {
@@ -92,6 +94,7 @@ object ImportPlan {
             isin = c.identity.isin,
             conid = c.identity.conid,
             instrumentDescription = c.identity.instrumentDescription,
+            listingExchange = c.identity.listingExchange,
         )
     }
 
@@ -110,6 +113,7 @@ object ImportPlan {
         isin = r.identity.isin,
         conid = r.identity.conid,
         instrumentDescription = r.identity.instrumentDescription,
+        listingExchange = r.identity.listingExchange,
     )
 
     /** Same field order and separator as Python `_source_key`. */

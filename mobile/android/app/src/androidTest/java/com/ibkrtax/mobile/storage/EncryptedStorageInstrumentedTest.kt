@@ -91,10 +91,17 @@ class EncryptedStorageInstrumentedTest {
 
             store.set("  $apiKey  ")
             val time = java.time.Instant.parse("2024-01-03T16:00:00Z")
-            store.putAll(listOf(com.ibkrtax.mobile.prices.Quote("AAPL", java.math.BigDecimal("190.10"), "USD", time, time)))
+            store.putAll(listOf(com.ibkrtax.mobile.prices.Quote("AAPL", java.math.BigDecimal("190.10"), "USD", time, time, java.math.BigDecimal("189.50"))))
 
             assertEquals(apiKey, store.get())
             assertEquals(0, java.math.BigDecimal("190.10").compareTo(store.get(setOf("AAPL", "MSFT")).getValue("AAPL").price))
+            assertEquals(0, java.math.BigDecimal("0.60").compareTo(store.get(setOf("AAPL")).getValue("AAPL").dailyChange))
+
+            val fx = FxStore(helper)
+            assertNull(fx.get())
+            fx.put(com.ibkrtax.mobile.fx.FxRates("2026-10-08", mapOf("USD" to java.math.BigDecimal("4.0"), "EUR" to java.math.BigDecimal("4.4"))))
+            fx.put(com.ibkrtax.mobile.fx.FxRates("2026-10-09", mapOf("USD" to java.math.BigDecimal("4.1"))))
+            assertEquals(com.ibkrtax.mobile.fx.FxRates("2026-10-09", mapOf("USD" to java.math.BigDecimal("4.1"))), fx.get())
         }
 
         val text = String(context.getDatabasePath(dbName).readBytes(), Charsets.ISO_8859_1)

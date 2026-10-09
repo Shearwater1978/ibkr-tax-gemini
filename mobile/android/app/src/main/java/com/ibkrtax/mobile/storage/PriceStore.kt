@@ -40,7 +40,7 @@ class PriceStore(private val database: SupportSQLiteOpenHelper) : ApiKeyStore, Q
         if (symbols.isEmpty()) return emptyMap()
         val placeholders = symbols.joinToString(",") { "?" }
         return database.readableDatabase.query(
-            "SELECT symbol, price, currency, quote_time, retrieved_at FROM price_cache WHERE symbol IN ($placeholders)",
+            "SELECT symbol, price, currency, quote_time, retrieved_at, previous_close FROM price_cache WHERE symbol IN ($placeholders)",
             symbols.toTypedArray(),
         ).use { cursor ->
             buildMap {
@@ -51,6 +51,7 @@ class PriceStore(private val database: SupportSQLiteOpenHelper) : ApiKeyStore, Q
                         currency = cursor.getString(2),
                         quoteTime = Instant.parse(cursor.getString(3)),
                         retrievedAt = Instant.parse(cursor.getString(4)),
+                        previousClose = if (cursor.isNull(5)) null else BigDecimal(cursor.getString(5)),
                     )
                     put(quote.symbol, quote)
                 }
@@ -72,6 +73,7 @@ class PriceStore(private val database: SupportSQLiteOpenHelper) : ApiKeyStore, Q
                         put("currency", quote.currency)
                         put("quote_time", quote.quoteTime.toString())
                         put("retrieved_at", quote.retrievedAt.toString())
+                        put("previous_close", quote.previousClose?.toString())
                     },
                 )
             }

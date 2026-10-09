@@ -3,11 +3,14 @@ package com.ibkrtax.mobile
 import android.app.Application
 import android.content.Context
 import androidx.sqlite.db.SupportSQLiteOpenHelper
+import com.ibkrtax.mobile.fx.FxService
+import com.ibkrtax.mobile.fx.NbpClient
 import com.ibkrtax.mobile.prices.FinnhubProvider
 import com.ibkrtax.mobile.prices.PriceService
 import com.ibkrtax.mobile.security.DeviceKeys
 import com.ibkrtax.mobile.security.Pseudonymizer
 import com.ibkrtax.mobile.storage.EncryptedDatabase
+import com.ibkrtax.mobile.storage.FxStore
 import com.ibkrtax.mobile.storage.ImportHistory
 import com.ibkrtax.mobile.storage.PortfolioRepository
 import com.ibkrtax.mobile.storage.PriceStore
@@ -30,6 +33,7 @@ class AppContainer(context: Context) {
     val importHistory: ImportHistory by lazy { ImportHistory(database) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
     val prices: PriceService by lazy { PriceService(priceStore, priceStore, { key -> FinnhubProvider(key) }) }
+    val fx: FxService by lazy { FxService(NbpClient(), FxStore(database)) }
 }
 
 val Context.appContainer: AppContainer
