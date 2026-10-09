@@ -1,6 +1,8 @@
 package com.ibkrtax.mobile.portfolio
 
-import com.ibkrtax.mobile.prices.Quote
+import com.ibkrtax.mobile.prices.PriceFreshness
+import com.ibkrtax.mobile.prices.PriceScope
+import com.ibkrtax.mobile.prices.PricedQuote
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -9,7 +11,9 @@ import java.math.RoundingMode
 data class HoldingValue(
     val holding: Holding,
     val cost: BigDecimal,
-    val quote: Quote?,
+    /** False when the MVP price scope does not cover this holding (no request is made). */
+    val inPriceScope: Boolean,
+    val price: PricedQuote?,
     val marketValue: BigDecimal?,
     val unrealizedGain: BigDecimal?,
 )
@@ -22,10 +26,11 @@ data class CurrencySubtotal(
     val currency: String,
     val holdings: List<HoldingValue>,
     val cost: BigDecimal,
-    /** Sum of the values that are available; see [missingPrices]. */
+    /** Sum of the values that are available; see [missingPrices] and [stalePrices]. */
     val marketValue: BigDecimal,
     val unrealizedGain: BigDecimal,
     val missingPrices: Int,
+    val stalePrices: Int,
 ) {
     val isComplete: Boolean get() = missingPrices == 0
 }
@@ -33,12 +38,16 @@ data class CurrencySubtotal(
 object PortfolioSummary {
     private val PY = MathContext(28, RoundingMode.HALF_EVEN)
 
-    /** [quotes] are keyed by ISIN. A quote in another currency counts as unavailable: no FX conversion. */
-    fun build(holdings: List<Holding>, quotes: Map<String, Quote>): List<CurrencySubtotal> =
+    /** [prices] are keyed by ticker. A quote in another currency counts as unavailable: no FX conversion. */
+    fun build(holdings: List<Holding>, prices: Map<String, PricedQuote>): List<CurrencySubtotal> =
         holdings.groupBy { it.currency }
             .toSortedMap()
             .map { (currency, group) ->
-                val values = group.map { value(it, quotes[it.isin]?.takeIf { quote -> quote.currency == currency }) }
+                val values = group.map { holding ->
+                    val inScope = PriceScope.includes(holding)
+                    val price = prices[holding.ticker]?.takeIf { inScope && it.quote.currency == currency }
+                    value(holding, inScope, price)
+                }
                 val priced = values.filter { it.marketValue != null }
                 CurrencySubtotal(
                     currency = currency,
@@ -47,12 +56,13 @@ object PortfolioSummary {
                     marketValue = priced.sumOf { it.marketValue!! },
                     unrealizedGain = priced.sumOf { it.unrealizedGain!! },
                     missingPrices = values.size - priced.size,
+                    stalePrices = priced.count { it.price?.freshness == PriceFreshness.STALE },
                 )
             }
 
-    private fun value(holding: Holding, quote: Quote?): HoldingValue {
+    private fun value(holding: Holding, inScope: Boolean, price: PricedQuote?): HoldingValue {
         val cost = holding.lots.fold(BigDecimal.ZERO) { sum, lot -> sum.add(lot.quantity.multiply(lot.price, PY), PY) }
-        val marketValue = quote?.price?.multiply(holding.quantity, PY)
-        return HoldingValue(holding, cost, quote, marketValue, marketValue?.subtract(cost, PY))
+        val marketValue = price?.quote?.price?.multiply(holding.quantity, PY)
+        return HoldingValue(holding, cost, inScope, price, marketValue, marketValue?.subtract(cost, PY))
     }
 }

@@ -68,15 +68,16 @@ class TestInfrastructureTest {
     }
 
     @Test
-    fun fakeMarketDataRecordsRequestedIsinsAndFailures() = runBlocking {
-        val quote = Quote("US0378331005", BigDecimal("190.10"), "USD", Instant.parse("2024-02-12T15:00:00Z"), false)
+    fun fakeMarketDataRecordsRequestedSymbolsAndFailures() = runBlocking {
+        val time = Instant.parse("2024-02-12T15:00:00Z")
+        val quote = Quote("AAPL", BigDecimal("190.10"), "USD", time, time)
         val prices = FakeMarketDataProvider().apply { setQuote(quote) }
 
-        val result = prices.latestQuotes(setOf("US0378331005", "DE0007164600"))
-        assertEquals(PriceResult.Success(mapOf("US0378331005" to quote)), result)
-        assertEquals(listOf(setOf("US0378331005", "DE0007164600")), prices.requests)
+        val result = prices.latestQuotes(setOf("AAPL", "MSFT"))
+        assertEquals(PriceResult.Success(mapOf("AAPL" to quote)), result)
+        assertEquals(listOf(setOf("AAPL", "MSFT")), prices.requests)
 
         prices.failure = PriceFailure.OFFLINE
-        assertEquals(PriceResult.Failure(PriceFailure.OFFLINE), prices.latestQuotes(setOf("US0378331005")))
+        assertEquals(PriceResult.Failure(PriceFailure.OFFLINE), prices.latestQuotes(setOf("AAPL")))
     }
 }

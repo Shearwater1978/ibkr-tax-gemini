@@ -15,8 +15,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,10 +34,16 @@ import com.ibkrtax.mobile.appContainer
 import com.ibkrtax.mobile.portfolio.CurrencySubtotal
 import com.ibkrtax.mobile.portfolio.HoldingValue
 import com.ibkrtax.mobile.portfolio.PortfolioSummary
+import com.ibkrtax.mobile.prices.PriceFailure
+import com.ibkrtax.mobile.prices.PriceFreshness
+import com.ibkrtax.mobile.prices.RefreshOutcome
 import com.ibkrtax.mobile.security.KeyUnwrapException
 import com.ibkrtax.mobile.security.KeystoreUnavailableException
 import com.ibkrtax.mobile.storage.HoldingsResult
 import com.ibkrtax.mobile.ui.Formats
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -46,11 +56,12 @@ sealed interface PortfolioUiState {
 
     data class Incomplete(val ticker: String, val date: String) : PortfolioUiState
 
-    data class Loaded(val accounts: List<String>, val subtotals: List<CurrencySubtotal>) : PortfolioUiState
+    /** [prices] is null while a refresh is running. */
+    data class Loaded(val accounts: List<String>, val subtotals: List<CurrencySubtotal>, val prices: RefreshOutcome?) : PortfolioUiState
 }
 
-/** Reads the encrypted database; must run off the main thread. */
-fun loadPortfolio(context: Context): PortfolioUiState =
+/** Reads the encrypted database and cached prices; must run off the main thread. */
+fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
     try {
         val container = context.appContainer
         val reports = container.importHistory.list()
@@ -59,10 +70,10 @@ fun loadPortfolio(context: Context): PortfolioUiState =
         } else {
             when (val result = container.portfolio.holdings()) {
                 is HoldingsResult.Incomplete -> PortfolioUiState.Incomplete(result.ticker, result.date)
-                // Prices arrive with mobile-market-prices; until then every value is unavailable.
                 is HoldingsResult.Success -> PortfolioUiState.Loaded(
                     accounts = reports.mapNotNull { it.accountMasked }.distinct(),
-                    subtotals = PortfolioSummary.build(result.holdings, quotes = emptyMap()),
+                    subtotals = PortfolioSummary.build(result.holdings, container.prices.prices(result.holdings, prices)),
+                    prices = prices,
                 )
             }
         }
@@ -72,11 +83,24 @@ fun loadPortfolio(context: Context): PortfolioUiState =
         PortfolioUiState.StorageUnavailable
     }
 
+/** Requests fresh prices for in-scope holdings (network); call off the main thread. */
+suspend fun refreshPrices(context: Context): RefreshOutcome {
+    val holdings = (context.appContainer.portfolio.holdings() as? HoldingsResult.Success)?.holdings.orEmpty()
+    return context.appContainer.prices.refresh(holdings)
+}
+
 @Composable
 fun PortfolioScreen(onImportReport: () -> Unit) {
     val context = LocalContext.current
-    val state by produceState<PortfolioUiState>(PortfolioUiState.Loading) {
-        value = withContext(Dispatchers.IO) { loadPortfolio(context) }
+    var refreshTick by remember { mutableIntStateOf(0) }
+    // Show cached prices at once, then refresh when the overview opens or the user asks.
+    val state by produceState<PortfolioUiState>(PortfolioUiState.Loading, refreshTick) {
+        val cached = withContext(Dispatchers.IO) { loadPortfolio(context, prices = null) }
+        value = cached
+        if (cached is PortfolioUiState.Loaded) {
+            val outcome = withContext(Dispatchers.IO) { refreshPrices(context) }
+            value = withContext(Dispatchers.IO) { loadPortfolio(context, outcome) }
+        }
     }
 
     when (val current = state) {
@@ -86,7 +110,7 @@ fun PortfolioScreen(onImportReport: () -> Unit) {
         is PortfolioUiState.Incomplete -> Centered {
             Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center)
         }
-        is PortfolioUiState.Loaded -> HoldingsList(current)
+        is PortfolioUiState.Loaded -> HoldingsList(current, onRefresh = { refreshTick++ })
     }
 }
 
@@ -113,7 +137,7 @@ private fun EmptyPortfolio(onImportReport: () -> Unit) {
 }
 
 @Composable
-private fun HoldingsList(state: PortfolioUiState.Loaded) {
+private fun HoldingsList(state: PortfolioUiState.Loaded, onRefresh: () -> Unit) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         item {
             Spacer(Modifier.height(16.dp))
@@ -122,6 +146,7 @@ private fun HoldingsList(state: PortfolioUiState.Loaded) {
             if (state.accounts.isNotEmpty()) {
                 Text(stringResource(R.string.portfolio_accounts, state.accounts.joinToString()), style = MaterialTheme.typography.bodySmall)
             }
+            PriceStatus(state.prices, onRefresh)
             Spacer(Modifier.height(8.dp))
             if (state.subtotals.isEmpty()) Text(stringResource(R.string.portfolio_no_holdings))
         }
@@ -154,12 +179,26 @@ private fun HoldingRow(value: HoldingValue) {
             ),
         )
         Text(stringResource(R.string.holding_cost, Formats.money(value.cost, holding.currency)))
+        val price = value.price
         val marketValue = value.marketValue
         val gain = value.unrealizedGain
-        if (marketValue != null && gain != null) {
-            Text(stringResource(R.string.holding_value, Formats.money(marketValue, holding.currency), Formats.money(gain, holding.currency)))
-        } else {
-            Text(stringResource(R.string.holding_price_unavailable), style = MaterialTheme.typography.bodySmall)
+        when {
+            !value.inPriceScope -> Text(stringResource(R.string.holding_price_out_of_scope), style = MaterialTheme.typography.bodySmall)
+            price == null || marketValue == null || gain == null ->
+                Text(stringResource(R.string.holding_price_unavailable), style = MaterialTheme.typography.bodySmall)
+            else -> {
+                val label = when (price.freshness) {
+                    PriceFreshness.LIVE -> R.string.holding_price_live
+                    PriceFreshness.LATEST_CLOSE -> R.string.holding_price_latest_close
+                    PriceFreshness.STALE -> R.string.holding_price_stale
+                }
+                Text(
+                    stringResource(label, Formats.price(price.quote.price, price.quote.currency), TIME.format(price.quote.retrievedAt)),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (price.freshness == PriceFreshness.STALE) FontWeight.Bold else null,
+                )
+                Text(stringResource(R.string.holding_value, Formats.money(marketValue, holding.currency), Formats.money(gain, holding.currency)))
+            }
         }
     }
     HorizontalDivider()
@@ -185,6 +224,36 @@ private fun SubtotalCard(subtotal: CurrencySubtotal) {
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            if (subtotal.stalePrices > 0) {
+                Text(stringResource(R.string.subtotal_stale, subtotal.stalePrices), style = MaterialTheme.typography.bodySmall)
+            }
         }
+    }
+}
+
+private val TIME: DateTimeFormatter =
+    DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(ZoneId.systemDefault())
+
+@Composable
+private fun PriceStatus(prices: RefreshOutcome?, onRefresh: () -> Unit) {
+    val message = when (prices) {
+        null -> stringResource(R.string.prices_refreshing)
+        RefreshOutcome.NoKey -> stringResource(R.string.prices_no_key)
+        RefreshOutcome.Updated -> null
+        is RefreshOutcome.Failed -> stringResource(
+            R.string.prices_failed,
+            stringResource(
+                when (prices.reason) {
+                    PriceFailure.OFFLINE -> R.string.prices_failure_offline
+                    PriceFailure.INVALID_KEY -> R.string.prices_failure_invalid_key
+                    PriceFailure.RATE_LIMITED -> R.string.prices_failure_rate_limited
+                    PriceFailure.PROVIDER_ERROR -> R.string.prices_failure_provider
+                },
+            ),
+        )
+    }
+    message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    if (prices != null && prices != RefreshOutcome.NoKey) {
+        TextButton(onClick = onRefresh) { Text(stringResource(R.string.prices_refresh)) }
     }
 }

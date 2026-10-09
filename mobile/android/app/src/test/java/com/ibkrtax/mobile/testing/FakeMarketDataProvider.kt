@@ -14,12 +14,12 @@ class FakeMarketDataProvider(
     val requests: MutableList<Set<String>> = mutableListOf()
 
     fun setQuote(quote: Quote) {
-        quotes[quote.isin] = quote
+        quotes[quote.symbol] = quote
     }
 
-    override suspend fun latestQuotes(isins: Set<String>): PriceResult {
-        requests += isins.toSet()
+    override suspend fun latestQuotes(symbols: Set<String>): PriceResult {
+        requests += symbols.toSet()
         failure?.let { return PriceResult.Failure(it) }
-        return PriceResult.Success(quotes.filterKeys { it in isins })
+        return PriceResult.Success(quotes.filterKeys { it in symbols })
     }
 }

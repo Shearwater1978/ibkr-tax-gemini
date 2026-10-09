@@ -28,6 +28,19 @@
     <string name="holding_cost">Cost %1$s</string>
     <string name="holding_value">Value %1$s Â· %2$s</string>
     <string name="holding_price_unavailable">Price unavailable</string>
+    <string name="holding_price_out_of_scope">Prices for this market are not available yet</string>
+    <string name="holding_price_live">Live %1$s · retrieved %2$s</string>
+    <string name="holding_price_latest_close">Latest close %1$s · retrieved %2$s</string>
+    <string name="holding_price_stale">Stale %1$s · retrieved %2$s</string>
+    <string name="prices_refresh">Refresh prices</string>
+    <string name="prices_refreshing">Refreshing prices…</string>
+    <string name="prices_no_key">Add your Finnhub API key in Settings to see prices for US listings.</string>
+    <string name="prices_failed">Prices could not be refreshed (%1$s). Last known prices are shown as stale.</string>
+    <string name="prices_failure_offline">offline</string>
+    <string name="prices_failure_invalid_key">API key rejected</string>
+    <string name="prices_failure_rate_limited">rate limit reached</string>
+    <string name="prices_failure_provider">provider error</string>
+    <string name="subtotal_stale">Includes %1$d stale price(s)</string>
     <string name="subtotal_title">%1$s subtotal</string>
     <string name="subtotal_cost">Cost %1$s</string>
     <string name="subtotal_value">Market value %1$s Â· gain/loss %2$s</string>
@@ -46,4 +59,10 @@
     <string name="settings_title">Settings</string>
     <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>
     <string name="settings_version">Version %1$s</string>
+    <string name="settings_prices_title">Market prices</string>
+    <string name="settings_prices_body">Prices for US listings come from Finnhub using your own free personal API key (finnhub.io). The key is stored encrypted on this device and sent only to Finnhub, together with the ticker symbol.</string>
+    <string name="settings_api_key_label">Finnhub API key</string>
+    <string name="settings_api_key_save">Save key</string>
+    <string name="settings_api_key_saved">Key saved: %1$s</string>
+    <string name="settings_api_key_remove">Remove key</string>
 </resources>
