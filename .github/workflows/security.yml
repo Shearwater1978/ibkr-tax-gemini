@@ -4,9 +4,10 @@ on:
   # Trigger only on Pull Requests
   pull_request:
     branches: [ "main", "master" ]
-    # Markdown-only changes cannot affect Python behavior.
+    # Docs and OpenSpec files cannot affect Python behavior.
     paths-ignore:
       - "**.md"
+      - "openspec/**"
   # Allow manual trigger via GitHub UI
   workflow_dispatch:
 
