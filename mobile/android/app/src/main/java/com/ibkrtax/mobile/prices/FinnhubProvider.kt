@@ -43,25 +43,28 @@ class FinnhubProvider(
     private val apiKey: String,
     private val transport: HttpTransport = UrlConnectionTransport(),
     private val clock: Clock = Clock.systemUTC(),
+    private val limiter: RateLimiter? = null,
 ) : MarketDataProvider {
     override suspend fun latestQuotes(symbols: Set<String>): PriceResult = withContext(Dispatchers.IO) {
         val quotes = mutableMapOf<String, Quote>()
+        fun failure(reason: PriceFailure) = PriceResult.Failure(reason, quotes.toMap())
         for (symbol in symbols.sorted()) {
+            limiter?.acquire()
             val response = try {
                 transport.get(
                     "$BASE_URL/quote?symbol=${URLEncoder.encode(symbol, "UTF-8")}",
                     mapOf(TOKEN_HEADER to apiKey),
                 )
             } catch (e: IOException) {
-                return@withContext PriceResult.Failure(PriceFailure.OFFLINE)
+                return@withContext failure(PriceFailure.OFFLINE)
             }
             when (response.status) {
                 in 200..299 -> parse(symbol, response.body)?.let { quotes[symbol] = it }
-                401 -> return@withContext PriceResult.Failure(PriceFailure.INVALID_KEY)
+                401 -> return@withContext failure(PriceFailure.INVALID_KEY)
                 // Symbol not covered by the user's plan: leave it unavailable.
                 403 -> Unit
-                429 -> return@withContext PriceResult.Failure(PriceFailure.RATE_LIMITED)
-                else -> return@withContext PriceResult.Failure(PriceFailure.PROVIDER_ERROR)
+                429 -> return@withContext failure(PriceFailure.RATE_LIMITED)
+                else -> return@withContext failure(PriceFailure.PROVIDER_ERROR)
             }
         }
         PriceResult.Success(quotes)
