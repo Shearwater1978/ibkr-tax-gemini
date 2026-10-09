@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.browser)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.sqlite)
     implementation(libs.sqlcipher.android)
