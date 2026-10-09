@@ -4,6 +4,7 @@
     <!-- Report data must never go to Android cloud/device-transfer backups.
          allowBackup alone does not stop Android 12+ device transfer, hence the extraction rules. -->
     <application
+        android:name=".IbkrTaxApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
