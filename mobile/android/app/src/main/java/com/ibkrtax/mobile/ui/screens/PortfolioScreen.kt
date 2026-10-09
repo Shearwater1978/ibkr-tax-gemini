@@ -1,8 +1,11 @@
 package com.ibkrtax.mobile.ui.screens
 
 import android.content.Context
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,19 +14,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,9 +39,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.appContainer
-import com.ibkrtax.mobile.portfolio.CurrencySubtotal
-import com.ibkrtax.mobile.portfolio.HoldingValue
-import com.ibkrtax.mobile.portfolio.PortfolioSummary
+import com.ibkrtax.mobile.portfolio.MainPage
+import com.ibkrtax.mobile.portfolio.PnlMode
+import com.ibkrtax.mobile.portfolio.PositionRow
+import com.ibkrtax.mobile.portfolio.SortColumn
+import com.ibkrtax.mobile.portfolio.SortOrder
+import com.ibkrtax.mobile.portfolio.UsdTotals
 import com.ibkrtax.mobile.prices.PriceFailure
 import com.ibkrtax.mobile.prices.PriceFreshness
 import com.ibkrtax.mobile.prices.RefreshOutcome
@@ -41,10 +52,10 @@ import com.ibkrtax.mobile.security.KeyUnwrapException
 import com.ibkrtax.mobile.security.KeystoreUnavailableException
 import com.ibkrtax.mobile.storage.HoldingsResult
 import com.ibkrtax.mobile.ui.Formats
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import java.math.BigDecimal
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 
 sealed interface PortfolioUiState {
@@ -57,10 +68,15 @@ sealed interface PortfolioUiState {
     data class Incomplete(val ticker: String, val date: String) : PortfolioUiState
 
     /** [prices] is null while a refresh is running. */
-    data class Loaded(val accounts: List<String>, val subtotals: List<CurrencySubtotal>, val prices: RefreshOutcome?) : PortfolioUiState
+    data class Loaded(
+        val accounts: List<String>,
+        val rows: List<PositionRow>,
+        val totals: UsdTotals,
+        val prices: RefreshOutcome?,
+    ) : PortfolioUiState
 }
 
-/** Reads the encrypted database and cached prices; must run off the main thread. */
+/** Reads the encrypted database, cached prices and cached NBP rates; must run off the main thread. */
 fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
     try {
         val container = context.appContainer
@@ -70,11 +86,19 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
         } else {
             when (val result = container.portfolio.holdings()) {
                 is HoldingsResult.Incomplete -> PortfolioUiState.Incomplete(result.ticker, result.date)
-                is HoldingsResult.Success -> PortfolioUiState.Loaded(
-                    accounts = reports.mapNotNull { it.accountMasked }.distinct(),
-                    subtotals = PortfolioSummary.build(result.holdings, container.prices.prices(result.holdings, prices)),
-                    prices = prices,
-                )
+                is HoldingsResult.Success -> {
+                    val rows = MainPage.rows(
+                        result.holdings,
+                        container.prices.prices(result.holdings, prices),
+                        container.portfolio.listingExchanges(),
+                    )
+                    PortfolioUiState.Loaded(
+                        accounts = reports.mapNotNull { it.accountMasked }.distinct(),
+                        rows = rows,
+                        totals = MainPage.usdTotals(rows, container.fx.rates()),
+                        prices = prices,
+                    )
+                }
             }
         }
     } catch (e: KeystoreUnavailableException) {
@@ -83,22 +107,26 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
         PortfolioUiState.StorageUnavailable
     }
 
-/** Requests fresh prices for in-scope holdings (network); call off the main thread. */
-suspend fun refreshPrices(context: Context): RefreshOutcome {
-    val holdings = (context.appContainer.portfolio.holdings() as? HoldingsResult.Success)?.holdings.orEmpty()
-    return context.appContainer.prices.refresh(holdings)
+/** Refreshes prices for in-scope holdings and the NBP table in parallel (network); call off the main thread. */
+suspend fun refreshMarketData(context: Context): RefreshOutcome = coroutineScope {
+    val container = context.appContainer
+    val rates = async { container.fx.refresh() }
+    val holdings = (container.portfolio.holdings() as? HoldingsResult.Success)?.holdings.orEmpty()
+    val prices = container.prices.refresh(holdings)
+    rates.await()
+    prices
 }
 
 @Composable
 fun PortfolioScreen(onImportReport: () -> Unit) {
     val context = LocalContext.current
     var refreshTick by remember { mutableIntStateOf(0) }
-    // Show cached prices at once, then refresh when the overview opens or the user asks.
+    // Show cached data at once, then refresh when the page opens or the user asks.
     val state by produceState<PortfolioUiState>(PortfolioUiState.Loading, refreshTick) {
         val cached = withContext(Dispatchers.IO) { loadPortfolio(context, prices = null) }
         value = cached
         if (cached is PortfolioUiState.Loaded) {
-            val outcome = withContext(Dispatchers.IO) { refreshPrices(context) }
+            val outcome = withContext(Dispatchers.IO) { refreshMarketData(context) }
             value = withContext(Dispatchers.IO) { loadPortfolio(context, outcome) }
         }
     }
@@ -110,7 +138,7 @@ fun PortfolioScreen(onImportReport: () -> Unit) {
         is PortfolioUiState.Incomplete -> Centered {
             Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center)
         }
-        is PortfolioUiState.Loaded -> HoldingsList(current, onRefresh = { refreshTick++ })
+        is PortfolioUiState.Loaded -> Positions(current, onRefresh = { refreshTick++ })
     }
 }
 
@@ -136,103 +164,153 @@ private fun EmptyPortfolio(onImportReport: () -> Unit) {
     }
 }
 
+private val GAIN = Color(0xFF2E7D32)
+private val LOSS = Color(0xFFC62828)
+
+private fun signColor(value: BigDecimal?): Color =
+    when (value?.signum()) {
+        1 -> GAIN
+        -1 -> LOSS
+        else -> Color.Unspecified
+    }
+
 @Composable
-private fun HoldingsList(state: PortfolioUiState.Loaded, onRefresh: () -> Unit) {
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+private fun Positions(state: PortfolioUiState.Loaded, onRefresh: () -> Unit) {
+    var sort by remember { mutableStateOf(SortOrder()) }
+    var mode by rememberSaveable { mutableStateOf(PnlMode.DAILY) }
+    val rows = MainPage.sorted(state.rows, sort, mode)
+
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+        item { Header(state, onRefresh) }
+        item {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                PnlMode.entries.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = mode == option,
+                        onClick = { mode = option },
+                        shape = SegmentedButtonDefaults.itemShape(index, PnlMode.entries.size),
+                    ) {
+                        Text(stringResource(if (option == PnlMode.DAILY) R.string.pnl_daily else R.string.pnl_unrealized))
+                    }
+                }
+            }
+        }
+        item { ColumnHeaders(sort, onSort = { sort = sort.select(it) }) }
+        if (rows.isEmpty()) item { Text(stringResource(R.string.portfolio_no_holdings), modifier = Modifier.padding(vertical = 16.dp)) }
+        items(rows, key = { "${it.ticker}-${it.holding.isin}-${it.currency}" }) { PositionLine(it, mode) }
         item {
             Spacer(Modifier.height(16.dp))
-            Text(stringResource(R.string.portfolio_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.informational_notice), style = MaterialTheme.typography.bodySmall)
-            if (state.accounts.isNotEmpty()) {
-                Text(stringResource(R.string.portfolio_accounts, state.accounts.joinToString()), style = MaterialTheme.typography.bodySmall)
-            }
-            PriceStatus(state.prices, onRefresh)
-            Spacer(Modifier.height(8.dp))
-            if (state.subtotals.isEmpty()) Text(stringResource(R.string.portfolio_no_holdings))
+            Spacer(Modifier.height(24.dp))
         }
-        state.subtotals.forEach { subtotal ->
-            item(key = "header-${subtotal.currency}") {
-                Text(
-                    subtotal.currency,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
-                )
-            }
-            items(subtotal.holdings, key = { "${it.holding.ticker}-${it.holding.isin}-${it.holding.currency}" }) { HoldingRow(it) }
-            item(key = "subtotal-${subtotal.currency}") { SubtotalCard(subtotal) }
-        }
-        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
 @Composable
-private fun HoldingRow(value: HoldingValue) {
-    val holding = value.holding
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Text(holding.ticker, fontWeight = FontWeight.Bold)
-        if (holding.isin.isNotEmpty()) Text(holding.isin, style = MaterialTheme.typography.bodySmall)
-        Text(
-            stringResource(
-                R.string.holding_position,
-                Formats.quantity(holding.quantity),
-                Formats.price(holding.averagePrice, holding.currency),
-            ),
-        )
-        Text(stringResource(R.string.holding_cost, Formats.money(value.cost, holding.currency)))
-        val price = value.price
-        val marketValue = value.marketValue
-        val gain = value.unrealizedGain
-        when {
-            !value.inPriceScope -> Text(stringResource(R.string.holding_price_out_of_scope), style = MaterialTheme.typography.bodySmall)
-            price == null || marketValue == null || gain == null ->
-                Text(stringResource(R.string.holding_price_unavailable), style = MaterialTheme.typography.bodySmall)
-            else -> {
-                val label = when (price.freshness) {
-                    PriceFreshness.LIVE -> R.string.holding_price_live
-                    PriceFreshness.LATEST_CLOSE -> R.string.holding_price_latest_close
-                    PriceFreshness.STALE -> R.string.holding_price_stale
-                }
+private fun Header(state: PortfolioUiState.Loaded, onRefresh: () -> Unit) {
+    val totals = state.totals
+    Column(modifier = Modifier.padding(top = 16.dp)) {
+        Text(stringResource(R.string.portfolio_title), style = MaterialTheme.typography.titleMedium)
+        if (state.accounts.isNotEmpty()) {
+            Text(stringResource(R.string.portfolio_accounts, state.accounts.joinToString()), style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.header_total_value), style = MaterialTheme.typography.bodySmall)
+                Text(Formats.money(totals.marketValue, "USD"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.header_daily_pnl), style = MaterialTheme.typography.bodySmall)
                 Text(
-                    stringResource(label, Formats.price(price.quote.price, price.quote.currency), TIME.format(price.quote.retrievedAt)),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = if (price.freshness == PriceFreshness.STALE) FontWeight.Bold else null,
+                    Formats.signedMoney(totals.dailyPnl, "USD"),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = signColor(totals.dailyPnl),
                 )
-                Text(stringResource(R.string.holding_value, Formats.money(marketValue, holding.currency), Formats.money(gain, holding.currency)))
+                totals.dailyPnlPercent?.let {
+                    Text(Formats.signedPercent(it), color = signColor(it), style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
+        val notes = buildList {
+            add(stringResource(R.string.header_approximate))
+            totals.rateDate?.let { add(stringResource(R.string.header_rate_date, it)) }
+            if (!totals.isComplete) add(stringResource(R.string.header_incomplete, totals.missingValues, state.rows.size))
+        }
+        Text(notes.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
+        PriceStatus(state.prices, onRefresh)
+    }
+}
+
+@Composable
+private fun ColumnHeaders(sort: SortOrder, onSort: (SortColumn) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        HeaderCell(R.string.column_instrument, SortColumn.SYMBOL, sort, onSort, weight = 1.5f, alignEnd = false)
+        HeaderCell(R.string.column_last, SortColumn.LAST_PRICE, sort, onSort, weight = 1.1f)
+        HeaderCell(R.string.column_change, SortColumn.CHANGE, sort, onSort, weight = 1.1f)
+        HeaderCell(R.string.column_position, SortColumn.POSITION, sort, onSort, weight = 0.8f)
+        HeaderCell(R.string.column_pnl, SortColumn.PNL, sort, onSort, weight = 1.1f)
     }
     HorizontalDivider()
 }
 
 @Composable
-private fun SubtotalCard(subtotal: CurrencySubtotal) {
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(stringResource(R.string.subtotal_title, subtotal.currency), fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.subtotal_cost, Formats.money(subtotal.cost, subtotal.currency)))
-            if (subtotal.isComplete) {
-                Text(
-                    stringResource(
-                        R.string.subtotal_value,
-                        Formats.money(subtotal.marketValue, subtotal.currency),
-                        Formats.money(subtotal.unrealizedGain, subtotal.currency),
-                    ),
-                )
-            } else {
-                Text(
-                    stringResource(R.string.subtotal_incomplete, subtotal.missingPrices, subtotal.holdings.size),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            if (subtotal.stalePrices > 0) {
-                Text(stringResource(R.string.subtotal_stale, subtotal.stalePrices), style = MaterialTheme.typography.bodySmall)
-            }
-        }
+private fun RowScope.HeaderCell(
+    label: Int,
+    column: SortColumn,
+    sort: SortOrder,
+    onSort: (SortColumn) -> Unit,
+    weight: Float,
+    alignEnd: Boolean = true,
+) {
+    val arrow = when {
+        sort.column != column -> ""
+        sort.descending -> " ▼"
+        else -> " ▲"
     }
+    Text(
+        stringResource(label) + arrow,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = if (sort.column == column) FontWeight.Bold else null,
+        textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
+        modifier = Modifier.weight(weight).clickable { onSort(column) },
+    )
 }
 
-private val TIME: DateTimeFormatter =
-    DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(ZoneId.systemDefault())
+@Composable
+private fun PositionLine(row: PositionRow, mode: PnlMode) {
+    val pnl = if (mode == PnlMode.DAILY) row.dailyPnl else row.unrealizedPnl
+    val muted = MaterialTheme.typography.bodySmall
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1.5f)) {
+            Text(row.ticker, fontWeight = FontWeight.Bold)
+            Text(listOf(row.listingExchange, row.currency).filter { it.isNotEmpty() }.joinToString(" · "), style = muted)
+        }
+        Column(modifier = Modifier.weight(1.1f), horizontalAlignment = Alignment.End) {
+            val price = row.price
+            if (price == null) {
+                Text("—")
+                Text(stringResource(if (row.inPriceScope) R.string.price_unavailable_short else R.string.price_out_of_scope_short), style = muted)
+            } else {
+                Text(Formats.number(price.quote.price, 2, 4))
+                when (price.freshness) {
+                    PriceFreshness.LIVE -> Unit
+                    PriceFreshness.LATEST_CLOSE -> Text(stringResource(R.string.price_close_short), style = muted)
+                    PriceFreshness.STALE -> Text(stringResource(R.string.price_stale_short), style = muted, color = LOSS)
+                }
+            }
+        }
+        Column(modifier = Modifier.weight(1.1f), horizontalAlignment = Alignment.End) {
+            val change = row.dailyChange
+            Text(change?.let(Formats::signedNumber) ?: "—", color = signColor(change))
+            row.dailyChangePercent?.let { Text(Formats.signedPercent(it), style = muted, color = signColor(it)) }
+        }
+        Text(Formats.quantity(row.holding.quantity), textAlign = TextAlign.End, modifier = Modifier.weight(0.8f))
+        Text(pnl?.let(Formats::signedNumber) ?: "—", color = signColor(pnl), textAlign = TextAlign.End, modifier = Modifier.weight(1.1f))
+    }
+    HorizontalDivider()
+}
 
 @Composable
 private fun PriceStatus(prices: RefreshOutcome?, onRefresh: () -> Unit) {
