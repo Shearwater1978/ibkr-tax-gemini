@@ -5,22 +5,41 @@ Defines how the app retrieves and presents market prices with clear currency, fr
 ## ADDED Requirements
 
 ### Requirement: Retrieve prices for held instruments
-The app SHALL retrieve the latest available price for held instruments when the overview opens and when the user refreshes it. Before price integration is released, the selected provider SHALL be verified as licensed for the intended app distribution.
+The app SHALL retrieve the latest available price for held instruments in the supported price scope when the overview opens and when the user refreshes it. In the MVP, the supported scope is US-listed instruments held in USD; holdings outside the scope SHALL NOT be requested. Before price integration is released, the selected provider's terms SHALL be verified to permit a user's personal API key to be used from this client app.
 
 #### Scenario: Price refresh
 - **WHEN** the user opens the overview or refreshes prices
 - **THEN** the app requests and displays the latest available prices for held instruments
 
 #### Scenario: Provider not approved
-- **WHEN** the provider's distribution rights have not been verified
+- **WHEN** the provider's terms for use of a personal key from this app have not been verified
 - **THEN** the app does not enable that provider for release
 
+#### Scenario: Holding outside the price scope
+- **WHEN** a holding is not a USD holding of a US-listed instrument
+- **THEN** the app requests no price for it, shows its price as unavailable, and marks its currency subtotal incomplete
+
 ### Requirement: Minimize price-request data
-The app SHALL send only the instrument identifiers required to retrieve prices and SHALL NOT send quantities, account data, names, report contents, or other personal data.
+The app SHALL send only the instrument identifiers required to retrieve prices (the ticker symbol in the MVP) and the user's provider API key, and SHALL NOT send quantities, account data, names, report contents, or other personal data.
 
 #### Scenario: Price request content
 - **WHEN** the app requests market prices
-- **THEN** the request contains only the required instrument identifiers
+- **THEN** the request contains only the required instrument identifiers and the user's provider API key
+
+### Requirement: Use a user-supplied provider key
+The app SHALL NOT ship with a market-data provider API key. Price retrieval SHALL use an API key entered by the user, stored only in encrypted local storage protected by the device key, sent only to the provider, and never written to logs, diagnostics, or backups in plaintext.
+
+#### Scenario: No key configured
+- **WHEN** no provider API key has been entered
+- **THEN** the app makes no price requests, shows prices as unavailable, and offers to add a key in Settings
+
+#### Scenario: Key entered
+- **WHEN** the user enters a provider API key
+- **THEN** the app stores it encrypted and uses it for subsequent price requests
+
+#### Scenario: Key rejected
+- **WHEN** the provider rejects the API key
+- **THEN** the app informs the user and shows only stale last-known prices or an unavailable state
 
 ### Requirement: Show quote currency and freshness
 The app SHALL show the currency and retrieval time for each price. During market hours, a price older than 15 minutes SHALL be marked stale. Outside market hours, the last available close MAY be shown as the latest close, but SHALL NOT be described as a live price. Values SHALL remain in their quote currency without FX conversion.

@@ -21,12 +21,13 @@
 
 ## 4. Market prices
 
-- [ ] 4.1 Select a provider and verify its licensing permits the intended distribution and its request path sends only required instrument identifiers.
-- [ ] 4.2 Implement price retrieval and local timestamped caching and verify refresh behavior, quote currency, and the 15-minute market-hours freshness rule.
-- [ ] 4.3 Add stale, unavailable, and offline states and verify the UI never presents an old quote as current.
+- [ ] 4.1 Confirm Finnhub's terms permit a user's personal API key to be used from this client app, and verify requests send only the ticker symbol and the key.
+- [ ] 4.2 Implement the Finnhub adapter for USD holdings of US-listed instruments with local timestamped caching, and verify refresh behavior, quote currency, and the 15-minute market-hours freshness rule.
+- [ ] 4.3 Add stale, unavailable, offline, and out-of-scope states and verify the UI never presents an old quote as current.
+- [ ] 4.4 Add encrypted storage and a Settings field for the user's provider API key, and verify no key ships in the app, the key never appears in logs or plaintext storage, and no price requests are made without a key.
 
 ## 5. Integration and documentation
 
 - [ ] 5.1 Run import, backup, portfolio, and price acceptance cases on an Android emulator and an iOS simulator and verify matching observable behavior.
 - [ ] 5.2 Verify hardware-backed key protection, biometric auto-lock/reveal, screenshot and app-switcher protection, and integrity checks on one physical Android device and one physical iOS device, and record the results before release.
-- [ ] 5.3 Update user-facing project documentation with supported report format, informational-only scope, privacy behavior, and currency limitations and verify it matches the approved specs.
+- [ ] 5.3 Update user-facing project documentation with supported report format, informational-only scope, privacy behavior, currency limitations, price scope, and API key setup and verify it matches the approved specs.
