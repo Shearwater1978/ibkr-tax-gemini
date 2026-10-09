@@ -30,7 +30,8 @@ sealed interface PriceResult {
     /** Symbols the provider does not know are simply absent from [quotes]. */
     data class Success(val quotes: Map<String, Quote>) : PriceResult
 
-    data class Failure(val reason: PriceFailure) : PriceResult
+    /** [partial] holds the quotes received before the failure; they are still valid. */
+    data class Failure(val reason: PriceFailure, val partial: Map<String, Quote> = emptyMap()) : PriceResult
 }
 
 enum class PriceFailure {

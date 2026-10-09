@@ -161,12 +161,88 @@ class PricesTest {
 
     @Test
     fun failedRefreshKeepsTheLastKnownPriceAsStale() = runBlocking {
-        val cache = MemoryCache().apply { putAll(listOf(Quote("AAPL", BigDecimal("190"), "USD", marketOpen, marketOpen))) }
+        val earlier = marketOpen.minusSeconds(600)
+        val cache = MemoryCache().apply { putAll(listOf(Quote("AAPL", BigDecimal("190"), "USD", earlier, earlier))) }
         val provider = FakeMarketDataProvider().apply { failure = PriceFailure.OFFLINE }
         val service = PriceService(MemoryKeys("k"), cache, { provider }, Clock.fixed(marketOpen, ZoneOffset.UTC))
 
         val outcome = service.refresh(holdings)
-        assertEquals(RefreshOutcome.Failed(PriceFailure.OFFLINE), outcome)
+        assertEquals(RefreshOutcome.Failed(PriceFailure.OFFLINE, marketOpen), outcome)
         assertEquals(PriceFreshness.STALE, service.prices(holdings, outcome).getValue("AAPL").freshness)
+    }
+
+    // --- Rate limit and partial refreshes ---
+
+    @Test
+    fun rateLimiterWaitsOnceTheWindowIsFull() = runBlocking {
+        var now = marketOpen
+        val clock = object : Clock() {
+            override fun instant() = now
+            override fun getZone() = ZoneOffset.UTC
+            override fun withZone(zone: java.time.ZoneId?) = this
+        }
+        val waits = mutableListOf<java.time.Duration>()
+        val limiter = RateLimiter(2, java.time.Duration.ofMinutes(1), clock) { waits += it; now = now.plus(it) }
+
+        limiter.acquire()
+        now = now.plusSeconds(10)
+        limiter.acquire()
+        limiter.acquire() // third call must wait until the first leaves the window
+
+        assertEquals(listOf(java.time.Duration.ofSeconds(50)), waits)
+    }
+
+    @Test
+    fun rateLimitKeepsTheQuotesAlreadyReceived() = runBlocking {
+        val transport = RecordingTransport { url ->
+            if (url.endsWith("AAPL")) quoteJson("190.1", marketOpen.epochSecond) else HttpResponse(429, "{}")
+        }
+        val result = FinnhubProvider("k", transport).latestQuotes(setOf("AAPL", "MSFT"))
+
+        result as PriceResult.Failure
+        assertEquals(PriceFailure.RATE_LIMITED, result.reason)
+        assertEquals(setOf("AAPL"), result.partial.keys)
+    }
+
+    @Test
+    fun afterAPartialRefreshOnlyQuotesItDidNotUpdateAreStale() = runBlocking {
+        val earlier = marketOpen.minusSeconds(600)
+        val cache = MemoryCache().apply { putAll(listOf(Quote("MSFT", BigDecimal("400"), "USD", earlier, earlier))) }
+        val fresh = Quote("AAPL", BigDecimal("190"), "USD", marketOpen, marketOpen)
+        val provider = object : MarketDataProvider {
+            override suspend fun latestQuotes(symbols: Set<String>) =
+                PriceResult.Failure(PriceFailure.RATE_LIMITED, mapOf("AAPL" to fresh))
+        }
+        val both = holdings + holding("MSFT", "USD")
+        val service = PriceService(MemoryKeys("k"), cache, { provider }, Clock.fixed(marketOpen, ZoneOffset.UTC))
+
+        val outcome = service.refresh(both)
+        val prices = service.prices(both, outcome)
+        assertEquals(PriceFreshness.LIVE, prices.getValue("AAPL").freshness)
+        assertEquals(PriceFreshness.STALE, prices.getValue("MSFT").freshness)
+    }
+
+    @Test
+    fun refreshSkipsJustFetchedQuotesAndClosesWhileTheMarketIsClosed() = runBlocking {
+        val sessionClose = Instant.parse("2024-01-03T21:00:00Z")
+        val cache = MemoryCache().apply {
+            putAll(listOf(Quote("AAPL", BigDecimal("190"), "USD", sessionClose, sessionClose.plusSeconds(60))))
+        }
+        val provider = FakeMarketDataProvider()
+
+        // Evening: AAPL already has the closing price, so nothing is requested.
+        PriceService(MemoryKeys("k"), cache, { provider }, Clock.fixed(afterClose, ZoneOffset.UTC)).refresh(holdings)
+        assertTrue(provider.requests.isEmpty())
+
+        // Market hours, quote fetched 30 seconds ago: skipped as well.
+        cache.putAll(listOf(Quote("AAPL", BigDecimal("191"), "USD", marketOpen, marketOpen)))
+        PriceService(MemoryKeys("k"), cache, { provider }, Clock.fixed(marketOpen.plusSeconds(30), ZoneOffset.UTC)).refresh(holdings)
+        assertTrue(provider.requests.isEmpty())
+    }
+
+    @Test
+    fun anIntradayQuoteSeenAfterTheCloseIsStaleNotTheClose() {
+        val intraday = Instant.parse("2024-01-03T20:50:00Z") // 15:50 New York
+        assertEquals(PriceFreshness.STALE, PriceFreshnessRules.classify(intraday, afterClose, false))
     }
 }

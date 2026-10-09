@@ -7,6 +7,7 @@ import com.ibkrtax.mobile.fx.FxService
 import com.ibkrtax.mobile.fx.NbpClient
 import com.ibkrtax.mobile.prices.FinnhubProvider
 import com.ibkrtax.mobile.prices.PriceService
+import com.ibkrtax.mobile.prices.RateLimiter
 import com.ibkrtax.mobile.security.DeviceKeys
 import com.ibkrtax.mobile.security.Pseudonymizer
 import com.ibkrtax.mobile.storage.EncryptedDatabase
@@ -32,7 +33,8 @@ class AppContainer(context: Context) {
     val portfolio: PortfolioRepository by lazy { PortfolioRepository(database) }
     val importHistory: ImportHistory by lazy { ImportHistory(database) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
-    val prices: PriceService by lazy { PriceService(priceStore, priceStore, { key -> FinnhubProvider(key) }) }
+    private val finnhubLimiter = RateLimiter.forFinnhubFreeTier()
+    val prices: PriceService by lazy { PriceService(priceStore, priceStore, { key -> FinnhubProvider(key, limiter = finnhubLimiter) }) }
     val fxStore: FxStore by lazy { FxStore(database) }
     val fx: FxService by lazy { FxService(NbpClient(), fxStore) }
 }

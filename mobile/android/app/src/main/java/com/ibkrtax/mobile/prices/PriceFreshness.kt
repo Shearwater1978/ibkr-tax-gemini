@@ -29,12 +29,12 @@ object UsMarketHours {
         return local.isWeekday() && !local.toLocalTime().isBefore(OPEN) && local.toLocalTime().isBefore(CLOSE)
     }
 
-    /** Start of the most recent session that has begun at [now]. */
-    fun lastSessionStart(now: Instant): Instant {
+    /** Close of the most recent session that has ended at [now]. */
+    fun lastSessionClose(now: Instant): Instant {
         var day = now.atZone(ZONE).toLocalDate()
         while (true) {
-            val start = day.atTime(OPEN).atZone(ZONE)
-            if (start.isWeekday() && !start.toInstant().isAfter(now)) return start.toInstant()
+            val close = day.atTime(CLOSE).atZone(ZONE)
+            if (close.isWeekday() && !close.toInstant().isAfter(now)) return close.toInstant()
             day = day.minusDays(1)
         }
     }
@@ -45,11 +45,14 @@ object UsMarketHours {
 object PriceFreshnessRules {
     val MAX_LIVE_AGE: Duration = Duration.ofMinutes(15)
 
+    /** A quote this close to the session end is treated as the closing price. */
+    private val CLOSE_TOLERANCE: Duration = Duration.ofMinutes(5)
+
     fun classify(quoteTime: Instant, now: Instant, lastRefreshFailed: Boolean): PriceFreshness = when {
         lastRefreshFailed -> PriceFreshness.STALE
         UsMarketHours.isOpen(now) ->
             if (Duration.between(quoteTime, now) <= MAX_LIVE_AGE) PriceFreshness.LIVE else PriceFreshness.STALE
-        !quoteTime.isBefore(UsMarketHours.lastSessionStart(now)) -> PriceFreshness.LATEST_CLOSE
+        !quoteTime.isBefore(UsMarketHours.lastSessionClose(now).minus(CLOSE_TOLERANCE)) -> PriceFreshness.LATEST_CLOSE
         else -> PriceFreshness.STALE
     }
 }
