@@ -2,7 +2,11 @@ package com.ibkrtax.mobile
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.sqlite.db.SupportSQLiteOpenHelper
+import com.ibkrtax.mobile.backup.BackupService
+import com.ibkrtax.mobile.backup.ReportStore
+import com.ibkrtax.mobile.backup.SafBackupFolder
 import com.ibkrtax.mobile.fx.FxService
 import com.ibkrtax.mobile.fx.NbpClient
 import com.ibkrtax.mobile.keys.BackupKeys
@@ -14,6 +18,7 @@ import com.ibkrtax.mobile.prices.RateLimiter
 import com.ibkrtax.mobile.security.AesGcmKeyWrapper
 import com.ibkrtax.mobile.security.DeviceKeys
 import com.ibkrtax.mobile.security.Pseudonymizer
+import com.ibkrtax.mobile.storage.BackupLocationStore
 import com.ibkrtax.mobile.storage.EncryptedDatabase
 import com.ibkrtax.mobile.storage.FxStore
 import com.ibkrtax.mobile.storage.ImportHistory
@@ -45,6 +50,22 @@ class AppContainer(context: Context) {
     fun finnhub(key: String): FinnhubProvider = FinnhubProvider(key, limiter = finnhubLimiter)
     val fxStore: FxStore by lazy { FxStore(database) }
     val fx: FxService by lazy { FxService(NbpClient(), fxStore) }
+    val backupLocation: BackupLocationStore by lazy { BackupLocationStore(database) }
+    val backup: BackupService by lazy {
+        BackupService(
+            dataKey = { backupKeys.dataKey() },
+            manifestJson = { backupKeys.manifestJson() },
+            folder = { backupLocation.get()?.let { SafBackupFolder(appContext, Uri.parse(it)) } },
+            reports = object : ReportStore {
+                override fun import(bytes: ByteArray, backupFile: String) = importer.import(bytes, backupFile)
+
+                override fun pendingBackups() = importer.pendingBackups()
+
+                override fun markBackedUp(backupFile: String) = importer.markBackedUp(backupFile)
+            },
+            pendingDir = File(appContext.noBackupFilesDir, "pending-backups"),
+        )
+    }
     val backupKeys: BackupKeys by lazy {
         BackupKeys(
             LocalKeyFiles(File(appContext.noBackupFilesDir, "backup-keys"), AesGcmKeyWrapper { DeviceKeys.aesWrappingKey(DeviceKeys.BACKUP_DATA_KEY_WRAP_ALIAS) }),

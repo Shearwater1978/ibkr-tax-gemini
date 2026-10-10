@@ -14,8 +14,26 @@
 
     <string name="imports_title">Report imports</string>
     <string name="imports_supported_format">Supported format: IBKR Activity Flex Query CSV.</string>
-    <string name="imports_unavailable_keys">Import needs working backups first. Step 1: set up backup encryption in Settings. Step 2, choosing a backup folder, comes in the next app version.</string>
-    <string name="imports_unavailable_folder">Backup encryption is set up. Import also needs a backup folder, which comes in the next app version.</string>
+    <string name="imports_unavailable_keys">Import needs working backups first. In Settings: 1. set up backup encryption, 2. choose a backup folder.</string>
+    <string name="imports_unavailable_folder">Backup encryption is set up. Choose a backup folder in Settings to enable import.</string>
+    <string name="importing">Importing…</string>
+    <string name="import_done">Imported: %1$d new records, %2$d already present. Encrypted backup saved and verified.</string>
+    <string name="import_done_pending">Imported: %1$d new records, %2$d already present. The backup folder is not reachable right now; the encrypted backup is kept on this phone and retried.</string>
+    <string name="import_done_access_lost">Imported: %1$d new records, %2$d already present. The app lost access to the backup folder: choose it again in Settings.</string>
+    <string name="import_already">This report was already imported. Nothing changed.</string>
+    <string name="import_not_ready">Set up backup encryption and a backup folder in Settings first.</string>
+    <string name="import_unsupported">This is not an IBKR Activity Flex Query CSV report. Nothing was imported.</string>
+    <string name="import_empty">The file is empty. Nothing was imported.</string>
+    <string name="import_malformed">The report could not be read (problem near line %1$d). Nothing was imported.</string>
+    <string name="import_invalid_record">The report contains an entry without date, ticker or currency, or of an unknown type. Nothing was imported.</string>
+    <string name="import_too_large">The file is larger than 20 MB, which is too big for an IBKR report. Nothing was imported.</string>
+    <string name="backup_status_done">Encrypted backup: saved</string>
+    <string name="backup_status_pending">Encrypted backup: pending</string>
+    <string name="backup_status_none">Encrypted backup: none (sample data)</string>
+    <string name="backup_pending_count">%1$d backup(s) waiting for the backup folder.</string>
+    <string name="backup_retry">Retry backup</string>
+    <string name="backup_retried">Backup retried: %1$d saved, %2$d still waiting.</string>
+    <string name="backup_access_lost">The app lost access to the backup folder. Choose it again in Settings.</string>
     <string name="imports_empty">No imports yet.</string>
 
     <string name="loading">Loading…</string>
@@ -96,6 +114,16 @@
     <string name="recovery_clip_label">IBKR Tax Assistant recovery code</string>
     <string name="recovery_copied">Copied. Paste it into your password manager now: the clipboard is cleared after 1 minute.</string>
     <string name="cancel">Cancel</string>
+
+    <string name="folder_title">Backup folder</string>
+    <string name="folder_body">Encrypted backups of your imported reports are saved in a folder you choose, for example in Google Drive. Only this app can read them, with your passphrase or recovery code.</string>
+    <string name="folder_choose">Choose backup folder</string>
+    <string name="folder_current">Backups go to: %1$s</string>
+    <string name="folder_local_only">This folder is only on this phone. If the phone is lost or reset, the backups are lost too. A folder in Google Drive or another cloud app is safer.</string>
+    <string name="folder_change">Choose another folder</string>
+    <string name="folder_change_hint">Existing backups stay in the old folder.</string>
+    <string name="folder_saved">Backup folder saved.</string>
+    <string name="folder_saved_no_keys">Backup folder saved. Set up backup encryption above to enable import.</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>

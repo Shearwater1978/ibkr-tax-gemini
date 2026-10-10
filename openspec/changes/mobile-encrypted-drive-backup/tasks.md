@@ -1,8 +1,8 @@
 ## 1. Backup location
-- [ ] 1.1 Let the user choose the backup folder with the system folder picker and persist the permission
-- [ ] 1.2 Warn when the chosen folder is local-only
-- [ ] 1.3 Detect lost folder access and ask the user to choose the folder again without losing local data
-- [ ] 1.4 Keep old backups when the user changes the folder, unless deletion is requested
+- [x] 1.1 Let the user choose the backup folder with the system folder picker and persist the permission
+- [x] 1.2 Warn when the chosen folder is local-only
+- [x] 1.3 Detect lost folder access and ask the user to choose the folder again without losing local data
+- [x] 1.4 Keep old backups when the user changes the folder, unless deletion is requested
 - [ ] 1.5 Implement the iOS equivalent (document picker with security-scoped bookmarks)
 
 ## 2. Key management
@@ -15,15 +15,15 @@
 - [x] 2.7 Let the user replace the recovery code after entering the passphrase
 
 ## 3. Report ingestion
-- [ ] 3.1 Implement file import via system document picker
+- [x] 3.1 Implement file import via system document picker
 - [ ] 3.2 Implement parser that runs without network access
-- [ ] 3.3 Ensure no copies of source files are kept outside the managed location
+- [x] 3.3 Ensure no copies of source files are kept outside the managed location
 
 ## 4. Encrypted backup
-- [ ] 4.1 Implement encrypted file format with versioned header
-- [ ] 4.2 Implement writing to the backup folder with retries
-- [ ] 4.3 Implement read-back verification (size and SHA-256)
-- [ ] 4.4 Delete original only after verification succeeds
+- [x] 4.1 Implement encrypted file format with versioned header
+- [ ] 4.2 Implement writing to the backup folder with retries _Status: writing done (Android); retries run when the Imports screen opens and on "Retry backup", without automatic exponential backoff yet._
+- [x] 4.3 Implement read-back verification (size and SHA-256)
+- [x] 4.4 Delete original only after verification succeeds
 - [ ] 4.5 Implement restore flow on new device
 - [ ] 4.6 Implement backup deletion in the backup folder
 

@@ -66,6 +66,8 @@ fun SettingsScreen() {
         Spacer(Modifier.height(24.dp))
         BackupEncryptionSettings()
         Spacer(Modifier.height(24.dp))
+        BackupFolderSettings()
+        Spacer(Modifier.height(24.dp))
         Text(stringResource(R.string.informational_notice), style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(16.dp))
         Text(

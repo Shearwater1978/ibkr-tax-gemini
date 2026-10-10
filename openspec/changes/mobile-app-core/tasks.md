@@ -2,7 +2,7 @@
 
 - [ ] 1.0 Document the development environment (Android Studio/SDK/emulator on Windows, Xcode/iOS Simulator on a Mac, minimum Android 10 and iOS 16, setup steps) and verify a new developer can follow it to run both app shells on an emulator and a simulator. _Status: Android documented in `mobile/README.md`; iOS postponed._
 - [ ] 1.1 Create Kotlin Android and Swift iOS app shells with matching navigation, targeting Android 10 (API 29) and iOS 16 minimums, and verify both build and launch on an emulator and a simulator. _Status: Android done and verified on an API 35 emulator; iOS shell written but not built (postponed)._
-- [ ] 1.2 Verify the required `mobile-encrypted-drive-backup` storage, key, pseudonymization, and backup capabilities are implemented and their security tests pass before enabling report import. _Status: Android Keystore storage, SQLCipher and pseudonymization done; Drive backup pending, so import stays disabled._
+- [ ] 1.2 Verify the required `mobile-encrypted-drive-backup` storage, key, pseudonymization, and backup capabilities are implemented and their security tests pass before enabling report import. _Status: Android: storage, keys, pseudonymization and folder backup are in place and import is enabled; restore follows (backup task 4.5). iOS postponed._
 - [ ] 1.3 Add platform parity test cases for privacy defaults, import states, and portfolio calculations and verify both clients use the same expected outcomes. _Status: Pending: iOS postponed._
 - [ ] 1.4 Add shared synthetic IBKR Flex Query CSV fixtures and mocked Drive and market-data services for automated tests, and verify the test suites need no real credentials, broker data, or network access. _Status: Shared fixtures and Android fakes done; iOS postponed._
 
@@ -11,7 +11,7 @@
 - [ ] 2.1 Implement on-device validation and parsing for IBKR Activity Flex Query CSV in both clients and verify synthetic fixtures cover supported rows, normalization, and malformed input. _Status: Android done (parity with the Python parser); iOS postponed._
 - [x] 2.2 Add atomic import and duplicate detection and verify unsupported, corrupted, and duplicate reports create no partial derived records.
 - [x] 2.3 Store derived records only in encrypted local storage, pseudonymize direct identifiers, and verify logs and diagnostics contain no raw identifiers or report contents.
-- [ ] 2.4 Back up encrypted reports to the user-chosen backup folder, verify the written file's size and SHA-256 before removing app-managed source copies, and verify offline or failed uploads retain protected data with a visible pending state. _Status: Pending: needs the backup folder and key management in `mobile-encrypted-drive-backup`._
+- [ ] 2.4 Back up encrypted reports to the user-chosen backup folder, verify the written file's size and SHA-256 before removing app-managed source copies, and verify offline or failed uploads retain protected data with a visible pending state. _Status: Android done: encrypted backup written to the chosen folder and verified by reading back; offline or lost access keeps the import and a pending backup. iOS postponed._
 
 ## 3. Portfolio overview
 

@@ -101,6 +101,12 @@ class BackupKeys(
         withContext(Dispatchers.IO) { files.saveManifest(pending.manifest) }
     }
 
+    /** The data key for encrypting backups, or null when backup encryption is not set up. */
+    fun dataKey(): ByteArray? = if (files.exists()) files.dataKey() else null
+
+    /** The manifest (wrapped keys only) to store next to the backups. */
+    fun manifestJson(): String? = files.manifest()?.toJson()
+
     /** Erasure: local key files and the Block Store copy. */
     suspend fun erase() {
         withContext(Dispatchers.IO) { files.delete() }
