@@ -95,7 +95,7 @@
 
     <string name="settings_title">Settings</string>
     <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>
-    <string name="settings_version">Version %1$s</string>
+    <string name="settings_version_full">Version %1$s · built %2$s UTC · %3$s</string>
     <string name="settings_prices_title">Market prices</string>
     <string name="settings_prices_body">Prices for US listings come from Finnhub, using your own free personal API key. The key is stored encrypted on this phone and sent only to Finnhub, together with ticker symbols. Without a key the app still works; prices are shown as unavailable.</string>
     <string name="key_guide_title">How to get a free key</string>
