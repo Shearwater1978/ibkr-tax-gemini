@@ -136,6 +136,15 @@ class KeyVault(
         return manifest.copy(passphraseSalt = salt, argon2 = argon2, passphraseWrappedKey = wrapped)
     }
 
+    /** A new recovery code and recovery wrap; the old code stops working, the passphrase wrap stays. */
+    fun replaceRecoveryCode(manifest: KeyManifest, dataKey: ByteArray): Pair<KeyManifest, String> {
+        verify(manifest, dataKey)
+        val code = RecoveryCode.generate(random)
+        val salt = randomBytes(SALT_BYTES)
+        val changed = manifest.copy(recoverySalt = salt, recoveryWrappedKey = wrap(recoveryKek(code, salt), dataKey, PURPOSE_RECOVERY))
+        return changed to code
+    }
+
     /** True when [dataKey] belongs to [manifest], e.g. a key retrieved from Block Store. */
     fun matches(manifest: KeyManifest, dataKey: ByteArray): Boolean =
         MessageDigest.isEqual(keyCheck(dataKey), manifest.keyCheck)

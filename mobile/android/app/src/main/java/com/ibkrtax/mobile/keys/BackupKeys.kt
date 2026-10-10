@@ -50,6 +50,9 @@ class PendingKeySetup internal constructor(internal val setup: KeySetup) {
     val recoveryCode: String get() = setup.recoveryCode
 }
 
+/** A replacement recovery code waiting for confirmation; nothing changes until it is confirmed. */
+class PendingRecoveryCode internal constructor(internal val manifest: KeyManifest, val recoveryCode: String)
+
 /**
  * Backup encryption keys on this device (mobile-encrypted-drive-backup tasks 2.2-2.6).
  * Argon2id is deliberately slow, so the work runs off the main thread.
@@ -83,6 +86,19 @@ class BackupKeys(
             vault.changePassphrase(manifest, dataKey, new)
         }
         withContext(Dispatchers.IO) { files.saveManifest(changed) }
+    }
+
+    /** Throws [WrongSecretException] when [passphrase] is wrong. The old code keeps working until [confirmRecoveryCode]. */
+    suspend fun prepareNewRecoveryCode(passphrase: CharArray): PendingRecoveryCode {
+        val manifest = withContext(Dispatchers.IO) { checkNotNull(files.manifest()) { "Backup encryption is not set up" } }
+        val (changed, code) = withContext(Dispatchers.Default) {
+            vault.replaceRecoveryCode(manifest, vault.unlockWithPassphrase(manifest, passphrase))
+        }
+        return PendingRecoveryCode(changed, code)
+    }
+
+    suspend fun confirmRecoveryCode(pending: PendingRecoveryCode) {
+        withContext(Dispatchers.IO) { files.saveManifest(pending.manifest) }
     }
 
     /** Erasure: local key files and the Block Store copy. */

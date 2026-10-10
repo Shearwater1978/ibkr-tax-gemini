@@ -89,6 +89,10 @@
     <string name="recovery_saved">I have written down the recovery code</string>
     <string name="recovery_done">Done</string>
     <string name="recovery_copy">Copy code</string>
+    <string name="recovery_new">Create new recovery code</string>
+    <string name="recovery_new_hint">Lost your recovery code or never saved it? Create a new one; your backups and passphrase stay the same.</string>
+    <string name="recovery_new_submit">Create code</string>
+    <string name="recovery_new_replaces">When you tap Done, this code replaces your previous one, which then stops working.</string>
     <string name="recovery_clip_label">IBKR Tax Assistant recovery code</string>
     <string name="recovery_copied">Copied. Paste it into your password manager now: the clipboard is cleared after 1 minute.</string>
     <string name="cancel">Cancel</string>

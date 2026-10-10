@@ -36,6 +36,23 @@ The recovery code SHALL be able to unwrap the data key independently of the pass
 - **WHEN** the user provides a valid recovery code on a new device
 - **THEN** the data key is unwrapped and backups become readable
 
+### Requirement: Replace the recovery code
+After the user enters the passphrase, the application SHALL let the user create a new recovery code. The new code SHALL be
+shown once and stored only after the user confirms it was saved; the previous code SHALL stop working. Backups and the
+passphrase SHALL NOT change.
+
+#### Scenario: New recovery code
+- **WHEN** the user enters the correct passphrase and confirms the new recovery code was saved
+- **THEN** the data key is re-wrapped with the new recovery code, the old code no longer unlocks it, and the passphrase still does
+
+#### Scenario: Wrong passphrase
+- **WHEN** the entered passphrase is wrong
+- **THEN** no new recovery code is created and the user is told the passphrase is wrong
+
+#### Scenario: Not confirmed
+- **WHEN** the user leaves before confirming the new code was saved
+- **THEN** the previous recovery code keeps working
+
 ### Requirement: Passphrase change without re-encryption
 Changing the backup passphrase SHALL re-wrap the data key only and SHALL NOT require re-encrypting all backup files.
 

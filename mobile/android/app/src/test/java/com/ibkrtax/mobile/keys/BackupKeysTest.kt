@@ -76,6 +76,24 @@ class BackupKeysTest {
     }
 
     @Test
+    fun newRecoveryCodeNeedsThePassphraseAndConfirmation() = runBlocking {
+        val keys = BackupKeys(files, FakeCloudCopy(available = false), vault)
+        val first = keys.prepare(passphrase)
+        keys.confirm(first)
+
+        assertThrows(WrongSecretException::class.java) { runBlocking { keys.prepareNewRecoveryCode("wrong passphrase!".toCharArray()) } }
+        val pending = keys.prepareNewRecoveryCode(passphrase)
+        // Not confirmed yet: the old code still works.
+        assertArrayEquals(files.dataKey(), vault.unlockWithRecoveryCode(files.manifest()!!, first.recoveryCode))
+
+        keys.confirmRecoveryCode(pending)
+
+        assertArrayEquals(files.dataKey(), vault.unlockWithRecoveryCode(files.manifest()!!, pending.recoveryCode))
+        assertThrows(WrongSecretException::class.java) { vault.unlockWithRecoveryCode(files.manifest()!!, first.recoveryCode) }
+        assertArrayEquals(files.dataKey(), vault.unlockWithPassphrase(files.manifest()!!, passphrase))
+    }
+
+    @Test
     fun eraseRemovesLocalKeysAndTheBlockStoreCopy() = runBlocking {
         val cloud = FakeCloudCopy(available = true)
         val keys = BackupKeys(files, cloud, vault)
