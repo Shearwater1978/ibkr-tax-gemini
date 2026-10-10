@@ -17,7 +17,7 @@
 
 - [x] 3.1 Aggregate holdings using the established instrument identity, FIFO open-lot, and corporate-action rules and verify quantities and average prices with synthetic cases.
 - [x] 3.2 Add currency-specific holding values, account masking, and empty states, and verify rows never convert between currencies.
-- [x] 3.3 Label the overview informational and verify neither client offers PIT-38 calculation or tax-report export in this MVP.
+- [x] 3.3 Verify neither client offers PIT-38 calculation or tax-report export in this MVP.
 
 ## 4. Market prices
 
@@ -45,3 +45,4 @@
 - [x] 7.1 Import several reports at once, each on its own, with a per-file result and masked file names.
 - [x] 7.2 Delete one import after confirmation, keeping records that other imports also contain, and delete its backup file.
 - [x] 7.3 Delete all imports after entering the passphrase, and delete their backup files.
+- [x] 7.4 Remove the account list from the overview and the standing tax/PIT-38 notice from all screens.
