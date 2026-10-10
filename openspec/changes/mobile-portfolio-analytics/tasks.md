@@ -17,8 +17,8 @@
 
 ## 4. USD view (PR 4)
 
-- [ ] 4.1 Move the cross-rate conversion into a shared converter used by the header and rows, and verify existing header-total tests still pass and new tests cover row conversion and missing rates.
-- [ ] 4.2 Add the remembered "Own currency / USD" switch with approximate labels and USD-based sorting, and verify on the emulator with a EUR and a USD synthetic position.
+- [x] 4.1 Move the cross-rate conversion into a shared converter used by the header and rows, and verify existing header-total tests still pass and new tests cover row conversion and missing rates.
+- [x] 4.2 Add the remembered "Own currency / USD" switch with approximate labels and USD-based sorting, and verify on the emulator with a EUR and a USD synthetic position.
 
 ## 5. Top movers (PR 5)
 

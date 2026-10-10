@@ -90,6 +90,13 @@ private fun signColorOf(value: BigDecimal?): Color = when (value?.signum()) {
 object UiPreferences {
     private const val FILE = "ui"
     private const val SHOW_SOLD = "show_sold_positions"
+    private const val USD_VIEW = "usd_view"
+
+    fun usdView(context: Context): Boolean = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(USD_VIEW, false)
+
+    fun setUsdView(context: Context, value: Boolean) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(USD_VIEW, value).apply()
+    }
 
     fun showSold(context: Context): Boolean = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(SHOW_SOLD, false)
 
