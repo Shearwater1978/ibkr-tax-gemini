@@ -22,6 +22,7 @@ import com.ibkrtax.mobile.security.Pseudonymizer
 import com.ibkrtax.mobile.storage.BackupLocationStore
 import com.ibkrtax.mobile.storage.EncryptedDatabase
 import com.ibkrtax.mobile.storage.FxStore
+import com.ibkrtax.mobile.storage.DividendEvents
 import com.ibkrtax.mobile.storage.ImportHistory
 import com.ibkrtax.mobile.storage.OperationsRepository
 import com.ibkrtax.mobile.storage.PortfolioRepository
@@ -46,6 +47,7 @@ class AppContainer(context: Context) {
     val portfolio: PortfolioRepository by lazy { PortfolioRepository(database) }
     val importHistory: ImportHistory by lazy { ImportHistory(database) }
     val operations: OperationsRepository by lazy { OperationsRepository(database) }
+    val dividendEvents: DividendEvents by lazy { DividendEvents(database) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
     private val finnhubLimiter = RateLimiter.forFinnhubFreeTier()
     private val yahooLimiter = RateLimiter(maxCalls = 30, window = Duration.ofMinutes(1))

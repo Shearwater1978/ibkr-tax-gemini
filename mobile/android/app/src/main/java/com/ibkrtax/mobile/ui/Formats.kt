@@ -23,6 +23,17 @@ object Formats {
     fun signedPercent(value: BigDecimal, locale: Locale = Locale.getDefault()): String =
         (if (value.signum() > 0) "+" else "") + number(value, 2, 2, locale) + "%"
 
+    /** Short chart labels: "0.5", "87", "1.2k", "15k". */
+    fun compact(value: BigDecimal, locale: Locale = Locale.getDefault()): String {
+        val abs = value.abs()
+        return when {
+            abs < BigDecimal.TEN -> number(value, 0, 1, locale)
+            abs < BigDecimal(1_000) -> number(value, 0, 0, locale)
+            abs < BigDecimal(10_000) -> number(value.movePointLeft(3), 0, 1, locale) + "k"
+            else -> number(value.movePointLeft(3), 0, 0, locale) + "k"
+        }
+    }
+
     fun number(value: BigDecimal, minFraction: Int, maxFraction: Int, locale: Locale = Locale.getDefault()): String =
         NumberFormat.getNumberInstance(locale).apply {
             minimumFractionDigits = minFraction

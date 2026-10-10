@@ -5,9 +5,9 @@
 
 ## 2. Dividends (PR 2)
 
-- [ ] 2.1 Implement dividend aggregation by month, year and position (gross, withholding tax, net per currency, approximate USD totals with incomplete marking) and verify with unit tests, including a tax correction dated in a later month and a missing rate.
-- [ ] 2.2 Add a Canvas bar chart composable with per-bar accessibility labels and verify a Compose UI test reads the month values.
-- [ ] 2.3 Add the Dividends tab (year selector, monthly chart, three-year comparison, per-position list, empty state, covered months) and verify on the emulator with synthetic reports spanning two years.
+- [x] 2.1 Implement dividend aggregation by month, year and position (gross, withholding tax, net per currency, approximate USD totals with incomplete marking) and verify with unit tests, including a tax correction dated in a later month and a missing rate.
+- [x] 2.2 Add a Canvas bar chart composable with per-bar accessibility labels and verify on the emulator that the accessibility tree (uiautomator) reads the month values.
+- [x] 2.3 Add the Dividends tab (year selector, monthly chart, three-year comparison, per-position list, empty state, covered months) and verify on the emulator with synthetic reports spanning two years.
 
 ## 3. Position performance (PR 3)
 
