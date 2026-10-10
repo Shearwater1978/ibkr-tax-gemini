@@ -49,3 +49,24 @@ The data key SHALL NOT be written to disk, logs, or the backup folder in plainte
 #### Scenario: Manifest inspection
 - **WHEN** the backup manifest is inspected
 - **THEN** it contains only the wrapped data key, KDF parameters, and salt
+
+### Requirement: Automatic key restore with Android Block Store
+The application SHALL store the data key in Android Block Store with cloud backup only when Block Store reports that
+end-to-end encryption is available. On a new device restored from the user's Android backup, the application SHALL use
+that key to restore without asking for the passphrase. The passphrase and recovery code SHALL remain available as fallback.
+
+#### Scenario: New phone restored from the Android backup
+- **WHEN** the user restores a new phone from their Android backup and opens the application
+- **THEN** the data key is retrieved from Block Store, checked against the backup manifest, and used without a passphrase
+
+#### Scenario: End-to-end encryption unavailable
+- **WHEN** Block Store reports that end-to-end encryption is not available, for example because the device has no screen lock
+- **THEN** the data key is not stored in Block Store and restore requires the passphrase or recovery code
+
+#### Scenario: Key not found
+- **WHEN** no data key is found in Block Store, for example on a phone set up as new or on another platform
+- **THEN** the application asks for the passphrase or recovery code
+
+#### Scenario: Erasure
+- **WHEN** the user erases all data
+- **THEN** the data key is also deleted from Block Store

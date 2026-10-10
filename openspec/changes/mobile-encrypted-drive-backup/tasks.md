@@ -11,6 +11,7 @@
 - [ ] 2.3 Implement recovery code generation and display-once flow
 - [ ] 2.4 Implement DK wrapping and unwrapping
 - [ ] 2.5 Implement passphrase change with re-wrap
+- [ ] 2.6 Store DK in Android Block Store when end-to-end encryption is available and use it to restore on a new device; fall back to passphrase or recovery code
 
 ## 3. Report ingestion
 - [ ] 3.1 Implement file import via system document picker
