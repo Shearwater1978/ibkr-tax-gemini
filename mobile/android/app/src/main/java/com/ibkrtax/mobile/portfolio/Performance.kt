@@ -1,6 +1,7 @@
 package com.ibkrtax.mobile.portfolio
 
 import com.ibkrtax.mobile.fx.FxRates
+import com.ibkrtax.mobile.fx.UsdConverter
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -129,7 +130,7 @@ object Performance {
         private var complete = true
 
         fun add(amount: BigDecimal?, currency: String) {
-            val usd = amount?.let { if (currency == "USD") it else rates?.toUsd(it, currency) }
+            val usd = amount?.let { UsdConverter.toUsd(it, currency, rates) }
             if (usd == null) complete = false else sum = sum.add(usd, PY)
         }
 

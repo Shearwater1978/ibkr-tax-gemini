@@ -1,6 +1,7 @@
 package com.ibkrtax.mobile.portfolio
 
 import com.ibkrtax.mobile.fx.FxRates
+import com.ibkrtax.mobile.fx.UsdConverter
 import com.ibkrtax.mobile.prices.PriceFreshness
 import com.ibkrtax.mobile.prices.PriceScope
 import com.ibkrtax.mobile.prices.PricedQuote
@@ -23,6 +24,10 @@ data class PositionRow(
     val dailyPnl: BigDecimal?,
     /** Market value minus FIFO cost. */
     val unrealizedPnl: BigDecimal?,
+    /** Currency the amounts above are in: the holding's own, or USD in the USD view. */
+    val displayCurrency: String = holding.currency,
+    /** USD view only: no NBP rate for the holding's currency, so the amounts are unavailable. */
+    val rateMissing: Boolean = false,
 ) {
     val ticker: String get() = holding.ticker
     val currency: String get() = holding.currency
@@ -84,9 +89,33 @@ object MainPage {
         )
     }
 
+    /**
+     * The same rows with every amount in USD at NBP cross rates (mobile-usd-view spec). USD rows are
+     * returned as they are; rows whose currency has no rate keep only quantity and percentages.
+     * Sorting the result sorts by the USD values.
+     */
+    fun inUsd(rows: List<PositionRow>, rates: FxRates?): List<PositionRow> = rows.map { row ->
+        if (row.currency == UsdConverter.USD) return@map row
+        fun usd(value: BigDecimal?) = value?.let { UsdConverter.toUsd(it, row.currency, rates) }
+        val rateMissing = usd(BigDecimal.ONE) == null
+        row.copy(
+            price = row.price?.let { priced ->
+                usd(priced.quote.price)?.let { price ->
+                    priced.copy(quote = priced.quote.copy(price = price, currency = UsdConverter.USD, previousClose = usd(priced.quote.previousClose)))
+                }
+            },
+            cost = usd(row.cost) ?: BigDecimal.ZERO,
+            marketValue = usd(row.marketValue),
+            dailyChange = usd(row.dailyChange),
+            dailyPnl = usd(row.dailyPnl),
+            unrealizedPnl = usd(row.unrealizedPnl),
+            displayCurrency = UsdConverter.USD,
+            rateMissing = rateMissing,
+        )
+    }
+
     fun usdTotals(rows: List<PositionRow>, rates: FxRates?): UsdTotals {
-        fun toUsd(amount: BigDecimal, currency: String): BigDecimal? =
-            if (currency == "USD") amount else rates?.toUsd(amount, currency)
+        fun toUsd(amount: BigDecimal, currency: String): BigDecimal? = UsdConverter.toUsd(amount, currency, rates)
 
         var value = BigDecimal.ZERO
         var daily = BigDecimal.ZERO

@@ -126,6 +126,11 @@
     <string name="price_unavailable_short">no price</string>
     <string name="price_out_of_scope_short">not covered</string>
     <string name="price_close_short">close</string>
+    <string name="price_no_rate_short">no rate</string>
+    <string name="view_own_currency">Own currency</string>
+    <string name="view_usd">USD</string>
+    <string name="usd_view_note">Converted to USD, approximate (NBP rates of %1$s).</string>
+    <string name="usd_view_no_rates">No NBP rates yet: non-USD values are unavailable until the rates load.</string>
     <string name="price_stale_short">stale</string>
     <string name="prices_refresh">Refresh prices</string>
     <string name="prices_refreshing">Refreshing prices…</string>

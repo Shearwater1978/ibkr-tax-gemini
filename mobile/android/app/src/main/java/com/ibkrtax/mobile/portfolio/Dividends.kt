@@ -1,6 +1,7 @@
 package com.ibkrtax.mobile.portfolio
 
 import com.ibkrtax.mobile.fx.FxRates
+import com.ibkrtax.mobile.fx.UsdConverter
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -115,8 +116,7 @@ object Dividends {
 
     private fun BigDecimal.cents(): BigDecimal = setScale(2, RoundingMode.HALF_EVEN)
 
-    private fun toUsd(amount: BigDecimal, currency: String, rates: FxRates?): BigDecimal? =
-        if (currency == USD) amount else rates?.toUsd(amount, currency)
+    private fun toUsd(amount: BigDecimal, currency: String, rates: FxRates?): BigDecimal? = UsdConverter.toUsd(amount, currency, rates)
 }
 
 private val PY = MathContext(28, RoundingMode.HALF_EVEN)

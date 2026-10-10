@@ -31,6 +31,64 @@ class MainPageTest {
     private val prices = mapOf("AAPL" to priced("AAPL", "190", "185"), "MSFT" to priced("MSFT", "400", "410"))
     private val rates = FxRates("2026-10-08", mapOf("USD" to BigDecimal("4.0"), "EUR" to BigDecimal("4.4")))
 
+    /** A EUR row with a price, as it will look once EU prices exist (1 EUR = 1.1 USD with [rates]). */
+    private fun pricedSapRow(): PositionRow {
+        val row = MainPage.rows(listOf(sap), emptyMap()).single()
+        val quote = PricedQuote(Quote("SAP", BigDecimal("70"), "EUR", Instant.EPOCH, Instant.EPOCH, BigDecimal("68")), PriceFreshness.LATEST_CLOSE)
+        return row.copy(
+            price = quote,
+            marketValue = BigDecimal("350"),
+            dailyChange = BigDecimal("2"),
+            dailyChangePercent = BigDecimal("2.94"),
+            dailyPnl = BigDecimal("10"),
+            unrealizedPnl = BigDecimal("50"),
+        )
+    }
+
+    @Test
+    fun usdViewConvertsEveryAmountAndKeepsPercentagesAndQuantity() {
+        val eur = MainPage.inUsd(listOf(pricedSapRow()), rates).single()
+
+        assertEquals("USD", eur.displayCurrency)
+        assertEquals("EUR", eur.currency)
+        assertFalse(eur.rateMissing)
+        assertDecimal("77", eur.price!!.quote.price)
+        assertDecimal("74.8", eur.price!!.quote.previousClose)
+        assertDecimal("385", eur.marketValue)
+        assertDecimal("330", eur.cost)
+        assertDecimal("2.2", eur.dailyChange)
+        assertDecimal("11", eur.dailyPnl)
+        assertDecimal("55", eur.unrealizedPnl)
+        assertDecimal("2.94", eur.dailyChangePercent)
+        assertDecimal("5", eur.holding.quantity)
+    }
+
+    @Test
+    fun usdViewLeavesUsdRowsAloneAndMarksMissingRates() {
+        val usdRow = MainPage.rows(listOf(aapl), prices).single()
+        assertTrue(MainPage.inUsd(listOf(usdRow), rates).single() === usdRow)
+
+        val noRate = MainPage.inUsd(listOf(pricedSapRow()), FxRates("2026-10-08", mapOf("USD" to BigDecimal("4.0")))).single()
+        assertTrue(noRate.rateMissing)
+        assertNull(noRate.price)
+        assertNull(noRate.marketValue)
+        assertNull(noRate.unrealizedPnl)
+        assertTrue(MainPage.inUsd(listOf(pricedSapRow()), null).single().rateMissing)
+    }
+
+    @Test
+    fun usdViewSortsByUsdValuesWithUnavailableLast() {
+        // 5 SAP: unrealized 50 EUR = 55 USD; MSFT: 2 × (400 − 300) = 200 USD; AAPL 400 USD; a EUR row without a rate goes last.
+        val rows = MainPage.rows(listOf(aapl, msft), prices) + pricedSapRow()
+        val inUsd = MainPage.inUsd(rows, rates)
+        val ascending = MainPage.sorted(inUsd, SortOrder(SortColumn.PNL, descending = false), PnlMode.UNREALIZED)
+        assertEquals(listOf("SAP", "MSFT", "AAPL"), ascending.map { it.ticker })
+
+        val withoutRate = MainPage.inUsd(rows, FxRates("2026-10-08", mapOf("USD" to BigDecimal("4.0"))))
+        val descending = MainPage.sorted(withoutRate, SortOrder(SortColumn.PNL, descending = true), PnlMode.UNREALIZED)
+        assertEquals(listOf("AAPL", "MSFT", "SAP"), descending.map { it.ticker })
+    }
+
     @Test
     fun rowsCarryDailyAndUnrealizedPnlInTheirOwnCurrency() {
         val rows = MainPage.rows(listOf(aapl, sap), prices, mapOf(("AAPL" to "US0378331005") to "NASDAQ"))

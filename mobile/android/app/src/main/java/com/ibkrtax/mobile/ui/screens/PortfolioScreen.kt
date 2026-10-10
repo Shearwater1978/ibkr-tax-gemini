@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.appContainer
+import com.ibkrtax.mobile.fx.FxRates
 import com.ibkrtax.mobile.portfolio.MainPage
 import com.ibkrtax.mobile.portfolio.Performance
 import com.ibkrtax.mobile.portfolio.PnlMode
@@ -84,6 +85,7 @@ sealed interface PortfolioUiState {
         /** Held positions (same order as [rows]) followed by fully sold ones. */
         val performance: List<PositionPerformance>,
         val summary: PortfolioSummary,
+        val rates: FxRates?,
         val prices: RefreshOutcome?,
         val priceSource: PriceSource,
     ) : PortfolioUiState
@@ -113,6 +115,7 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
                         totals = MainPage.usdTotals(rows, rates),
                         performance = performance,
                         summary = Performance.summary(performance, dividends, rates, LocalDate.now()),
+                        rates = rates,
                         prices = prices,
                         priceSource = container.prices.source(),
                     )
@@ -197,8 +200,9 @@ private fun signColor(value: BigDecimal?): Color =
 private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
     var sort by remember { mutableStateOf(SortOrder()) }
     var mode by rememberSaveable { mutableStateOf(PnlMode.DAILY) }
-    val rows = MainPage.sorted(state.rows, sort, mode)
     val context = LocalContext.current
+    var usdView by remember { mutableStateOf(UiPreferences.usdView(context)) }
+    val rows = MainPage.sorted(if (usdView) MainPage.inUsd(state.rows, state.rates) else state.rows, sort, mode)
     var showSold by remember { mutableStateOf(UiPreferences.showSold(context)) }
     var details by remember { mutableStateOf<PositionPerformance?>(null) }
     val sold = state.performance.filter { it.isSold }
@@ -220,10 +224,34 @@ private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?
                 }
             }
         }
+        item {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                listOf(false, true).forEachIndexed { index, usd ->
+                    SegmentedButton(
+                        selected = usdView == usd,
+                        onClick = {
+                            usdView = usd
+                            UiPreferences.setUsdView(context, usd)
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(index, 2),
+                    ) {
+                        Text(stringResource(if (usd) R.string.view_usd else R.string.view_own_currency))
+                    }
+                }
+            }
+            if (usdView) {
+                val date = state.rates?.effectiveDate
+                Text(
+                    if (date != null) stringResource(R.string.usd_view_note, date) else stringResource(R.string.usd_view_no_rates),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
         item { ColumnHeaders(sort, onSort = { sort = sort.select(it) }) }
         if (rows.isEmpty()) item { Text(stringResource(R.string.portfolio_no_holdings), modifier = Modifier.padding(vertical = 16.dp)) }
         items(rows, key = { "${it.ticker}-${it.holding.isin}-${it.currency}" }) { row ->
-            PositionLine(row, mode, onClick = { details = state.performance.firstOrNull { it.row === row } })
+            // Rows in the USD view are converted copies; the holding identifies the position.
+            PositionLine(row, mode, onClick = { details = state.performance.firstOrNull { it.row?.holding === row.holding } })
         }
         if (sold.isNotEmpty()) {
             item {
@@ -377,13 +405,18 @@ private fun PositionLine(row: PositionRow, mode: PnlMode, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1.5f)) {
             Text(row.ticker, fontWeight = FontWeight.Bold)
-            Text(listOf(row.listingExchange, row.currency).filter { it.isNotEmpty() }.joinToString(" · "), style = muted)
+            Text(listOf(row.listingExchange, row.displayCurrency).filter { it.isNotEmpty() }.joinToString(" · "), style = muted)
         }
         Column(modifier = Modifier.weight(1.1f), horizontalAlignment = Alignment.End) {
             val price = row.price
             if (price == null) {
                 Text("—")
-                Text(stringResource(if (row.inPriceScope) R.string.price_unavailable_short else R.string.price_out_of_scope_short), style = muted)
+                val reason = when {
+                    !row.inPriceScope -> R.string.price_out_of_scope_short
+                    row.rateMissing -> R.string.price_no_rate_short
+                    else -> R.string.price_unavailable_short
+                }
+                Text(stringResource(reason), style = muted)
             } else {
                 Text(Formats.number(price.quote.price, 2, 4))
                 when (price.freshness) {
