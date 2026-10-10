@@ -55,7 +55,7 @@ class AppContainer(context: Context) {
         BackupService(
             dataKey = { backupKeys.dataKey() },
             manifestJson = { backupKeys.manifestJson() },
-            folder = { backupLocation.get()?.let { SafBackupFolder(appContext, Uri.parse(it)) } },
+            folder = { backupLocation.get()?.let { SafBackupFolder(appContext, Uri.parse(it.treeUri), it.subfolder) } },
             reports = object : ReportStore {
                 override fun import(bytes: ByteArray, backupFile: String) = importer.import(bytes, backupFile)
 

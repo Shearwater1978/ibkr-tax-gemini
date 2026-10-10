@@ -40,7 +40,9 @@ Google Drive, another cloud storage app, or on the device. This needs no Google 
 client, consent screen, or token storage, and the app itself makes no backup network requests: the
 storage app syncs the files. Files are visible to the user, so they carry random, neutral names and
 contain only ciphertext and the wrapped data key. A write is verified by reading it back. On a new
-device the user picks the same folder to restore. (Replaces the earlier `drive.appdata` design after
+device the user picks the same folder to restore. Settings offers two locations, "This phone" and "Google Drive";
+the picker opens in Documents for the phone option, the app creates its own "IBKR Tax Assistant backups"
+subfolder in the confirmed folder, and it rejects a pick whose storage provider does not match the chosen option. (Replaces the earlier `drive.appdata` design after
 Google Cloud access was unavailable; it also works with any provider.)
 
 ## Decision 6: Encrypted file format

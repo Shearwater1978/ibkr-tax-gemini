@@ -1,13 +1,27 @@
 ## ADDED Requirements
 
 ### Requirement: Choose the backup folder
-The application SHALL let the user choose a backup folder once through the system folder picker and SHALL keep
-permission for that folder only. The application SHALL NOT require a Google Cloud project, OAuth client, or account
-sign-in of its own for backups.
+The application SHALL offer two backup locations, "This phone" and "Google Drive". For either, the user confirms a
+parent folder in the system folder picker; the application keeps a persisted permission for that folder only and creates
+and uses its own subfolder "IBKR Tax Assistant backups" inside it. If the chosen folder already contains a backup
+manifest, the application SHALL use it as is. The application SHALL NOT require a Google Cloud project, OAuth client,
+or account sign-in of its own for backups.
 
 #### Scenario: First backup setup
-- **WHEN** the user enables backup
-- **THEN** the system folder picker opens and the app keeps a persisted permission for the chosen folder
+- **WHEN** the user chooses "This phone" or "Google Drive" and confirms a folder in the system picker
+- **THEN** the app keeps a persisted permission for that folder and stores backups in its "IBKR Tax Assistant backups" subfolder
+
+#### Scenario: Location mismatch
+- **WHEN** the folder picked in the system picker does not belong to the chosen location, for example a phone folder after choosing "Google Drive"
+- **THEN** the app explains the mismatch, keeps the previous backup location, and lets the user try again
+
+#### Scenario: Google Drive not installed
+- **WHEN** the Google Drive app is not installed
+- **THEN** the "Google Drive" option is unavailable and the app explains why
+
+#### Scenario: Existing backup folder chosen
+- **WHEN** the picked folder already contains a backup manifest
+- **THEN** the app uses that folder directly without creating a nested subfolder
 
 #### Scenario: Local-only folder
 - **WHEN** the chosen folder is stored only on the device

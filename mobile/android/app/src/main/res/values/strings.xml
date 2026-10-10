@@ -115,13 +115,22 @@
     <string name="recovery_copied">Copied. Paste it into your password manager now: the clipboard is cleared after 1 minute.</string>
     <string name="cancel">Cancel</string>
 
-    <string name="folder_title">Backup folder</string>
+    <string name="location_title">Backup location</string>
+    <string name="location_question">Where should backups be stored?</string>
+    <string name="location_drive">Google Drive</string>
+    <string name="location_drive_hint">In the picker, open the menu (☰), choose Google Drive, go to where the backups should be kept and tap "Use this folder". The app creates its own folder "IBKR Tax Assistant backups" there.</string>
+    <string name="location_drive_missing">Needs the Google Drive app, which is not installed on this phone.</string>
+    <string name="location_phone">This phone</string>
+    <string name="location_phone_hint">The picker opens in Documents. Tap "Use this folder" (or pick another folder); the app creates its own folder "IBKR Tax Assistant backups" there.</string>
+    <string name="location_current">Backups go to %1$s: %2$s</string>
+    <string name="location_label_drive">Google Drive</string>
+    <string name="location_label_phone">this phone</string>
+    <string name="location_label_other">another storage app</string>
+    <string name="location_change_hint">Choosing a new location keeps existing backups where they are.</string>
+    <string name="location_mismatch_drive">That folder is not in Google Drive. In the picker, open the menu (☰) and choose Google Drive. Nothing was changed.</string>
+    <string name="location_mismatch_phone">That folder is not on this phone. Choose a folder in the phone storage. Nothing was changed.</string>
     <string name="folder_body">Encrypted backups of your imported reports are saved in a folder you choose, for example in Google Drive. Only this app can read them, with your passphrase or recovery code.</string>
-    <string name="folder_choose">Choose backup folder</string>
-    <string name="folder_current">Backups go to: %1$s</string>
     <string name="folder_local_only">This folder is only on this phone. If the phone is lost or reset, the backups are lost too. A folder in Google Drive or another cloud app is safer.</string>
-    <string name="folder_change">Choose another folder</string>
-    <string name="folder_change_hint">Existing backups stay in the old folder.</string>
     <string name="folder_saved">Backup folder saved.</string>
     <string name="folder_saved_no_keys">Backup folder saved. Set up backup encryption above to enable import.</string>
 
