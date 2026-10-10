@@ -3,7 +3,7 @@
 ## Purpose
 Mobile application (Android and iOS) that imports broker reports, processes them
 on-device for tax reporting, stores results in a local encrypted database, and
-keeps an encrypted backup of raw reports in the user's Google Drive app data folder.
+keeps an encrypted backup of raw reports in a folder the user chooses (any storage provider).
 
 ## Constraints
 - All report processing happens on the device. No server-side processing.
@@ -13,15 +13,15 @@ keeps an encrypted backup of raw reports in the user's Google Drive app data fol
 - Personal data is processed in accordance with GDPR (Regulation (EU) 2016/679).
   - Data minimization and data protection by design and by default (Art. 5 and Art. 25).
   - Legal basis for processing and transparent privacy notice are required before release.
-  - Transfers outside the EEA (including Google Drive storage) must rely on an approved mechanism
-    such as the EU-US Data Privacy Framework or Standard Contractual Clauses.
-  - Data subject rights (access, erasure, portability) must be supported, including Drive backups.
+  - Backups reach the user's chosen storage provider only end-to-end encrypted; the privacy notice
+    explains that providers may store data outside the EEA.
+  - Data subject rights (access, erasure, portability) must be supported, including backups.
 - Pseudonymized data is still personal data under GDPR. Only properly anonymized data falls outside its scope.
 
 ## Tech Stack
 - Android: Kotlin, Android Keystore, Tink, SQLCipher
 - iOS: Swift, Keychain, Secure Enclave, CryptoKit, SQLCipher
-- Cloud: Google Drive API v3 (scope: drive.appdata)
+- Backup storage: Android Storage Access Framework (user-chosen folder); iOS equivalent later
 - Crypto: AES-256-GCM, Argon2id (or scrypt) for passphrase-derived keys, HMAC-SHA256 for pseudonymization
 
 ## Conventions

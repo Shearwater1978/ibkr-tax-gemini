@@ -38,14 +38,14 @@ The app SHALL encrypt report data before any network request and SHALL store pro
 - **THEN** logs and diagnostics contain no raw report contents or direct identifiers
 
 ### Requirement: Back up reports securely
-The app SHALL upload imported reports only in client-side encrypted form to the Google Drive app data folder, following `mobile-encrypted-drive-backup`. It SHALL verify the uploaded backup before removing the app-managed source copy. A backup failure SHALL NOT lose the local import or its protected source data.
+The app SHALL back up imported reports only in client-side encrypted form to the user-chosen backup folder, following `mobile-encrypted-drive-backup`. It SHALL verify the written backup before removing the app-managed source copy. A backup failure SHALL NOT lose the local import or its protected source data.
 
 #### Scenario: Backup verified
-- **WHEN** the encrypted upload's size and checksum match the local encrypted file
+- **WHEN** the backup file read back from the backup folder matches the local encrypted file in size and SHA-256
 - **THEN** the app marks the backup complete and may remove the app-managed source copy
 
 #### Scenario: Backup unavailable
-- **WHEN** the network, authorization, or quota prevents backup completion
+- **WHEN** the backup folder is unavailable, full, or no longer accessible
 - **THEN** the app retains protected local data, marks the backup pending, and retries without blocking local processing
 
 ### Requirement: Report duplicate imports

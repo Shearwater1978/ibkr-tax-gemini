@@ -44,7 +44,7 @@ Changing the backup passphrase SHALL re-wrap the data key only and SHALL NOT req
 - **THEN** the application re-wraps the data key with the new KEK and updates the manifest
 
 ### Requirement: Data key is never stored in plaintext
-The data key SHALL NOT be written to disk, logs, or Google Drive in plaintext.
+The data key SHALL NOT be written to disk, logs, or the backup folder in plaintext.
 
 #### Scenario: Manifest inspection
 - **WHEN** the backup manifest is inspected

@@ -1,10 +1,9 @@
-## 1. Google Cloud setup
-- [ ] 1.1 Create Google Cloud project and enable Drive API
-- [ ] 1.2 Configure OAuth consent screen with privacy policy URL
-- [ ] 1.3 Create Android OAuth client (package name, SHA-1 for debug and release)
-- [ ] 1.4 Create iOS OAuth client (bundle ID) and configure URL scheme
-- [ ] 1.5 Move OAuth app to production status
-- [ ] 1.6 Verify Google DPA and SCC or DPF status for the chosen Google services
+## 1. Backup location
+- [ ] 1.1 Let the user choose the backup folder with the system folder picker and persist the permission
+- [ ] 1.2 Warn when the chosen folder is local-only
+- [ ] 1.3 Detect lost folder access and ask the user to choose the folder again without losing local data
+- [ ] 1.4 Keep old backups when the user changes the folder, unless deletion is requested
+- [ ] 1.5 Implement the iOS equivalent (document picker with security-scoped bookmarks)
 
 ## 2. Key management
 - [ ] 2.1 Implement device key in Keystore / Secure Enclave
@@ -20,11 +19,11 @@
 
 ## 4. Encrypted backup
 - [ ] 4.1 Implement encrypted file format with versioned header
-- [ ] 4.2 Implement upload to appDataFolder with retries
-- [ ] 4.3 Implement post-upload verification
+- [ ] 4.2 Implement writing to the backup folder with retries
+- [ ] 4.3 Implement read-back verification (size and SHA-256)
 - [ ] 4.4 Delete original only after verification succeeds
 - [ ] 4.5 Implement restore flow on new device
-- [ ] 4.6 Implement backup deletion using files.delete
+- [ ] 4.6 Implement backup deletion in the backup folder
 
 ## 5. Local storage
 - [ ] 5.1 Integrate SQLCipher with key from device key
@@ -45,6 +44,6 @@
 - [ ] 7.3 Implement masking for account numbers and tax IDs in UI and notifications
 - [ ] 7.4 Ensure logs, crash reports, and analytics receive only pseudonyms or masked values
 - [ ] 7.5 Restrict full identity to tax output and its export, and document the exception
-- [ ] 7.6 Implement erasure across local DB, Drive backups, and keys
+- [ ] 7.6 Implement erasure across local DB, backup folder, and keys (destroying keys makes leftover copies unreadable)
 - [ ] 7.7 Implement export of tax output in CSV or PDF for portability
 - [ ] 7.8 Write privacy notice and record processing activities (Art. 30 GDPR)
