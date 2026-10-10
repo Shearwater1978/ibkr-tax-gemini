@@ -41,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.ibkrtax.mobile.BuildConfig
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.appContainer
 import com.ibkrtax.mobile.prices.ApiKeyCheck
@@ -67,7 +68,10 @@ fun SettingsScreen() {
         Spacer(Modifier.height(24.dp))
         Text(stringResource(R.string.informational_notice), style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.height(16.dp))
-        Text(stringResource(R.string.settings_version, version), style = MaterialTheme.typography.bodySmall)
+        Text(
+            stringResource(R.string.settings_version_full, version, BuildConfig.BUILD_TIME_UTC, BuildConfig.BUILD_TYPE),
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
