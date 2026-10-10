@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.appContainer
 import com.ibkrtax.mobile.debug.SampleReports
+import com.ibkrtax.mobile.keys.BackupKeyStatus
 import com.ibkrtax.mobile.storage.ImportResult
 import com.ibkrtax.mobile.storage.ImportedReport
 import java.time.Instant
@@ -46,6 +47,9 @@ fun ImportsScreen() {
     val scope = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
     var debugMessages by remember { mutableStateOf(emptyList<String>()) }
+    val keyStatus by produceState<BackupKeyStatus?>(null) {
+        value = runCatching { context.appContainer.backupKeys.status() }.getOrNull()
+    }
     val history by produceState<List<ImportedReport>?>(null, refresh) {
         value = withContext(Dispatchers.IO) { runCatching { context.appContainer.importHistory.list() }.getOrNull() }
     }
@@ -56,7 +60,16 @@ fun ImportsScreen() {
         Text(stringResource(R.string.imports_supported_format))
         Spacer(Modifier.height(16.dp))
         Button(onClick = {}, enabled = false) { Text(stringResource(R.string.action_import_report)) }
-        Text(stringResource(R.string.imports_unavailable), style = MaterialTheme.typography.bodySmall)
+        // Import stays off until backups work (mobile-app-core task 1.2); say which step is next.
+        Text(
+            stringResource(
+                when (keyStatus) {
+                    BackupKeyStatus.NotSetUp -> R.string.imports_unavailable_keys
+                    else -> R.string.imports_unavailable_folder
+                },
+            ),
+            style = MaterialTheme.typography.bodySmall,
+        )
 
         if (SampleReports.AVAILABLE) {
             Spacer(Modifier.height(24.dp))
