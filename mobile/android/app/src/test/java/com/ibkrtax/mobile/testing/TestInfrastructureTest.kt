@@ -1,7 +1,5 @@
 package com.ibkrtax.mobile.testing
 
-import com.ibkrtax.mobile.backup.DriveFailure
-import com.ibkrtax.mobile.backup.DriveResult
 import com.ibkrtax.mobile.prices.PriceFailure
 import com.ibkrtax.mobile.prices.PriceResult
 import com.ibkrtax.mobile.prices.Quote
@@ -12,7 +10,6 @@ import java.net.Socket
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,30 +38,6 @@ class TestInfrastructureTest {
         assertThrows(IOException::class.java) {
             Socket().use { it.connect(InetSocketAddress("1.1.1.1", 443), 2_000) }
         }
-    }
-
-    @Test
-    fun fakeDriveReportsSizeAndChecksumOfStoredBytes() = runBlocking {
-        val drive = FakeDriveBackupService()
-        val payload = byteArrayOf(1, 2, 3, 4)
-
-        val uploaded = (drive.upload("report.enc", payload) as DriveResult.Success).value
-
-        assertEquals(4L, uploaded.sizeBytes)
-        assertEquals(FakeDriveBackupService.sha256Hex(payload), uploaded.sha256Hex)
-        assertEquals(uploaded, (drive.metadata(uploaded.id) as DriveResult.Success).value)
-    }
-
-    @Test
-    fun fakeDriveCanSimulateCorruptionAndFailures() = runBlocking {
-        val drive = FakeDriveBackupService().apply { corruptUploads = true }
-        val payload = byteArrayOf(1, 2, 3, 4)
-        val uploaded = (drive.upload("report.enc", payload) as DriveResult.Success).value
-        assertNotEquals(FakeDriveBackupService.sha256Hex(payload), uploaded.sha256Hex)
-
-        drive.failure = DriveFailure.QUOTA_EXCEEDED
-        assertEquals(DriveResult.Failure(DriveFailure.QUOTA_EXCEEDED), drive.upload("next.enc", payload))
-        assertEquals(1, drive.storedFileCount)
     }
 
     @Test

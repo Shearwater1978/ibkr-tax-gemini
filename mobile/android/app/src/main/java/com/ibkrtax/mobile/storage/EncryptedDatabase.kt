@@ -17,7 +17,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 object EncryptedDatabase {
     const val NAME = "ibkrtax.db"
     private const val WRAPPED_KEY_FILE = "ibkrtax.db.key"
-    private const val SCHEMA_VERSION = 4
+    private const val SCHEMA_VERSION = 5
 
     init {
         System.loadLibrary("sqlcipher")
@@ -55,12 +55,14 @@ object EncryptedDatabase {
             createImportTables(db)
             createPriceTables(db)
             addMainPageColumns(db)
+            addBackupColumns(db)
         }
 
         override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
             if (oldVersion < 2) createImportTables(db)
             if (oldVersion < 3) createPriceTables(db)
             if (oldVersion < 4) addMainPageColumns(db)
+            if (oldVersion < 5) addBackupColumns(db)
         }
 
         override fun onConfigure(db: SupportSQLiteDatabase) {
@@ -138,6 +140,12 @@ object EncryptedDatabase {
                 )
                 """.trimIndent(),
             )
+        }
+
+        /** Encrypted backup per report (backup-location, encrypted-backup); NULL for debug samples. */
+        private fun addBackupColumns(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE reports ADD COLUMN backup_file TEXT")
+            db.execSQL("ALTER TABLE reports ADD COLUMN backup_status TEXT")
         }
     }
 }

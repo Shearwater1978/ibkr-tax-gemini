@@ -1,5 +1,6 @@
 package com.ibkrtax.mobile.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,7 +46,9 @@ import com.ibkrtax.mobile.keys.PendingRecoveryCode
 import com.ibkrtax.mobile.keys.RecoveryCode
 import com.ibkrtax.mobile.keys.WrongSecretException
 import com.ibkrtax.mobile.ui.SensitiveClipboard
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private sealed interface EncryptionStep {
     data object Idle : EncryptionStep
@@ -104,6 +107,7 @@ fun BackupEncryptionSettings() {
             step = EncryptionStep.Working
             scope.launch {
                 context.appContainer.backupKeys.confirm(current.pending)
+                syncManifest(context)
                 step = EncryptionStep.Idle
                 reload++
             }
@@ -112,6 +116,7 @@ fun BackupEncryptionSettings() {
             step = EncryptionStep.Working
             scope.launch {
                 context.appContainer.backupKeys.confirmRecoveryCode(current.pending)
+                syncManifest(context)
                 step = EncryptionStep.Idle
                 reload++
             }
@@ -161,6 +166,7 @@ fun BackupEncryptionSettings() {
                 scope.launch {
                     try {
                         context.appContainer.backupKeys.changePassphrase(old.toCharArray(), new.toCharArray())
+                        syncManifest(context)
                         step = EncryptionStep.Idle
                         reload++
                     } catch (e: WrongSecretException) {
@@ -274,4 +280,9 @@ private fun RecoveryCodeCard(code: String, cloudCopy: Boolean?, onDone: () -> Un
             Button(enabled = saved, onClick = onDone) { Text(stringResource(R.string.recovery_done)) }
         }
     }
+}
+
+/** Keeps the wrapped-key manifest in the backup folder current after a key change (best effort; retried with backups). */
+private suspend fun syncManifest(context: Context) {
+    withContext(Dispatchers.IO) { runCatching { context.appContainer.backup.syncManifest() } }
 }

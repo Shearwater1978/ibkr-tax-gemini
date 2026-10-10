@@ -84,7 +84,11 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.biometric)
+    // biometric 1.1.0 pulls fragment 1.2.5, whose FragmentActivity rejects Activity Result request codes
+    // (crash: "Can only use lower 16 bits for requestCode") when opening the file and folder pickers.
+    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.documentfile)
     implementation(libs.bouncycastle)
     implementation(libs.play.services.blockstore)
     implementation(libs.kotlinx.coroutines.play.services)

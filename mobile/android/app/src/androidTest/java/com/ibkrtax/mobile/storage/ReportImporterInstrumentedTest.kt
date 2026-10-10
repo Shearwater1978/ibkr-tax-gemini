@@ -152,6 +152,20 @@ class ReportImporterInstrumentedTest {
     }
 
     @Test
+    fun backupStateIsRecordedWithTheImport() {
+        importer().import(fixture("valid_basic.csv"), backupFile = "0123456789abcdef0123456789abcdef.bin")
+        importer().import(fixture("valid_followup.csv"))
+
+        assertEquals(listOf("0123456789abcdef0123456789abcdef.bin"), importer().pendingBackups())
+        val statuses = ImportHistory(helper).list().map { it.backupStatus }
+        assertEquals(listOf(null, ImportHistory.PENDING), statuses)
+
+        importer().markBackedUp("0123456789abcdef0123456789abcdef.bin")
+        assertEquals(emptyList<String>(), importer().pendingBackups())
+        assertEquals(ImportHistory.BACKED_UP, ImportHistory(helper).list().last().backupStatus)
+    }
+
+    @Test
     fun reportStoresOnlyPseudonymousAccountData() {
         importer().import(fixture("valid_basic.csv"))
 

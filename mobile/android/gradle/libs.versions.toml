@@ -8,6 +8,8 @@ junit = "4.13.2"
 kotlinxCoroutines = "1.9.0"
 json = "20240303"
 browser = "1.8.0"
+documentfile = "1.0.1"
+fragment = "1.8.5"
 bouncycastle = "1.78.1"
 blockstore = "16.4.0"
 biometric = "1.1.0"
@@ -30,6 +32,8 @@ androidx-test-runner = { group = "androidx.test", name = "runner", version.ref =
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "testExtJunit" }
 sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragment" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 bouncycastle = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 play-services-blockstore = { group = "com.google.android.gms", name = "play-services-auth-blockstore", version.ref = "blockstore" }

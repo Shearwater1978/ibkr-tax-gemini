@@ -44,7 +44,8 @@ class ReportImporter(
     /** Test hook that runs just before commit; throwing here must roll everything back. */
     private val beforeCommit: () -> Unit = {},
 ) {
-    fun import(bytes: ByteArray): ImportResult {
+    /** [backupFile]: the encrypted backup recorded as pending in the same transaction (null for debug samples). */
+    fun import(bytes: ByteArray, backupFile: String? = null): ImportResult {
         // The file name may contain the account number, so it is neither parsed into records nor stored.
         val report = when (val parsed = FlexQueryParser.parse(bytes, sourceFile = "")) {
             is FlexParseResult.Failure -> return ImportResult.Rejected(ImportRejection.Unparseable(parsed.error))
@@ -72,6 +73,8 @@ class ReportImporter(
                     put("imported_at", clock.instant().toString())
                     put("inserted_count", 0)
                     put("skipped_count", 0)
+                    put("backup_file", backupFile)
+                    put("backup_status", backupFile?.let { BACKUP_PENDING })
                 },
             )
 
@@ -136,5 +139,19 @@ class ReportImporter(
         put("conid", conid)
         put("instrument_description", instrumentDescription)
         put("listing_exchange", listingExchange)
+    }
+
+    fun pendingBackups(): List<String> =
+        database.readableDatabase.query("SELECT backup_file FROM reports WHERE backup_status = ?", arrayOf(BACKUP_PENDING)).use { cursor ->
+            buildList { while (cursor.moveToNext()) add(cursor.getString(0)) }
+        }
+
+    fun markBackedUp(backupFile: String) {
+        database.writableDatabase.execSQL("UPDATE reports SET backup_status = ? WHERE backup_file = ?", arrayOf(BACKUP_DONE, backupFile))
+    }
+
+    companion object {
+        const val BACKUP_PENDING = "pending"
+        const val BACKUP_DONE = "backed_up"
     }
 }
