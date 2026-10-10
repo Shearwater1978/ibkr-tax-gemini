@@ -17,6 +17,8 @@
     <string name="imports_unavailable_keys">Import needs working backups first. In Settings: 1. set up backup encryption, 2. choose a backup folder.</string>
     <string name="imports_unavailable_folder">Backup encryption is set up. Choose a backup folder in Settings to enable import.</string>
     <string name="importing">Importing…</string>
+    <string name="import_progress">Importing file %1$d of %2$d…</string>
+    <string name="import_multiple_hint">You can select several reports at once; each is imported on its own.</string>
     <string name="import_done">Imported: %1$d new records, %2$d already present. Encrypted backup saved and verified.</string>
     <string name="import_done_pending">Imported: %1$d new records, %2$d already present. The backup folder is not reachable right now; the encrypted backup is kept on this phone and retried.</string>
     <string name="import_done_access_lost">Imported: %1$d new records, %2$d already present. The app lost access to the backup folder: choose it again in Settings.</string>
