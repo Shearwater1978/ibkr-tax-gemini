@@ -52,6 +52,8 @@ import com.ibkrtax.mobile.portfolio.PositionPerformance
 import com.ibkrtax.mobile.portfolio.PositionRow
 import com.ibkrtax.mobile.portfolio.SortColumn
 import com.ibkrtax.mobile.portfolio.SortOrder
+import com.ibkrtax.mobile.portfolio.TopMovers
+import com.ibkrtax.mobile.portfolio.TopMoversRanking
 import com.ibkrtax.mobile.portfolio.UsdTotals
 import com.ibkrtax.mobile.prices.PriceFailure
 import com.ibkrtax.mobile.prices.PriceFreshness
@@ -211,6 +213,9 @@ private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         item { Header(state, progress, onRefresh, onOpenSettings) }
+        TopMoversRanking.rank(state.rows)?.let { movers ->
+            item { TopMoversSection(movers, onOpen = { row -> details = state.performance.firstOrNull { it.row?.holding === row.holding } }) }
+        }
         item {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 PnlMode.entries.forEachIndexed { index, option ->
@@ -340,6 +345,55 @@ private fun SummaryCard(title: String, value: String, detail: String?, incomplet
             detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = color) }
             // Its own line, so it is clear the headline value is incomplete, not the detail.
             incomplete?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+        }
+    }
+}
+
+/** Today's top gainers and losers in their own currency (mobile-top-movers spec); three each until expanded. */
+@Composable
+private fun TopMoversSection(movers: TopMovers, onOpen: (PositionRow) -> Unit) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val shown = if (expanded) TopMoversRanking.MAX_PER_LIST else COLLAPSED_MOVERS
+    val muted = MaterialTheme.typography.bodySmall
+    Column(modifier = Modifier.padding(top = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.movers_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            when (movers.freshness) {
+                PriceFreshness.LIVE -> Unit
+                PriceFreshness.LATEST_CLOSE -> Text(stringResource(R.string.movers_latest_close), style = muted)
+                PriceFreshness.STALE -> Text(stringResource(R.string.movers_stale), style = muted, color = LOSS)
+            }
+        }
+        MoverList(stringResource(R.string.movers_gainers), movers.gainers.take(shown), stringResource(R.string.movers_no_gainers), onOpen)
+        MoverList(stringResource(R.string.movers_losers), movers.losers.take(shown), stringResource(R.string.movers_no_losers), onOpen)
+        if (movers.gainers.size > COLLAPSED_MOVERS || movers.losers.size > COLLAPSED_MOVERS) {
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(stringResource(if (expanded) R.string.movers_show_less else R.string.movers_show_more))
+            }
+        }
+    }
+}
+
+private const val COLLAPSED_MOVERS = 3
+
+@Composable
+private fun MoverList(title: String, rows: List<PositionRow>, empty: String, onOpen: (PositionRow) -> Unit) {
+    val muted = MaterialTheme.typography.bodySmall
+    Text(title, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
+    if (rows.isEmpty()) Text(empty, style = muted)
+    rows.forEach { row ->
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable { onOpen(row) }.padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(row.ticker, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(row.marketValue?.let { Formats.money(it, row.currency) } ?: "—", style = muted, modifier = Modifier.padding(end = 12.dp))
+            val percent = row.dailyChangePercent
+            val pnl = row.dailyPnl
+            Text(
+                listOfNotNull(percent?.let(Formats::signedPercent), pnl?.let { "(" + Formats.signedNumber(it) + ")" }).joinToString(" "),
+                color = signColor(percent),
+            )
         }
     }
 }

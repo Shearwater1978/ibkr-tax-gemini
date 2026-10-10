@@ -91,6 +91,15 @@
     <string name="portfolio_title">Positions</string>
     <string name="portfolio_no_holdings">All imported positions are fully sold.</string>
     <string name="portfolio_incomplete">Imported reports sell more %1$s than they buy (on %2$s). Import the missing earlier reports to see holdings.</string>
+    <string name="movers_title">Today\'s top movers</string>
+    <string name="movers_gainers">Top gainers</string>
+    <string name="movers_losers">Top losers</string>
+    <string name="movers_no_gainers">Nothing rose today.</string>
+    <string name="movers_no_losers">Nothing fell today.</string>
+    <string name="movers_latest_close">latest close</string>
+    <string name="movers_stale">stale prices</string>
+    <string name="movers_show_more">Show more</string>
+    <string name="movers_show_less">Show less</string>
     <string name="card_value">Value</string>
     <string name="card_invested">invested %1$s</string>
     <string name="card_profit">Total profit</string>
