@@ -4,6 +4,11 @@
     <!-- Only for market prices: requests carry the ticker and the user's own provider key. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Only to tell whether the "Google Drive" backup option can work (package visibility, Android 11+). -->
+    <queries>
+        <package android:name="com.google.android.apps.docs" />
+    </queries>
+
     <!-- Report data must never go to Android cloud/device-transfer backups.
          allowBackup alone does not stop Android 12+ device transfer, hence the extraction rules. -->
     <application

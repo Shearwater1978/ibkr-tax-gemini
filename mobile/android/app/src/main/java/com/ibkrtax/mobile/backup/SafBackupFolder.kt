@@ -2,17 +2,23 @@ package com.ibkrtax.mobile.backup
 
 import android.content.Context
 import android.net.Uri
-import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import java.io.FileNotFoundException
 import java.io.IOException
 
-/** [BackupFolder] over a folder chosen with the Storage Access Framework (ACTION_OPEN_DOCUMENT_TREE). */
-class SafBackupFolder(private val context: Context, private val treeUri: Uri) : BackupFolder {
+/**
+ * [BackupFolder] over a folder confirmed with the Storage Access Framework
+ * (ACTION_OPEN_DOCUMENT_TREE). With [subfolder] set, backups live in that folder inside
+ * the confirmed one, created on first use.
+ */
+class SafBackupFolder(private val context: Context, private val treeUri: Uri, private val subfolder: String? = null) : BackupFolder {
     private fun root(): DocumentFile {
-        val root = DocumentFile.fromTreeUri(context, treeUri)
-        if (root == null || !root.exists() || !root.canWrite()) throw FolderAccessLostException()
-        return root
+        val tree = DocumentFile.fromTreeUri(context, treeUri)
+        if (tree == null || !tree.exists() || !tree.canWrite()) throw FolderAccessLostException()
+        if (subfolder == null) return tree
+        val existing = tree.findFile(subfolder)
+        if (existing != null && existing.isDirectory) return existing
+        return tree.createDirectory(subfolder) ?: throw IOException("Could not create the backup folder")
     }
 
     override fun write(name: String, bytes: ByteArray) = access {
@@ -45,16 +51,16 @@ class SafBackupFolder(private val context: Context, private val treeUri: Uri) : 
     companion object {
         private const val MIME = "application/octet-stream"
 
-        /** Device-only storage providers: a lost phone would also lose the backup. */
-        private val LOCAL_AUTHORITIES = setOf(
-            "com.android.externalstorage.documents",
-            "com.android.providers.downloads.documents",
-        )
+        fun isLocalOnly(treeUri: Uri): Boolean = BackupLocationKind.of(treeUri.authority) == BackupLocationKind.PHONE
 
-        fun isLocalOnly(treeUri: Uri): Boolean = treeUri.authority in LOCAL_AUTHORITIES
+        /** A readable path for Settings, e.g. "Backups › IBKR Tax Assistant backups". */
+        fun displayName(context: Context, treeUri: Uri, subfolder: String?): String {
+            val parent = DocumentFile.fromTreeUri(context, treeUri)?.name ?: "?"
+            return if (subfolder == null) parent else "$parent › $subfolder"
+        }
 
-        /** A readable folder name for Settings, e.g. "IBKR backups". */
-        fun displayName(context: Context, treeUri: Uri): String =
-            DocumentFile.fromTreeUri(context, treeUri)?.name ?: DocumentsContract.getTreeDocumentId(treeUri)
+        /** True when the confirmed folder already holds a backup manifest, so no subfolder is needed. */
+        fun containsManifest(context: Context, treeUri: Uri): Boolean =
+            DocumentFile.fromTreeUri(context, treeUri)?.findFile(BackupService.MANIFEST_FILE) != null
     }
 }

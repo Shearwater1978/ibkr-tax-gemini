@@ -1,5 +1,5 @@
 ## 1. Backup location
-- [x] 1.1 Let the user choose the backup folder with the system folder picker and persist the permission
+- [x] 1.1 Offer "This phone" and "Google Drive" as backup locations, confirm the parent folder with the system folder picker, persist the permission, and create the app's "IBKR Tax Assistant backups" subfolder (or use a folder that already holds a manifest)
 - [x] 1.2 Warn when the chosen folder is local-only
 - [x] 1.3 Detect lost folder access and ask the user to choose the folder again without losing local data
 - [x] 1.4 Keep old backups when the user changes the folder, unless deletion is requested
