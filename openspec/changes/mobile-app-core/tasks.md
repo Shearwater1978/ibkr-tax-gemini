@@ -25,7 +25,7 @@
 - [x] 4.2 Implement the Finnhub adapter for USD holdings of US-listed instruments with local timestamped caching, and verify refresh behavior, quote currency, and the 15-minute market-hours freshness rule.
 - [x] 4.3 Add stale, unavailable, offline, and out-of-scope states and verify the UI never presents an old quote as current.
 - [x] 4.4 Add encrypted storage and a Settings field for the user's provider API key, and verify no key ships in the app, the key never appears in logs or plaintext storage, and no price requests are made without a key.
-- [x] 4.5 Without a Finnhub key, retrieve prices from Yahoo Finance's public chart endpoint (symbol only, USD quotes only) and name the source on the main page and in Settings.
+- [x] 4.5 Without a Finnhub key, retrieve prices from Yahoo Finance's public batch endpoint (symbols only, 20 per request) and name the source on the main page and in Settings.
 
 ## 5. Integration and documentation
 

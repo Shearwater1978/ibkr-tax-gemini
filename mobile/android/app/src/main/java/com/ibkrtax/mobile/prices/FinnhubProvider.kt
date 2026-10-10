@@ -45,10 +45,10 @@ class FinnhubProvider(
     private val clock: Clock = Clock.systemUTC(),
     private val limiter: RateLimiter? = null,
 ) : MarketDataProvider {
-    override suspend fun latestQuotes(symbols: Set<String>): PriceResult = withContext(Dispatchers.IO) {
+    override suspend fun latestQuotes(symbols: Set<String>, onProgress: (Int) -> Unit): PriceResult = withContext(Dispatchers.IO) {
         val quotes = mutableMapOf<String, Quote>()
         fun failure(reason: PriceFailure) = PriceResult.Failure(reason, quotes.toMap())
-        for (symbol in symbols.sorted()) {
+        for ((index, symbol) in symbols.sorted().withIndex()) {
             limiter?.acquire()
             val response = try {
                 transport.get(
@@ -66,6 +66,7 @@ class FinnhubProvider(
                 429 -> return@withContext failure(PriceFailure.RATE_LIMITED)
                 else -> return@withContext failure(PriceFailure.PROVIDER_ERROR)
             }
+            onProgress(index + 1)
         }
         PriceResult.Success(quotes)
     }

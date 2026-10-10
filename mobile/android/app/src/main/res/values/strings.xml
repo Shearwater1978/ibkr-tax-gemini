@@ -75,6 +75,10 @@
     <string name="prices_refresh">Refresh prices</string>
     <string name="prices_refreshing">Refreshing prices…</string>
     <string name="prices_no_key">Add your Finnhub API key in Settings to see prices for US listings.</string>
+    <string name="prices_progress_yahoo">%1$d of %2$d prices requested from Yahoo Finance (20 per request).</string>
+    <string name="prices_progress_finnhub">%1$d of %2$d prices requested from Finnhub.</string>
+    <string name="prices_progress_finnhub_limit">Finnhub\'s free plan allows about 55 requests a minute, so this takes about %1$d min.</string>
+    <string name="prices_progress_shown">Until the refresh finishes, the prices shown are from the last one.</string>
     <string name="prices_from_yahoo">Prices from Yahoo Finance (no Finnhub key set).</string>
     <string name="prices_failed">Prices could not be refreshed (%1$s). Last known prices are shown as stale.</string>
     <string name="prices_failure_offline">offline</string>

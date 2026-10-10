@@ -41,6 +41,9 @@ enum class PriceSource {
     NONE,
 }
 
+/** How far a running refresh has got: [done] of [total] symbols requested from [source]. */
+data class RefreshProgress(val done: Int, val total: Int, val source: PriceSource)
+
 /** MVP price scope (mobile-market-prices spec): USD holdings, treated as US listings. */
 object PriceScope {
     fun includes(holding: Holding): Boolean = holding.currency == "USD"
@@ -61,14 +64,18 @@ class PriceService(
             else -> PriceSource.NONE
         }
 
-    suspend fun refresh(holdings: List<Holding>): RefreshOutcome {
-        val provider = keys.get()?.let(providerFor) ?: fallback ?: return RefreshOutcome.NoKey
+    suspend fun refresh(holdings: List<Holding>, onProgress: (RefreshProgress) -> Unit = {}): RefreshOutcome {
+        val key = keys.get()
+        val provider = key?.let(providerFor) ?: fallback ?: return RefreshOutcome.NoKey
+        val source = if (key != null) PriceSource.FINNHUB else PriceSource.YAHOO
         val startedAt = clock.instant()
         val inScope = symbolsInScope(holdings)
         val cached = cache.get(inScope)
         val symbols = inScope.filter { needsRequest(cached[it], startedAt) }.toSet()
         if (symbols.isEmpty()) return RefreshOutcome.Updated
-        return when (val result = provider.latestQuotes(symbols)) {
+        onProgress(RefreshProgress(0, symbols.size, source))
+        val result = provider.latestQuotes(symbols) { onProgress(RefreshProgress(it, symbols.size, source)) }
+        return when (result) {
             is PriceResult.Success -> {
                 cache.putAll(result.quotes.values)
                 RefreshOutcome.Updated

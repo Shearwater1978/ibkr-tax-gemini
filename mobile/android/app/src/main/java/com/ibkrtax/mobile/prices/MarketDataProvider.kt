@@ -9,7 +9,8 @@ import java.time.Instant
  * (mobile-market-prices spec).
  */
 interface MarketDataProvider {
-    suspend fun latestQuotes(symbols: Set<String>): PriceResult
+    /** [onProgress] gets how many of [symbols] have been requested so far. */
+    suspend fun latestQuotes(symbols: Set<String>, onProgress: (Int) -> Unit = {}): PriceResult
 }
 
 data class Quote(
