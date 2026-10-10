@@ -166,6 +166,48 @@ class ReportImporterInstrumentedTest {
     }
 
     @Test
+    fun deletingAnImportKeepsRecordsThatAnOverlappingImportContains() {
+        val first = importer().import(fixture("valid_basic.csv"), backupFile = "a.bin") as ImportResult.Imported
+        // Same records, different bytes: a second, fully overlapping report.
+        val overlap = importer().import(fixture("valid_basic.csv") + byteArrayOf(10), backupFile = "b.bin") as ImportResult.Imported
+        assertEquals(0, overlap.inserted)
+
+        val deleted = importer().deleteReport(first.reportId)!!
+        assertEquals(0, deleted.removedRecords)
+        assertEquals(listOf("a.bin"), deleted.backupFiles)
+        assertEquals("the overlapping report still contains all 9 records", 9, count("transactions"))
+        assertEquals(1, count("reports"))
+
+        assertEquals(9, importer().deleteReport(overlap.reportId)!!.removedRecords)
+        assertEquals(0, count("transactions"))
+        assertEquals(0, count("reports"))
+        assertEquals(null, importer().deleteReport(overlap.reportId))
+    }
+
+    @Test
+    fun deletingOneImportRemovesOnlyItsOwnRecords() {
+        importer().import(fixture("valid_basic.csv"))
+        val followup = importer().import(fixture("valid_followup.csv")) as ImportResult.Imported
+
+        assertEquals(2, importer().deleteReport(followup.reportId)!!.removedRecords)
+        assertEquals(9, count("transactions"))
+    }
+
+    @Test
+    fun deleteAllRemovesEverythingAndListsBackupFiles() {
+        importer().import(fixture("valid_basic.csv"), backupFile = "a.bin")
+        importer().import(fixture("valid_followup.csv"), backupFile = "b.bin")
+
+        val deleted = importer().deleteAll()
+
+        assertEquals(11, deleted.removedRecords)
+        assertEquals(setOf("a.bin", "b.bin"), deleted.backupFiles.toSet())
+        assertEquals(0, count("transactions"))
+        assertEquals(0, count("reports"))
+        assertEquals(0, count("report_records"))
+    }
+
+    @Test
     fun reportStoresOnlyPseudonymousAccountData() {
         importer().import(fixture("valid_basic.csv"))
 

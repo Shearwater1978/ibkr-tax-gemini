@@ -43,3 +43,5 @@
 ## 7. Report management
 
 - [x] 7.1 Import several reports at once, each on its own, with a per-file result and masked file names.
+- [x] 7.2 Delete one import after confirmation, keeping records that other imports also contain, and delete its backup file.
+- [x] 7.3 Delete all imports after entering the passphrase, and delete their backup files.

@@ -101,6 +101,14 @@ class BackupKeys(
         withContext(Dispatchers.IO) { files.saveManifest(pending.manifest) }
     }
 
+    /** True when [passphrase] unlocks the stored keys; used to confirm destructive actions. */
+    suspend fun verifyPassphrase(passphrase: CharArray): Boolean {
+        val manifest = withContext(Dispatchers.IO) { files.manifest() } ?: return false
+        return withContext(Dispatchers.Default) {
+            runCatching { vault.unlockWithPassphrase(manifest, passphrase) }.isSuccess
+        }
+    }
+
     /** The data key for encrypting backups, or null when backup encryption is not set up. */
     fun dataKey(): ByteArray? = if (files.exists()) files.dataKey() else null
 

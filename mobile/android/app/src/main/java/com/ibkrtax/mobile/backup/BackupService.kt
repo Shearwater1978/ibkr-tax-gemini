@@ -1,6 +1,7 @@
 package com.ibkrtax.mobile.backup
 
 import com.ibkrtax.mobile.importer.FlexParseResult
+import com.ibkrtax.mobile.storage.DeletedImports
 import com.ibkrtax.mobile.importer.FlexQueryParser
 import com.ibkrtax.mobile.storage.ImportRejection
 import com.ibkrtax.mobile.storage.ImportResult
@@ -17,7 +18,15 @@ interface ReportStore {
     fun pendingBackups(): List<String>
 
     fun markBackedUp(backupFile: String)
+
+    /** Null when the import does not exist. */
+    fun deleteReport(reportId: Long): DeletedImports?
+
+    fun deleteAll(): DeletedImports
 }
+
+/** [backupsLeft]: backup files that could not be deleted because the folder was unreachable. */
+data class DeletionOutcome(val removedRecords: Int, val backupsDeleted: Int, val backupsLeft: Int)
 
 enum class BackupResult {
     BACKED_UP,
@@ -93,6 +102,27 @@ class BackupService(
         }
         if (!accessLost) syncManifest()
         return RetryResult(backedUp, reports.pendingBackups().size, accessLost)
+    }
+
+    /** Deletes one import, the records only it contains, and its backup file (mobile-report-upload "Delete imported reports"). */
+    fun deleteImport(reportId: Long): DeletionOutcome? = reports.deleteReport(reportId)?.let(::deleteBackups)
+
+    /** Deletes all imports and their backup files; the keys and manifest stay. */
+    fun deleteAllImports(): DeletionOutcome = deleteBackups(reports.deleteAll())
+
+    private fun deleteBackups(deleted: DeletedImports): DeletionOutcome {
+        val target = folder()
+        var removed = 0
+        var left = 0
+        for (name in deleted.backupFiles) {
+            File(pendingDir, name).delete()
+            try {
+                if (target == null) left++ else target.delete(name).also { removed++ }
+            } catch (e: IOException) {
+                left++
+            }
+        }
+        return DeletionOutcome(deleted.removedRecords, removed, left)
     }
 
     /** Writes the wrapped-key manifest; needed for restore and after any key change. */

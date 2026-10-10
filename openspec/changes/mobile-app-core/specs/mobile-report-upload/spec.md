@@ -65,3 +65,26 @@ The app SHALL show the status of each import and distinguish processing, backup 
 #### Scenario: Import status changes
 - **WHEN** processing or backup status changes
 - **THEN** the user can see the current status and a useful reason for any failure
+
+### Requirement: Delete imported reports
+The app SHALL let the user delete one import, after a confirmation, or all imported reports, after entering the backup
+passphrase. Deleting an import SHALL remove only the records that no other remaining import contains, so overlapping
+reports stay complete. Deleting SHALL also delete the corresponding encrypted backup files from the backup folder; backup
+encryption keys SHALL NOT change.
+
+#### Scenario: Delete one import
+- **WHEN** the user deletes an import and confirms
+- **THEN** its report entry and the records only it contains are removed, records also contained in other imports remain, and its backup file is deleted
+
+#### Scenario: Delete all imports
+- **WHEN** the user chooses to delete all imported reports and enters the correct passphrase
+- **THEN** all reports and derived records are removed and their backup files are deleted from the backup folder
+
+#### Scenario: Wrong passphrase
+- **WHEN** the passphrase entered to delete all imports is wrong
+- **THEN** nothing is deleted and the user is told the passphrase is wrong
+
+#### Scenario: Backup folder unreachable
+- **WHEN** a backup file cannot be deleted because the backup folder is unreachable
+- **THEN** the records are still deleted in the app and the user is told which backups remain in the folder
+

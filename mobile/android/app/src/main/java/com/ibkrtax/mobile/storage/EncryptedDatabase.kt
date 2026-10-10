@@ -17,7 +17,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 object EncryptedDatabase {
     const val NAME = "ibkrtax.db"
     private const val WRAPPED_KEY_FILE = "ibkrtax.db.key"
-    private const val SCHEMA_VERSION = 5
+    private const val SCHEMA_VERSION = 6
 
     init {
         System.loadLibrary("sqlcipher")
@@ -56,6 +56,7 @@ object EncryptedDatabase {
             createPriceTables(db)
             addMainPageColumns(db)
             addBackupColumns(db)
+            createReportRecords(db)
         }
 
         override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -63,6 +64,7 @@ object EncryptedDatabase {
             if (oldVersion < 3) createPriceTables(db)
             if (oldVersion < 4) addMainPageColumns(db)
             if (oldVersion < 5) addBackupColumns(db)
+            if (oldVersion < 6) createReportRecords(db)
         }
 
         override fun onConfigure(db: SupportSQLiteDatabase) {
@@ -146,6 +148,25 @@ object EncryptedDatabase {
         private fun addBackupColumns(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE reports ADD COLUMN backup_file TEXT")
             db.execSQL("ALTER TABLE reports ADD COLUMN backup_status TEXT")
+        }
+
+        /**
+         * Every report's records, including ones skipped because another report stored them first,
+         * so deleting one import keeps records that others still contain (mobile-report-upload).
+         */
+        private fun createReportRecords(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE report_records (
+                    report_id INTEGER NOT NULL REFERENCES reports(id),
+                    source_key TEXT NOT NULL,
+                    PRIMARY KEY (report_id, source_key)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX report_records_source_key ON report_records (source_key)")
+            // Imports made before this version only know the records they inserted themselves.
+            db.execSQL("INSERT OR IGNORE INTO report_records (report_id, source_key) SELECT report_id, source_key FROM transactions")
         }
     }
 }
