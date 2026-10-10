@@ -11,7 +11,7 @@ data class TopMovers(
     val gainers: List<PositionRow>,
     /** Largest fall first. */
     val losers: List<PositionRow>,
-    /** The worst freshness among the ranked prices: STALE before LATEST_CLOSE before LIVE. */
+    /** The worst freshness among the ranked prices: STALE, then LATEST_CLOSE, then DELAYED, then LIVE. */
     val freshness: PriceFreshness,
 )
 
@@ -32,6 +32,7 @@ object TopMoversRanking {
             when {
                 PriceFreshness.STALE in all -> PriceFreshness.STALE
                 PriceFreshness.LATEST_CLOSE in all -> PriceFreshness.LATEST_CLOSE
+                PriceFreshness.DELAYED in all -> PriceFreshness.DELAYED
                 else -> PriceFreshness.LIVE
             }
         }

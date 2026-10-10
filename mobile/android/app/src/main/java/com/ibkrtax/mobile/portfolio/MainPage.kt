@@ -63,21 +63,23 @@ object MainPage {
     private val PY = MathContext(28, RoundingMode.HALF_EVEN)
     private val HUNDRED = BigDecimal(100)
 
-    /** [prices] are keyed by ticker; [exchanges] by (ticker, ISIN). */
+    /** [prices] are keyed by request symbol (see PriceScope); [exchanges] by (ticker, ISIN). */
     fun rows(
         holdings: List<Holding>,
         prices: Map<String, PricedQuote>,
         exchanges: Map<Pair<String, String>, String> = emptyMap(),
     ): List<PositionRow> = holdings.map { holding ->
-        val inScope = PriceScope.includes(holding)
-        val price = prices[holding.ticker]?.takeIf { inScope && it.quote.currency == holding.currency }
+        val exchange = exchanges[holding.ticker to holding.isin]
+        val symbol = PriceScope.symbol(holding, exchange)
+        val inScope = symbol != null
+        val price = symbol?.let { prices[it] }?.takeIf { it.quote.currency == holding.currency }
         val cost = holding.lots.fold(BigDecimal.ZERO) { sum, lot -> sum.add(lot.quantity.multiply(lot.price, PY), PY) }
         val marketValue = price?.quote?.price?.multiply(holding.quantity, PY)
         val change = price?.quote?.dailyChange
         val previousClose = price?.quote?.previousClose
         PositionRow(
             holding = holding,
-            listingExchange = exchanges[holding.ticker to holding.isin].orEmpty(),
+            listingExchange = exchange.orEmpty(),
             inPriceScope = inScope,
             price = price,
             cost = cost,

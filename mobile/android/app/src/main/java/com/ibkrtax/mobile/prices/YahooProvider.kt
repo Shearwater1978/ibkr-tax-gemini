@@ -15,9 +15,9 @@ import org.json.JSONObject
  * endpoint. It is unofficial and not licensed for this use (mobile-market-prices spec), so
  * it can throttle or change without notice. The only data sent is the symbols.
  *
- * One request covers up to [BATCH_SIZE] symbols, so a large portfolio refreshes in a few
- * requests. Spark has no currency field; symbols without an exchange suffix are US listings,
- * which Yahoo quotes in USD, and only USD holdings are requested (PriceScope).
+ * US symbols: one spark request covers up to [BATCH_SIZE] of them. Spark has no currency field;
+ * symbols without an exchange suffix are US listings, which Yahoo quotes in USD.
+ * European symbols (e.g. SAP.DE): one chart request each, because the chart reports the currency.
  */
 class YahooProvider(
     private val transport: HttpTransport = UrlConnectionTransport(),
@@ -28,7 +28,8 @@ class YahooProvider(
         val quotes = mutableMapOf<String, Quote>()
         fun failure(reason: PriceFailure) = PriceResult.Failure(reason, quotes.toMap())
         var requested = 0
-        for (batch in symbols.sorted().chunked(BATCH_SIZE)) {
+        val (european, us) = symbols.sorted().partition(Markets::isEuropean)
+        for (batch in us.chunked(BATCH_SIZE)) {
             limiter?.acquire()
             val query = batch.map(::yahooSymbol).distinct().joinToString(",") { URLEncoder.encode(it, "UTF-8") }
             val response = try {
@@ -46,8 +47,45 @@ class YahooProvider(
             requested += batch.size
             onProgress(requested)
         }
+        for (symbol in european) {
+            limiter?.acquire()
+            val response = try {
+                transport.get("$CHART_URL/${URLEncoder.encode(symbol, "UTF-8")}?range=1d&interval=1d", HEADERS)
+            } catch (e: IOException) {
+                return@withContext failure(PriceFailure.OFFLINE)
+            }
+            when (response.status) {
+                in 200..299 -> chartQuote(symbol, response.body)?.let { quotes[symbol] = it }
+                404 -> Unit
+                429 -> return@withContext failure(PriceFailure.RATE_LIMITED)
+                else -> return@withContext failure(PriceFailure.PROVIDER_ERROR)
+            }
+            requested++
+            onProgress(requested)
+        }
         PriceResult.Success(quotes)
     }
+
+    /** A European quote in its own currency; pence (GBp) become pounds so they match GBP holdings. */
+    private fun chartQuote(symbol: String, body: String): Quote? =
+        try {
+            val meta = JSONObject(body).getJSONObject("chart").getJSONArray("result").getJSONObject(0).getJSONObject("meta")
+            val pence = meta.optString("currency") in PENCE
+            fun amount(name: String) = meta.decimal(name)?.let { if (pence) it.movePointLeft(2) else it }
+            val price = amount("regularMarketPrice")
+            val time = meta.optLong("regularMarketTime")
+            val currency = if (pence) "GBP" else meta.optString("currency")
+            if (price == null || price.signum() <= 0 || time <= 0 || currency.isEmpty()) {
+                null
+            } else {
+                val previousClose = (amount("previousClose") ?: amount("chartPreviousClose"))?.takeIf { it.signum() > 0 }
+                Quote(symbol, price, currency, Instant.ofEpochSecond(time), clock.instant(), previousClose)
+            }
+        } catch (e: JSONException) {
+            null
+        } catch (e: NumberFormatException) {
+            null
+        }
 
     /** Unknown symbols are absent from the response and stay unavailable. */
     private fun parse(batch: List<String>, body: String): Map<String, Quote> {
@@ -87,6 +125,8 @@ class YahooProvider(
 
     companion object {
         private const val BASE_URL = "https://query1.finance.yahoo.com/v8/finance/spark"
+        private const val CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
+        private val PENCE = setOf("GBp", "GBX")
 
         /** Yahoo refuses spark requests with more than 20 symbols. */
         const val BATCH_SIZE = 20

@@ -57,6 +57,8 @@ import com.ibkrtax.mobile.portfolio.TopMoversRanking
 import com.ibkrtax.mobile.portfolio.UsdTotals
 import com.ibkrtax.mobile.prices.PriceFailure
 import com.ibkrtax.mobile.prices.PriceFreshness
+import com.ibkrtax.mobile.prices.Markets
+import com.ibkrtax.mobile.prices.PriceScope
 import com.ibkrtax.mobile.prices.PriceSource
 import com.ibkrtax.mobile.prices.RefreshProgress
 import com.ibkrtax.mobile.prices.RefreshOutcome
@@ -88,6 +90,8 @@ sealed interface PortfolioUiState {
         val performance: List<PositionPerformance>,
         val summary: PortfolioSummary,
         val rates: FxRates?,
+        /** Some held positions are European listings, which are always priced from Yahoo Finance. */
+        val hasEuropean: Boolean,
         val prices: RefreshOutcome?,
         val priceSource: PriceSource,
     ) : PortfolioUiState
@@ -104,11 +108,8 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
             when (val result = container.portfolio.holdings()) {
                 is HoldingsResult.Incomplete -> PortfolioUiState.Incomplete(result.ticker, result.date)
                 is HoldingsResult.Success -> {
-                    val rows = MainPage.rows(
-                        result.holdings,
-                        container.prices.prices(result.holdings, prices),
-                        container.portfolio.listingExchanges(),
-                    )
+                    val exchanges = container.portfolio.listingExchanges()
+                    val rows = MainPage.rows(result.holdings, container.prices.prices(result.holdings, prices, exchanges), exchanges)
                     val rates = container.fx.rates()
                     val dividends = container.dividendEvents.all()
                     val performance = Performance.positions(rows, result.realized, dividends)
@@ -118,6 +119,7 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
                         performance = performance,
                         summary = Performance.summary(performance, dividends, rates, LocalDate.now()),
                         rates = rates,
+                        hasEuropean = rows.any { row -> PriceScope.symbol(row.holding, row.listingExchange)?.let(Markets::isEuropean) == true },
                         prices = prices,
                         priceSource = container.prices.source(),
                     )
@@ -135,7 +137,7 @@ suspend fun refreshMarketData(context: Context, onProgress: (RefreshProgress) ->
     val container = context.appContainer
     val rates = async { container.fx.refresh() }
     val holdings = (container.portfolio.holdings() as? HoldingsResult.Success)?.holdings.orEmpty()
-    val prices = container.prices.refresh(holdings, onProgress)
+    val prices = container.prices.refresh(holdings, container.portfolio.listingExchanges(), onProgress)
     rates.await()
     prices
 }
@@ -290,7 +292,7 @@ private fun Header(state: PortfolioUiState.Loaded, progress: RefreshProgress?, o
             if (!totals.isComplete) add(stringResource(R.string.header_incomplete, totals.missingValues, state.rows.size))
         }
         Text(notes.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-        PriceStatus(state.prices, state.priceSource, progress, onRefresh, onOpenSettings)
+        PriceStatus(state.prices, state.priceSource, state.hasEuropean, progress, onRefresh, onOpenSettings)
     }
 }
 
@@ -360,6 +362,7 @@ private fun TopMoversSection(movers: TopMovers, onOpen: (PositionRow) -> Unit) {
             Text(stringResource(R.string.movers_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             when (movers.freshness) {
                 PriceFreshness.LIVE -> Unit
+                PriceFreshness.DELAYED -> Text(stringResource(R.string.movers_delayed), style = muted)
                 PriceFreshness.LATEST_CLOSE -> Text(stringResource(R.string.movers_latest_close), style = muted)
                 PriceFreshness.STALE -> Text(stringResource(R.string.movers_stale), style = muted, color = LOSS)
             }
@@ -475,6 +478,7 @@ private fun PositionLine(row: PositionRow, mode: PnlMode, onClick: () -> Unit) {
                 Text(Formats.number(price.quote.price, 2, 4))
                 when (price.freshness) {
                     PriceFreshness.LIVE -> Unit
+                    PriceFreshness.DELAYED -> Text(stringResource(R.string.price_delayed_short), style = muted)
                     PriceFreshness.LATEST_CLOSE -> Text(stringResource(R.string.price_close_short), style = muted)
                     PriceFreshness.STALE -> Text(stringResource(R.string.price_stale_short), style = muted, color = LOSS)
                 }
@@ -514,11 +518,16 @@ private const val FINNHUB_PER_MINUTE = 55
 private fun PriceStatus(
     prices: RefreshOutcome?,
     source: PriceSource,
+    hasEuropean: Boolean,
     progress: RefreshProgress?,
     onRefresh: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val fromYahoo = if (source == PriceSource.YAHOO) stringResource(R.string.prices_from_yahoo) else null
+    val fromYahoo = when {
+        source == PriceSource.YAHOO -> stringResource(R.string.prices_from_yahoo)
+        hasEuropean -> stringResource(R.string.prices_europe_from_yahoo)
+        else -> null
+    }
     val message = when (prices) {
         null -> stringResource(R.string.prices_refreshing)
         RefreshOutcome.NoKey -> stringResource(R.string.prices_no_key)
