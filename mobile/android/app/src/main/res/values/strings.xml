@@ -3,7 +3,20 @@
     <string name="app_name">IBKR Tax Assistant</string>
 
     <string name="tab_portfolio">Portfolio</string>
+    <string name="tab_dividends">Dividends</string>
     <string name="tab_operations">Operations</string>
+    <string name="dividends_title">Dividends</string>
+    <string name="dividends_empty">No dividends found. Reports with a Dividends section add them here.</string>
+    <string name="dividends_gross">Gross</string>
+    <string name="dividends_tax">Withholding tax</string>
+    <string name="dividends_net">Net</string>
+    <string name="dividends_by_month">Net per month, %1$d (USD)</string>
+    <string name="dividends_by_currency">Per currency</string>
+    <string name="dividends_compare">Net per month by year (USD)</string>
+    <string name="dividends_by_position">Per position, %1$d</string>
+    <string name="dividends_line">gross %1$s · withholding tax %2$s</string>
+    <string name="dividends_incomplete">incomplete: no rate for %1$s</string>
+    <string name="dividends_coverage">Imported dividend data from %1$s to %2$s.</string>
     <string name="tab_imports">Imports</string>
     <string name="operations_title">Operations</string>
     <string name="operations_search">Ticker</string>

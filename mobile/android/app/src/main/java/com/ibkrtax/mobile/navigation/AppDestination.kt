@@ -6,6 +6,7 @@ package com.ibkrtax.mobile.navigation
  */
 enum class AppDestination(val route: String) {
     PORTFOLIO("portfolio"),
+    DIVIDENDS("dividends"),
     OPERATIONS("operations"),
     IMPORTS("imports"),
     SETTINGS("settings");

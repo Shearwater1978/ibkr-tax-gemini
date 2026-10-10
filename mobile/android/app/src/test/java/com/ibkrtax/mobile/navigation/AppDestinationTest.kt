@@ -7,7 +7,7 @@ class AppDestinationTest {
     // iOS AppDestinationTests adopt this order when iOS work resumes (mobile/README.md).
     @Test
     fun destinationsMatchSharedNavigationContract() {
-        assertEquals(listOf("portfolio", "operations", "imports", "settings"), AppDestination.entries.map { it.route })
+        assertEquals(listOf("portfolio", "dividends", "operations", "imports", "settings"), AppDestination.entries.map { it.route })
     }
 
     @Test
