@@ -14,6 +14,15 @@ unauthorized access to personal data by the storage provider.
   b) a recovery code (high-entropy random string shown once).
 - Wrapped DK is stored in the backup manifest in the backup folder. The KEK is never written there.
 - Changing the passphrase re-wraps DK without re-encrypting all backups.
+- Parameters (Android): passphrases need at least 12 characters and are rejected when trivially simple (one repeated
+  character or a plain sequence). Argon2id uses 64 MiB memory, 3 iterations, parallelism 1, a 16-byte random salt, and
+  each wrapped key records its own parameters; lower them only if a phone needs more than about 2 seconds.
+  Argon2id comes from Bouncy Castle (pure Java). The recovery code is 26 Crockford base32 characters (about
+  130 bits) in six groups; its KEK is derived with HKDF-SHA256. On the device, DK is stored wrapped by a
+  non-exportable Keystore key.
+- Android Block Store holds a copy of DK only when it reports end-to-end encryption (Android 9+ with a screen lock),
+  so a phone restored from the user's Android backup restores without the passphrase. A key check value in the
+  manifest confirms that a retrieved DK belongs to the backup.
 
 ## Decision 3: Device-bound key for local data
 A device key stored in Android Keystore or Secure Enclave protects the local

@@ -5,9 +5,13 @@ import android.content.Context
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.ibkrtax.mobile.fx.FxService
 import com.ibkrtax.mobile.fx.NbpClient
+import com.ibkrtax.mobile.keys.BackupKeys
+import com.ibkrtax.mobile.keys.BlockStoreKeyCopy
+import com.ibkrtax.mobile.keys.LocalKeyFiles
 import com.ibkrtax.mobile.prices.FinnhubProvider
 import com.ibkrtax.mobile.prices.PriceService
 import com.ibkrtax.mobile.prices.RateLimiter
+import com.ibkrtax.mobile.security.AesGcmKeyWrapper
 import com.ibkrtax.mobile.security.DeviceKeys
 import com.ibkrtax.mobile.security.Pseudonymizer
 import com.ibkrtax.mobile.storage.EncryptedDatabase
@@ -16,6 +20,7 @@ import com.ibkrtax.mobile.storage.ImportHistory
 import com.ibkrtax.mobile.storage.PortfolioRepository
 import com.ibkrtax.mobile.storage.PriceStore
 import com.ibkrtax.mobile.storage.ReportImporter
+import java.io.File
 
 class IbkrTaxApplication : Application() {
     val container: AppContainer by lazy { AppContainer(this) }
@@ -40,6 +45,12 @@ class AppContainer(context: Context) {
     fun finnhub(key: String): FinnhubProvider = FinnhubProvider(key, limiter = finnhubLimiter)
     val fxStore: FxStore by lazy { FxStore(database) }
     val fx: FxService by lazy { FxService(NbpClient(), fxStore) }
+    val backupKeys: BackupKeys by lazy {
+        BackupKeys(
+            LocalKeyFiles(File(appContext.noBackupFilesDir, "backup-keys"), AesGcmKeyWrapper { DeviceKeys.aesWrappingKey(DeviceKeys.BACKUP_DATA_KEY_WRAP_ALIAS) }),
+            BlockStoreKeyCopy(appContext),
+        )
+    }
 }
 
 val Context.appContainer: AppContainer
