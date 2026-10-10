@@ -20,6 +20,7 @@ class FakeMarketDataProvider(
     override suspend fun latestQuotes(symbols: Set<String>, onProgress: (Int) -> Unit): PriceResult {
         requests += symbols.toSet()
         failure?.let { return PriceResult.Failure(it) }
+        onProgress(symbols.size)
         return PriceResult.Success(quotes.filterKeys { it in symbols })
     }
 }

@@ -135,6 +135,9 @@
     <string name="price_unavailable_short">no price</string>
     <string name="price_out_of_scope_short">not covered</string>
     <string name="price_close_short">close</string>
+    <string name="price_delayed_short">delayed</string>
+    <string name="movers_delayed">delayed prices</string>
+    <string name="prices_europe_from_yahoo">European prices come from Yahoo Finance.</string>
     <string name="price_no_rate_short">no rate</string>
     <string name="view_own_currency">Own currency</string>
     <string name="view_usd">USD</string>
@@ -225,7 +228,7 @@
     <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>
     <string name="settings_version_full">Version %1$s · built %2$s UTC · %3$s</string>
     <string name="settings_prices_title">Market prices</string>
-    <string name="settings_prices_body">Prices for US listings come from Finnhub, using your own free personal API key. The key is stored encrypted on this phone and sent only to Finnhub, together with ticker symbols. Without a key, prices come from Yahoo Finance\'s public pages: no key is needed, but that source is unofficial and may be delayed, limited or stop working at any time. Only ticker symbols are sent there.</string>
+    <string name="settings_prices_body">Prices for US listings come from Finnhub, using your own free personal API key. Prices for listings on the main European exchanges always come from Yahoo Finance, because Finnhub\'s free plan has none; they are delayed by about 15 to 20 minutes. The key is stored encrypted on this phone and sent only to Finnhub, together with ticker symbols. Without a key, prices come from Yahoo Finance\'s public pages: no key is needed, but that source is unofficial and may be delayed, limited or stop working at any time. Only ticker symbols are sent there.</string>
     <string name="key_guide_title">How to get a free key</string>
     <string name="key_guide_step1">1. Tap Get key from Finnhub. Finnhub opens in a browser tab; create a free account or sign in. This app never sees your Finnhub password.</string>
     <string name="key_guide_step2">2. On Finnhub, copy your API key.</string>
