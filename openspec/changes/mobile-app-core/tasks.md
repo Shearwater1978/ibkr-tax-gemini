@@ -26,6 +26,7 @@
 - [x] 4.3 Add stale, unavailable, offline, and out-of-scope states and verify the UI never presents an old quote as current.
 - [x] 4.4 Add encrypted storage and a Settings field for the user's provider API key, and verify no key ships in the app, the key never appears in logs or plaintext storage, and no price requests are made without a key.
 - [x] 4.5 Without a Finnhub key, retrieve prices from Yahoo Finance's public batch endpoint (symbols only, 20 per request) and name the source on the main page and in Settings.
+- [ ] 4.6 Price holdings on supported European exchanges from Yahoo Finance (symbol suffix per IBKR exchange, pence to pounds, currency check, per-exchange session hours, "delayed" label), also when a Finnhub key is set, and verify with unit tests and on the emulator.
 
 ## 5. Integration and documentation
 
