@@ -23,7 +23,7 @@ Users need a secure way to review imported IBKR holdings from a phone. The first
 ## Impact
 
 - Adds iOS and Android client behavior; does not change existing desktop/CLI behavior, tax calculations, or APIs.
-- Depends on the encryption, local storage, pseudonymization, and Google Drive backup rules in `mobile-encrypted-drive-backup`.
+- Depends on the encryption, local storage, pseudonymization, and encrypted backup rules in `mobile-encrypted-drive-backup`.
 - Uses the repository's existing IBKR Flex Query CSV parsing and instrument identity rules as the behavioral reference.
 - Finnhub is the initial market-data provider, used with a personal API key supplied by each user; the app ships no key and needs no commercial data licence. Prices for EU and other non-US listings are deferred to a later change.
 - Retrieves NBP exchange-rate tables (currency codes only, no key) for the informational USD total.

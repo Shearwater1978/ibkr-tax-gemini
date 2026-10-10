@@ -11,7 +11,7 @@
 - [ ] 2.1 Implement on-device validation and parsing for IBKR Activity Flex Query CSV in both clients and verify synthetic fixtures cover supported rows, normalization, and malformed input. _Status: Android done (parity with the Python parser); iOS postponed._
 - [x] 2.2 Add atomic import and duplicate detection and verify unsupported, corrupted, and duplicate reports create no partial derived records.
 - [x] 2.3 Store derived records only in encrypted local storage, pseudonymize direct identifiers, and verify logs and diagnostics contain no raw identifiers or report contents.
-- [ ] 2.4 Back up encrypted reports to the Drive app data folder, verify upload size/checksum before removing app-managed source copies, and verify offline or failed uploads retain protected data with a visible pending state. _Status: Pending: needs the Google Cloud setup in `mobile-encrypted-drive-backup`._
+- [ ] 2.4 Back up encrypted reports to the user-chosen backup folder, verify the written file's size and SHA-256 before removing app-managed source copies, and verify offline or failed uploads retain protected data with a visible pending state. _Status: Pending: needs the backup folder and key management in `mobile-encrypted-drive-backup`._
 
 ## 3. Portfolio overview
 

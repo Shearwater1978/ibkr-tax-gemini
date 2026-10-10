@@ -1,6 +1,6 @@
 ## Context
 
-The mobile security change defines Kotlin/Swift platform targets, encrypted local storage, on-device processing, pseudonymization, and encrypted Google Drive backup. The existing Python parser handles IBKR Activity Flex Query CSV files; the existing tax logic uses FIFO matching and instrument identity rules.
+The mobile security change defines Kotlin/Swift platform targets, encrypted local storage, on-device processing, pseudonymization, and encrypted backup to a user-chosen folder. The existing Python parser handles IBKR Activity Flex Query CSV files; the existing tax logic uses FIFO matching and instrument identity rules.
 
 ## Goals / Non-Goals
 
@@ -26,7 +26,7 @@ The first release accepts only IBKR Activity Flex Query CSV reports selected thr
 
 ### On-device import and protected backup
 
-All parsing and aggregation run on-device and work without a network connection. Keep temporary source data in app-private storage, encrypt it before network access, and store derived records only in the encrypted local database after a complete successful import. Upload the encrypted report to the Google Drive app data folder and verify it before removing the app-managed source copy. If backup is unavailable, retain only the protected local copy, show a pending status, and retry without blocking local processing. Never delete the user's original file outside app-managed storage.
+All parsing and aggregation run on-device and work without a network connection. Keep temporary source data in app-private storage, encrypt it before it leaves app-private storage, and store derived records only in the encrypted local database after a complete successful import. Write the encrypted report to the user-chosen backup folder and verify it by reading it back before removing the app-managed source copy. If backup is unavailable, retain only the protected local copy, show a pending status, and retry without blocking local processing. Never delete the user's original file outside app-managed storage.
 
 Direct identifiers are pseudonymized before derived data is persisted, logged, or displayed; report contents and financial values tied to a person are excluded from logs. The encrypted-backup change remains the authority for key management, cryptographic formats, device hardening, erasure, and Drive access.
 
@@ -48,7 +48,7 @@ The main page follows the familiar broker layout: one compact row per position s
 - **Toolchains:** Android Studio with the Android SDK and Android Emulator (buildable on Windows); Xcode with the iOS Simulator on a local Mac (iOS builds require macOS).
 - **Emulator and simulator scope:** use them for build, launch, UI flow, parser, aggregation, price-staleness, and offline/error-state tests. They are not sufficient evidence for hardware-backed security behavior: Secure Enclave is unavailable in the iOS Simulator, Android Keystore on emulators may not be hardware-backed, and biometrics are only simulated. Play Integrity and App Attest, and the real hardware-backed key, biometric, and screenshot-protection behavior, must be verified on at least one physical Android device and one physical iOS device before release.
 - **Test data:** use only synthetic IBKR Flex Query CSV fixtures shared by both platforms; never use real broker reports, real account identifiers, or real tax data in tests, emulators, simulators, or repositories.
-- **Test isolation:** unit and UI tests must use a test Google OAuth client or a mocked Drive service, and a mocked market-data provider; automated tests must not call live services or use real credentials.
+- **Test isolation:** unit and UI tests must use a mocked document storage for the backup folder, and a mocked market-data provider; automated tests must not call live services or use real credentials.
 - **Automation:** unit and parity tests run without a device where possible; emulator/simulator suites are run locally. Adding CI for them (including a macOS runner) is deferred, and any CI added must keep the existing required-check behavior.
 
 ## Risks / Trade-offs

@@ -78,12 +78,12 @@ so that no individual record or person can be singled out, and small groups SHAL
 
 ### Requirement: Erasure and minimization
 When the user requests erasure, the application SHALL remove all personal data linked to the user from the local
-database, the Google Drive backups (via files.delete), and the device keystore entries. The application SHALL NOT retain
+database, the backup files in the chosen backup folder, and the device keystore entries, and SHALL destroy the data key. The application SHALL NOT retain
 data that is no longer needed for processing or for the statutory retention period, if one applies.
 
 #### Scenario: Erasure request
 - **WHEN** the user requests erasure of their data
-- **THEN** local records, Drive backups, manifests, and related keys are deleted, and the user receives confirmation
+- **THEN** local records, backup files, manifests, and related keys are deleted, and the user receives confirmation
 
 #### Scenario: Data retention
 - **WHEN** a retention period expires for an imported report
