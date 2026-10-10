@@ -3,7 +3,29 @@
     <string name="app_name">IBKR Tax Assistant</string>
 
     <string name="tab_portfolio">Portfolio</string>
+    <string name="tab_operations">Operations</string>
     <string name="tab_imports">Imports</string>
+    <string name="operations_title">Operations</string>
+    <string name="operations_search">Ticker</string>
+    <string name="operations_clear_search">Clear search</string>
+    <string name="operations_filter_buys">Buys</string>
+    <string name="operations_filter_sells">Sells</string>
+    <string name="operations_filter_dividends">Dividends</string>
+    <string name="operations_filter_taxes">Withholding tax</string>
+    <string name="operations_filter_other">Corporate actions</string>
+    <string name="operations_no_match">No operations match the search and filters.</string>
+    <string name="operations_clear_all">Clear search and filters</string>
+    <string name="operations_empty">No operations yet. Import an IBKR report to see its buys, sells, dividends and corporate actions here.</string>
+    <string name="operations_commission">commission %1$s</string>
+    <string name="operation_buy">Buy</string>
+    <string name="operation_sell">Sell</string>
+    <string name="operation_dividend">Dividend</string>
+    <string name="operation_tax">Withholding tax</string>
+    <string name="operation_transfer">Transfer</string>
+    <string name="operation_split">Split</string>
+    <string name="operation_stock_dividend">Stock dividend</string>
+    <string name="operation_merger">Merger</string>
+    <string name="operation_spinoff">Spin-off</string>
     <string name="tab_settings">Settings</string>
 
 

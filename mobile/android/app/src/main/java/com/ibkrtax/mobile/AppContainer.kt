@@ -23,6 +23,7 @@ import com.ibkrtax.mobile.storage.BackupLocationStore
 import com.ibkrtax.mobile.storage.EncryptedDatabase
 import com.ibkrtax.mobile.storage.FxStore
 import com.ibkrtax.mobile.storage.ImportHistory
+import com.ibkrtax.mobile.storage.OperationsRepository
 import com.ibkrtax.mobile.storage.PortfolioRepository
 import com.ibkrtax.mobile.storage.PriceStore
 import com.ibkrtax.mobile.storage.ReportImporter
@@ -44,6 +45,7 @@ class AppContainer(context: Context) {
     val importer: ReportImporter by lazy { ReportImporter(database, Pseudonymizer { DeviceKeys.hmacKey() }) }
     val portfolio: PortfolioRepository by lazy { PortfolioRepository(database) }
     val importHistory: ImportHistory by lazy { ImportHistory(database) }
+    val operations: OperationsRepository by lazy { OperationsRepository(database) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
     private val finnhubLimiter = RateLimiter.forFinnhubFreeTier()
     private val yahooLimiter = RateLimiter(maxCalls = 30, window = Duration.ofMinutes(1))

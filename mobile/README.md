@@ -16,10 +16,11 @@ Both clients expose the same bottom-tab navigation. Route IDs and order are chec
 | Order | Route | Tab | Purpose |
 |---|---|---|---|
 | 1 (start) | `portfolio` | Portfolio | Holdings; empty state with an action that opens Imports |
-| 2 | `imports` | Imports | Report import and status; disabled until encrypted storage exists |
-| 3 | `settings` | Settings | Privacy notice and app version |
+| 2 | `operations` | Operations | Imported transactions with ticker search and type filters (Android only for now) |
+| 3 | `imports` | Imports | Report import and status; disabled until encrypted storage exists |
+| 4 | `settings` | Settings | Backup, price key, and app version |
 
-When you change a destination, change it on both platforms and in this table.
+When you change a destination, change it on both platforms and in this table. While iOS work is paused, Android leads: tabs marked "Android only for now" are added to iOS when it resumes.
 
 ## Android
 
