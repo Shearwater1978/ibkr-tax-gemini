@@ -2,6 +2,7 @@ package com.ibkrtax.mobile.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
@@ -24,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.navigation.AppDestination
 import com.ibkrtax.mobile.ui.screens.ImportsScreen
+import com.ibkrtax.mobile.ui.screens.OperationsScreen
 import com.ibkrtax.mobile.ui.screens.PortfolioScreen
 import com.ibkrtax.mobile.ui.screens.SettingsScreen
 
@@ -57,6 +59,9 @@ fun AppScaffold(navController: NavHostController = rememberNavController()) {
                     onOpenSettings = { navController.navigateToTab(AppDestination.SETTINGS) },
                 )
             }
+            composable(AppDestination.OPERATIONS.route) {
+                OperationsScreen(onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) })
+            }
             composable(AppDestination.IMPORTS.route) { ImportsScreen() }
             composable(AppDestination.SETTINGS.route) { SettingsScreen() }
         }
@@ -73,6 +78,7 @@ private fun NavHostController.navigateToTab(destination: AppDestination) {
 
 private fun AppDestination.labelRes(): Int = when (this) {
     AppDestination.PORTFOLIO -> R.string.tab_portfolio
+    AppDestination.OPERATIONS -> R.string.tab_operations
     AppDestination.IMPORTS -> R.string.tab_imports
     AppDestination.SETTINGS -> R.string.tab_settings
 }
@@ -80,6 +86,7 @@ private fun AppDestination.labelRes(): Int = when (this) {
 @Suppress("DEPRECATION")
 private fun AppDestination.icon(): ImageVector = when (this) {
     AppDestination.PORTFOLIO -> Icons.Filled.Home
+    AppDestination.OPERATIONS -> Icons.Filled.DateRange
     AppDestination.IMPORTS -> Icons.Filled.List
     AppDestination.SETTINGS -> Icons.Filled.Settings
 }

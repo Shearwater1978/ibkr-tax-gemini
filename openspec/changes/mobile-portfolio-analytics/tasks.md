@@ -1,7 +1,7 @@
 ## 1. Operations (PR 1)
 
-- [ ] 1.1 Add a read-only analytics repository that pages operations newest first, filtered by type and ticker substring, and verify with an instrumented test on 20,000 synthetic rows that a page loads in under 200 ms and filters combine.
-- [ ] 1.2 Add the Operations tab (bottom bar with five tabs, list, search field, type chips, empty and no-match states) and verify on the emulator with synthetic reports that search, filters and "clear" behave as in `mobile-operations`.
+- [x] 1.1 Add a read-only analytics repository that pages operations newest first, filtered by type and ticker substring, and verify with an instrumented test on 20,000 synthetic rows that a page loads in under 200 ms and filters combine.
+- [x] 1.2 Add the Operations tab (its bottom-bar tab, list, search field, type chips, empty and no-match states) and verify on the emulator with synthetic reports that search, filters and "clear" behave as in `mobile-operations`.
 
 ## 2. Dividends (PR 2)
 

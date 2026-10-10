@@ -4,10 +4,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AppDestinationTest {
-    // Must stay identical to the iOS AppDestinationTests expectations.
+    // iOS AppDestinationTests adopt this order when iOS work resumes (mobile/README.md).
     @Test
     fun destinationsMatchSharedNavigationContract() {
-        assertEquals(listOf("portfolio", "imports", "settings"), AppDestination.entries.map { it.route })
+        assertEquals(listOf("portfolio", "operations", "imports", "settings"), AppDestination.entries.map { it.route })
     }
 
     @Test
