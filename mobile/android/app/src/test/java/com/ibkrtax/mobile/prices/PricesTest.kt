@@ -75,6 +75,30 @@ class PricesTest {
     }
 
     @Test
+    fun refreshReportsProgressPerYahooBatch(): Unit = runBlocking {
+        val transport = RecordingTransport { url ->
+            val requested = url.substringAfter("symbols=").substringBefore("&").split(",")
+            spark(*requested.map { sparkSeries(it, "10", marketOpen.epochSecond) }.toTypedArray())
+        }
+        val holdings = (1..45).map { holding("S$it", "USD") }
+        val service = PriceService(MemoryKeys(), MemoryCache(), { error("no key") }, Clock.fixed(marketOpen, ZoneOffset.UTC), YahooProvider(transport))
+        val seen = mutableListOf<RefreshProgress>()
+
+        service.refresh(holdings) { seen += it }
+
+        assertEquals(listOf(0, 20, 40, 45), seen.map { it.done })
+        assertTrue(seen.all { it.total == 45 && it.source == PriceSource.YAHOO })
+    }
+
+    @Test
+    fun finnhubReportsProgressPerSymbol(): Unit = runBlocking {
+        val seen = mutableListOf<Int>()
+        FinnhubProvider("k", RecordingTransport { quoteJson("190.1", marketOpen.epochSecond) })
+            .latestQuotes(setOf("AAPL", "MSFT", "NVDA")) { seen += it }
+        assertEquals(listOf(1, 2, 3), seen)
+    }
+
+    @Test
     fun yahooMapsShareClassSymbols() = runBlocking {
         assertEquals("BRK-B", YahooProvider.yahooSymbol("BRK B"))
         assertEquals("BRK-B", YahooProvider.yahooSymbol("BRK.B"))
@@ -297,7 +321,7 @@ class PricesTest {
         val cache = MemoryCache().apply { putAll(listOf(Quote("MSFT", BigDecimal("400"), "USD", earlier, earlier))) }
         val fresh = Quote("AAPL", BigDecimal("190"), "USD", marketOpen, marketOpen)
         val provider = object : MarketDataProvider {
-            override suspend fun latestQuotes(symbols: Set<String>) =
+            override suspend fun latestQuotes(symbols: Set<String>, onProgress: (Int) -> Unit) =
                 PriceResult.Failure(PriceFailure.RATE_LIMITED, mapOf("AAPL" to fresh))
         }
         val both = holdings + holding("MSFT", "USD")

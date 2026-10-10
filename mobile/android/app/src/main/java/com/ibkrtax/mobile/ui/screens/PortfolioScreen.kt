@@ -48,6 +48,7 @@ import com.ibkrtax.mobile.portfolio.UsdTotals
 import com.ibkrtax.mobile.prices.PriceFailure
 import com.ibkrtax.mobile.prices.PriceFreshness
 import com.ibkrtax.mobile.prices.PriceSource
+import com.ibkrtax.mobile.prices.RefreshProgress
 import com.ibkrtax.mobile.prices.RefreshOutcome
 import com.ibkrtax.mobile.security.KeyUnwrapException
 import com.ibkrtax.mobile.security.KeystoreUnavailableException
@@ -109,11 +110,11 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
     }
 
 /** Refreshes prices for in-scope holdings and the NBP table in parallel (network); call off the main thread. */
-suspend fun refreshMarketData(context: Context): RefreshOutcome = coroutineScope {
+suspend fun refreshMarketData(context: Context, onProgress: (RefreshProgress) -> Unit = {}): RefreshOutcome = coroutineScope {
     val container = context.appContainer
     val rates = async { container.fx.refresh() }
     val holdings = (container.portfolio.holdings() as? HoldingsResult.Success)?.holdings.orEmpty()
-    val prices = container.prices.refresh(holdings)
+    val prices = container.prices.refresh(holdings, onProgress)
     rates.await()
     prices
 }
@@ -122,13 +123,16 @@ suspend fun refreshMarketData(context: Context): RefreshOutcome = coroutineScope
 fun PortfolioScreen(onImportReport: () -> Unit, onOpenSettings: () -> Unit = {}) {
     val context = LocalContext.current
     var refreshTick by remember { mutableIntStateOf(0) }
+    var progress by remember { mutableStateOf<RefreshProgress?>(null) }
     // Show cached data at once, then refresh when the page opens or the user asks.
     val state by produceState<PortfolioUiState>(PortfolioUiState.Loading, refreshTick) {
         val cached = withContext(Dispatchers.IO) { loadPortfolio(context, prices = null) }
         value = cached
         if (cached is PortfolioUiState.Loaded) {
-            val outcome = withContext(Dispatchers.IO) { refreshMarketData(context) }
+            progress = null
+            val outcome = withContext(Dispatchers.IO) { refreshMarketData(context) { progress = it } }
             value = withContext(Dispatchers.IO) { loadPortfolio(context, outcome) }
+            progress = null
         }
     }
 
@@ -139,7 +143,7 @@ fun PortfolioScreen(onImportReport: () -> Unit, onOpenSettings: () -> Unit = {})
         is PortfolioUiState.Incomplete -> Centered {
             Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center)
         }
-        is PortfolioUiState.Loaded -> Positions(current, onRefresh = { refreshTick++ }, onOpenSettings = onOpenSettings)
+        is PortfolioUiState.Loaded -> Positions(current, progress, onRefresh = { refreshTick++ }, onOpenSettings = onOpenSettings)
     }
 }
 
@@ -174,13 +178,13 @@ private fun signColor(value: BigDecimal?): Color =
     }
 
 @Composable
-private fun Positions(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
+private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
     var sort by remember { mutableStateOf(SortOrder()) }
     var mode by rememberSaveable { mutableStateOf(PnlMode.DAILY) }
     val rows = MainPage.sorted(state.rows, sort, mode)
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-        item { Header(state, onRefresh, onOpenSettings) }
+        item { Header(state, progress, onRefresh, onOpenSettings) }
         item {
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 PnlMode.entries.forEachIndexed { index, option ->
@@ -202,7 +206,7 @@ private fun Positions(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onO
 }
 
 @Composable
-private fun Header(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
+private fun Header(state: PortfolioUiState.Loaded, progress: RefreshProgress?, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
     val totals = state.totals
     Column(modifier = Modifier.padding(top = 16.dp)) {
         Text(stringResource(R.string.portfolio_title), style = MaterialTheme.typography.titleMedium)
@@ -231,7 +235,7 @@ private fun Header(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onOpen
             if (!totals.isComplete) add(stringResource(R.string.header_incomplete, totals.missingValues, state.rows.size))
         }
         Text(notes.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-        PriceStatus(state.prices, state.priceSource, onRefresh, onOpenSettings)
+        PriceStatus(state.prices, state.priceSource, progress, onRefresh, onOpenSettings)
     }
 }
 
@@ -304,8 +308,33 @@ private fun PositionLine(row: PositionRow, mode: PnlMode) {
     HorizontalDivider()
 }
 
+/** What a running refresh is doing, so a long one does not look stuck. */
 @Composable
-private fun PriceStatus(prices: RefreshOutcome?, source: PriceSource, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
+private fun RefreshDetails(progress: RefreshProgress) {
+    val muted = MaterialTheme.typography.bodySmall
+    val received = when (progress.source) {
+        PriceSource.FINNHUB -> stringResource(R.string.prices_progress_finnhub, progress.done, progress.total)
+        else -> stringResource(R.string.prices_progress_yahoo, progress.done, progress.total)
+    }
+    Text(received, style = muted)
+    if (progress.source == PriceSource.FINNHUB && progress.total > FINNHUB_PER_MINUTE) {
+        val minutes = (progress.total + FINNHUB_PER_MINUTE - 1) / FINNHUB_PER_MINUTE
+        Text(stringResource(R.string.prices_progress_finnhub_limit, minutes), style = muted)
+    }
+    Text(stringResource(R.string.prices_progress_shown), style = muted)
+}
+
+// Matches RateLimiter.forFinnhubFreeTier().
+private const val FINNHUB_PER_MINUTE = 55
+
+@Composable
+private fun PriceStatus(
+    prices: RefreshOutcome?,
+    source: PriceSource,
+    progress: RefreshProgress?,
+    onRefresh: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     val fromYahoo = if (source == PriceSource.YAHOO) stringResource(R.string.prices_from_yahoo) else null
     val message = when (prices) {
         null -> stringResource(R.string.prices_refreshing)
@@ -324,6 +353,7 @@ private fun PriceStatus(prices: RefreshOutcome?, source: PriceSource, onRefresh:
         ) + fromYahoo?.let { " $it" }.orEmpty()
     }
     message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    if (prices == null && progress != null && progress.total > 0) RefreshDetails(progress)
     when (prices) {
         null -> Unit
         RefreshOutcome.NoKey -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.prices_add_key)) }

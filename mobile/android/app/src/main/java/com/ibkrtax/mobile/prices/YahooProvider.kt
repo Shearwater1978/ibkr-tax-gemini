@@ -24,9 +24,10 @@ class YahooProvider(
     private val clock: Clock = Clock.systemUTC(),
     private val limiter: RateLimiter? = null,
 ) : MarketDataProvider {
-    override suspend fun latestQuotes(symbols: Set<String>): PriceResult = withContext(Dispatchers.IO) {
+    override suspend fun latestQuotes(symbols: Set<String>, onProgress: (Int) -> Unit): PriceResult = withContext(Dispatchers.IO) {
         val quotes = mutableMapOf<String, Quote>()
         fun failure(reason: PriceFailure) = PriceResult.Failure(reason, quotes.toMap())
+        var requested = 0
         for (batch in symbols.sorted().chunked(BATCH_SIZE)) {
             limiter?.acquire()
             val query = batch.map(::yahooSymbol).distinct().joinToString(",") { URLEncoder.encode(it, "UTF-8") }
@@ -42,6 +43,8 @@ class YahooProvider(
                 429 -> return@withContext failure(PriceFailure.RATE_LIMITED)
                 else -> return@withContext failure(PriceFailure.PROVIDER_ERROR)
             }
+            requested += batch.size
+            onProgress(requested)
         }
         PriceResult.Success(quotes)
     }
