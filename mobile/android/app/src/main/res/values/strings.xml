@@ -65,6 +65,30 @@
     <string name="lock_no_screen_lock">This device has no screen lock, so the app cannot verify it is you. Set a PIN, pattern or fingerprint in system settings to protect your data.</string>
     <string name="lock_continue">Continue without lock</string>
 
+    <string name="encryption_title">Backup encryption</string>
+    <string name="encryption_body">Backups are encrypted on this phone with a key protected by your passphrase. Neither the storage provider nor anyone else can read them without it.</string>
+    <string name="encryption_set_up">Set up backup encryption</string>
+    <string name="encryption_create">Create keys</string>
+    <string name="encryption_working">Creating keys… this takes a few seconds.</string>
+    <string name="encryption_ready">Backup encryption is set up.</string>
+    <string name="encryption_cloud_on">A copy of the key is end-to-end encrypted in your Android backup, so a phone restored from that backup needs no passphrase.</string>
+    <string name="encryption_cloud_off">No automatic copy of the key (needs a screen lock on Android 9 or later). On a new phone you will need your passphrase or recovery code.</string>
+    <string name="encryption_change">Change passphrase</string>
+    <string name="encryption_change_submit">Change</string>
+    <string name="passphrase_rule">Use at least %1$d characters. A short sentence is easy to remember and hard to guess.</string>
+    <string name="passphrase_current">Current passphrase</string>
+    <string name="passphrase_new">New passphrase</string>
+    <string name="passphrase_confirm">Repeat passphrase</string>
+    <string name="passphrase_too_short">The passphrase needs at least %1$d characters.</string>
+    <string name="passphrase_too_simple">This passphrase is too simple. Avoid repeated characters and plain sequences.</string>
+    <string name="passphrase_mismatch">The two passphrases do not match.</string>
+    <string name="passphrase_wrong_current">The current passphrase is wrong.</string>
+    <string name="recovery_title">Your recovery code</string>
+    <string name="recovery_body">Write this code down and keep it somewhere safe, separate from your phone. It unlocks your backups if you forget the passphrase. It is shown only once, and screenshots are blocked.</string>
+    <string name="recovery_saved">I have written down the recovery code</string>
+    <string name="recovery_done">Done</string>
+    <string name="cancel">Cancel</string>
+
     <string name="settings_title">Settings</string>
     <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>
     <string name="settings_version">Version %1$s</string>

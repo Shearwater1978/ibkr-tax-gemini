@@ -6,12 +6,12 @@
 - [ ] 1.5 Implement the iOS equivalent (document picker with security-scoped bookmarks)
 
 ## 2. Key management
-- [ ] 2.1 Implement device key in Keystore / Secure Enclave
-- [ ] 2.2 Implement passphrase-derived KEK using Argon2id
-- [ ] 2.3 Implement recovery code generation and display-once flow
-- [ ] 2.4 Implement DK wrapping and unwrapping
-- [ ] 2.5 Implement passphrase change with re-wrap
-- [ ] 2.6 Store DK in Android Block Store when end-to-end encryption is available and use it to restore on a new device; fall back to passphrase or recovery code
+- [ ] 2.1 Implement device key in Keystore / Secure Enclave _Status: Android done (Keystore, StrongBox when available); iOS postponed._
+- [x] 2.2 Implement passphrase-derived KEK using Argon2id
+- [x] 2.3 Implement recovery code generation and display-once flow
+- [x] 2.4 Implement DK wrapping and unwrapping
+- [x] 2.5 Implement passphrase change with re-wrap
+- [ ] 2.6 Store DK in Android Block Store when end-to-end encryption is available and use it to restore on a new device; fall back to passphrase or recovery code _Status: storing done (Android); using it on restore comes with the restore flow (4.5)._
 
 ## 3. Report ingestion
 - [ ] 3.1 Implement file import via system document picker

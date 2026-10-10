@@ -23,6 +23,7 @@ object DeviceKeys {
     private const val PROVIDER = "AndroidKeyStore"
     const val DATABASE_WRAP_ALIAS = "ibkrtax.device.dbkey-wrap.v1"
     const val PSEUDONYM_ALIAS = "ibkrtax.device.pseudonym.v1"
+    const val BACKUP_DATA_KEY_WRAP_ALIAS = "ibkrtax.device.backup-dk-wrap.v1"
 
     fun aesWrappingKey(alias: String = DATABASE_WRAP_ALIAS): SecretKey =
         getOrCreate(alias, KeyProperties.KEY_ALGORITHM_AES) { strongBox ->
