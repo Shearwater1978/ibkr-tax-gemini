@@ -1,8 +1,24 @@
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+/** Git facts for the build stamp; "unknown" when git is not available. */
+fun git(vararg args: String): String =
+    providers.exec {
+        commandLine("git", *args)
+        isIgnoreExitValue = true
+    }.standardOutput.asText.map { it.trim() }.getOrElse("")
+
+val gitCommit = git("rev-parse", "--short=7", "HEAD").ifEmpty { "unknown" }
+val gitDirty = git("status", "--porcelain").isNotEmpty()
+val gitCommitCount = git("rev-list", "--count", "HEAD").toIntOrNull() ?: 1
+val buildTimeUtc: String = LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
 
 android {
     namespace = "com.ibkrtax.mobile"
@@ -13,8 +29,11 @@ android {
         // Android 10, the supported minimum in mobile-app-core design.
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // Commit count keeps increasing, so every newer build installs as an update.
+        versionCode = gitCommitCount
+        // e.g. 0.1.0+5c4e2a1, or 0.1.0+5c4e2a1-dirty when built with uncommitted changes.
+        versionName = "0.1.0+" + gitCommit + if (gitDirty) "-dirty" else ""
+        buildConfigField("String", "BUILD_TIME_UTC", "\"$buildTimeUtc\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -37,6 +56,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     // Synthetic Flex Query fixtures shared with iOS and the Python reference tests.
