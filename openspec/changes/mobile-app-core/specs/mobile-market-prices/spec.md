@@ -5,7 +5,7 @@ Defines how the app retrieves and presents market prices with clear currency, fr
 ## ADDED Requirements
 
 ### Requirement: Retrieve prices for held instruments
-The app SHALL retrieve the latest available price for held instruments in the supported price scope when the overview opens and when the user refreshes it. In the MVP, the supported scope is US-listed instruments held in USD; holdings outside the scope SHALL NOT be requested. Before price integration is released, the selected provider's terms SHALL be verified to permit a user's personal API key to be used from this client app.
+The app SHALL retrieve the latest available price for held instruments in the supported price scope when the overview opens and when the user refreshes it. In the MVP, the supported scope is US-listed instruments held in USD; holdings outside the scope SHALL NOT be requested. Before price integration is released, the selected provider's terms SHALL be verified to permit a user's personal API key to be used from this client app. This verification does not cover the keyless Yahoo Finance fallback, which the project owner has accepted as unofficial and unlicensed; it SHALL be reviewed again before a public release.
 
 #### Scenario: Price refresh
 - **WHEN** the user opens the overview or refreshes prices
@@ -20,18 +20,18 @@ The app SHALL retrieve the latest available price for held instruments in the su
 - **THEN** the app requests no price for it, shows its price as unavailable, and marks its currency subtotal incomplete
 
 ### Requirement: Minimize price-request data
-The app SHALL send only the instrument identifiers required to retrieve prices (the ticker symbol in the MVP) and the user's provider API key, and SHALL NOT send quantities, account data, names, report contents, or other personal data.
+The app SHALL send only the instrument identifiers required to retrieve prices (the ticker symbol in the MVP) and, for Finnhub, the user's provider API key, and SHALL NOT send quantities, account data, names, report contents, or other personal data.
 
 #### Scenario: Price request content
 - **WHEN** the app requests market prices
-- **THEN** the request contains only the required instrument identifiers and the user's provider API key
+- **THEN** the request contains only the required instrument identifiers and, for Finnhub, the user's provider API key
 
 ### Requirement: Use a user-supplied provider key
 The app SHALL NOT ship with a market-data provider API key. Price retrieval SHALL use an API key entered by the user, stored only in encrypted local storage protected by the device key, sent only to the provider, and never written to logs, diagnostics, or backups in plaintext.
 
 #### Scenario: No key configured
 - **WHEN** no provider API key has been entered
-- **THEN** the app makes no price requests, shows prices as unavailable, and offers to add a key in Settings
+- **THEN** the app sends no request to Finnhub and retrieves prices from the Yahoo Finance fallback
 
 #### Scenario: Key entered
 - **WHEN** the user enters a provider API key
@@ -40,6 +40,21 @@ The app SHALL NOT ship with a market-data provider API key. Price retrieval SHAL
 #### Scenario: Key rejected
 - **WHEN** the provider rejects the API key
 - **THEN** the app informs the user and shows only stale last-known prices or an unavailable state
+
+### Requirement: Fall back to Yahoo Finance without a key
+While no Finnhub key is set, the app SHALL retrieve prices for the same scope from Yahoo Finance's public chart endpoint, which needs no key. Requests SHALL contain only the ticker symbol (with share-class separators written the way Yahoo expects, e.g. `BRK-B`) and a generic browser user agent. Only USD quotes SHALL be accepted. The main page SHALL name Yahoo Finance as the price source, and Settings SHALL explain that this source is unofficial and may be delayed, limited, or stop working. Once a Finnhub key is set, the app SHALL use only Finnhub.
+
+#### Scenario: No key
+- **WHEN** no Finnhub key is set and the user opens the overview or refreshes prices
+- **THEN** the app requests in-scope symbols from Yahoo Finance and shows that prices come from Yahoo Finance
+
+#### Scenario: Key set
+- **WHEN** a Finnhub key is set
+- **THEN** the app requests prices only from Finnhub and sends nothing to Yahoo Finance
+
+#### Scenario: Symbol unknown to Yahoo Finance
+- **WHEN** Yahoo Finance does not know a symbol or quotes it in a currency other than USD
+- **THEN** the app shows that holding's price as unavailable
 
 ### Requirement: Show quote currency and freshness
 The app SHALL show the currency and retrieval time for each price. During market hours, a price older than 15 minutes SHALL be marked stale. Outside market hours, the last available close MAY be shown as the latest close, but SHALL NOT be described as a live price. Each price SHALL also show its change since the previous close. Prices and per-position values SHALL remain in their quote currency; only the informational header total in `mobile-portfolio-overview` is converted.

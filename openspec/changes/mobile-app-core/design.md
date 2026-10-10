@@ -58,6 +58,6 @@ The main page follows the familiar broker layout: one compact row per position s
 
 - Separate native clients can drift → use shared behavioral acceptance cases and verify parity on both platforms.
 - Market-data licensing or availability may change, including the provider's free-tier terms → complete the terms review before release and retain a replaceable adapter.
-- Users must create their own provider API key → provide clear setup instructions; without a key the app stays usable and shows prices as unavailable.
+- Users must create their own provider API key → provide clear setup instructions; without a key the app falls back to Yahoo Finance's public chart endpoint, which is unofficial and unlicensed for this use and can break or throttle without notice. The project owner accepted this for the MVP; review it before a public release.
 - NBP mid rates and PLN cross rates differ from market FX rates → label the USD total approximate and informational and show the rate date.
 - On-device parser behavior may differ from Python → use synthetic shared test cases for supported report variations and normalization.

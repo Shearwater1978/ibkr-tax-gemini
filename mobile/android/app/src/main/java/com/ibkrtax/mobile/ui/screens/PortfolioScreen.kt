@@ -47,6 +47,7 @@ import com.ibkrtax.mobile.portfolio.SortOrder
 import com.ibkrtax.mobile.portfolio.UsdTotals
 import com.ibkrtax.mobile.prices.PriceFailure
 import com.ibkrtax.mobile.prices.PriceFreshness
+import com.ibkrtax.mobile.prices.PriceSource
 import com.ibkrtax.mobile.prices.RefreshOutcome
 import com.ibkrtax.mobile.security.KeyUnwrapException
 import com.ibkrtax.mobile.security.KeystoreUnavailableException
@@ -72,6 +73,7 @@ sealed interface PortfolioUiState {
         val rows: List<PositionRow>,
         val totals: UsdTotals,
         val prices: RefreshOutcome?,
+        val priceSource: PriceSource,
     ) : PortfolioUiState
 }
 
@@ -95,6 +97,7 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
                         rows = rows,
                         totals = MainPage.usdTotals(rows, container.fx.rates()),
                         prices = prices,
+                        priceSource = container.prices.source(),
                     )
                 }
             }
@@ -228,7 +231,7 @@ private fun Header(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onOpen
             if (!totals.isComplete) add(stringResource(R.string.header_incomplete, totals.missingValues, state.rows.size))
         }
         Text(notes.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-        PriceStatus(state.prices, onRefresh, onOpenSettings)
+        PriceStatus(state.prices, state.priceSource, onRefresh, onOpenSettings)
     }
 }
 
@@ -302,11 +305,12 @@ private fun PositionLine(row: PositionRow, mode: PnlMode) {
 }
 
 @Composable
-private fun PriceStatus(prices: RefreshOutcome?, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
+private fun PriceStatus(prices: RefreshOutcome?, source: PriceSource, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
+    val fromYahoo = if (source == PriceSource.YAHOO) stringResource(R.string.prices_from_yahoo) else null
     val message = when (prices) {
         null -> stringResource(R.string.prices_refreshing)
         RefreshOutcome.NoKey -> stringResource(R.string.prices_no_key)
-        RefreshOutcome.Updated -> null
+        RefreshOutcome.Updated -> fromYahoo
         is RefreshOutcome.Failed -> stringResource(
             R.string.prices_failed,
             stringResource(
@@ -317,7 +321,7 @@ private fun PriceStatus(prices: RefreshOutcome?, onRefresh: () -> Unit, onOpenSe
                     PriceFailure.PROVIDER_ERROR -> R.string.prices_failure_provider
                 },
             ),
-        )
+        ) + fromYahoo?.let { " $it" }.orEmpty()
     }
     message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
     when (prices) {

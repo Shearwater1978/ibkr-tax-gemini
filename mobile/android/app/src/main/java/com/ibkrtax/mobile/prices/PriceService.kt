@@ -34,6 +34,13 @@ sealed interface RefreshOutcome {
     data class Failed(val reason: PriceFailure, val startedAt: Instant) : RefreshOutcome
 }
 
+/** Where prices come from right now. */
+enum class PriceSource {
+    FINNHUB,
+    YAHOO,
+    NONE,
+}
+
 /** MVP price scope (mobile-market-prices spec): USD holdings, treated as US listings. */
 object PriceScope {
     fun includes(holding: Holding): Boolean = holding.currency == "USD"
@@ -44,15 +51,24 @@ class PriceService(
     private val cache: QuoteCache,
     private val providerFor: (apiKey: String) -> MarketDataProvider,
     private val clock: Clock = Clock.systemUTC(),
+    /** Used while no key is set (mobile-market-prices spec); without it nothing is requested. */
+    private val fallback: MarketDataProvider? = null,
 ) {
+    fun source(): PriceSource =
+        when {
+            keys.get() != null -> PriceSource.FINNHUB
+            fallback != null -> PriceSource.YAHOO
+            else -> PriceSource.NONE
+        }
+
     suspend fun refresh(holdings: List<Holding>): RefreshOutcome {
-        val key = keys.get() ?: return RefreshOutcome.NoKey
+        val provider = keys.get()?.let(providerFor) ?: fallback ?: return RefreshOutcome.NoKey
         val startedAt = clock.instant()
         val inScope = symbolsInScope(holdings)
         val cached = cache.get(inScope)
         val symbols = inScope.filter { needsRequest(cached[it], startedAt) }.toSet()
         if (symbols.isEmpty()) return RefreshOutcome.Updated
-        return when (val result = providerFor(key).latestQuotes(symbols)) {
+        return when (val result = provider.latestQuotes(symbols)) {
             is PriceResult.Success -> {
                 cache.putAll(result.quotes.values)
                 RefreshOutcome.Updated

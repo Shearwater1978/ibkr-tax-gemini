@@ -36,6 +36,77 @@ class PricesTest {
     private fun holding(ticker: String, currency: String) =
         Holdings.fromLots(listOf(OpenLot(ticker, "", "2023-01-01", BigDecimal.ONE, BigDecimal.TEN, currency))).single()
 
+    private fun yahooJson(price: String, epochSeconds: Long, currency: String = "USD") =
+        HttpResponse(
+            200,
+            """{"chart":{"result":[{"meta":{"currency":"$currency","symbol":"X","regularMarketPrice":$price,""" +
+                """"regularMarketTime":$epochSeconds,"chartPreviousClose":189.5}}],"error":null}}""",
+        )
+
+    // --- Yahoo fallback ---
+
+    @Test
+    fun yahooSendsOnlyTheSymbolAndNoKey() = runBlocking {
+        val transport = RecordingTransport { yahooJson("190.1", marketOpen.epochSecond) }
+        val result = YahooProvider(transport, Clock.fixed(marketOpen, ZoneOffset.UTC)).latestQuotes(setOf("AAPL"))
+
+        val (url, headers) = transport.calls.single()
+        assertEquals("https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=1d", url)
+        assertEquals(setOf("User-Agent"), headers.keys)
+
+        val quote = (result as PriceResult.Success).quotes.getValue("AAPL")
+        assertEquals(0, BigDecimal("190.1").compareTo(quote.price))
+        assertEquals(0, BigDecimal("0.6").compareTo(quote.dailyChange))
+        assertEquals(marketOpen, quote.quoteTime)
+    }
+
+    @Test
+    fun yahooMapsShareClassSymbols() {
+        assertEquals("BRK-B", YahooProvider.yahooSymbol("BRK B"))
+        assertEquals("BRK-B", YahooProvider.yahooSymbol("BRK.B"))
+        assertEquals("AAPL", YahooProvider.yahooSymbol("AAPL"))
+    }
+
+    @Test
+    fun yahooLeavesUnknownAndNonUsdSymbolsUnavailable() = runBlocking {
+        val transport = RecordingTransport { url ->
+            when {
+                "NOPE" in url -> HttpResponse(404, """{"chart":{"result":null,"error":{"code":"Not Found"}}}""")
+                "SAP" in url -> yahooJson("120", marketOpen.epochSecond, currency = "EUR")
+                else -> yahooJson("190.1", marketOpen.epochSecond)
+            }
+        }
+        val result = YahooProvider(transport).latestQuotes(setOf("AAPL", "NOPE", "SAP")) as PriceResult.Success
+        assertEquals(setOf("AAPL"), result.quotes.keys)
+    }
+
+    @Test
+    fun yahooReportsThrottlingAndOutages() = runBlocking {
+        val limited = YahooProvider(RecordingTransport { HttpResponse(429, "") }).latestQuotes(setOf("AAPL"))
+        assertEquals(PriceFailure.RATE_LIMITED, (limited as PriceResult.Failure).reason)
+        val offline = YahooProvider({ _, _ -> throw IOException("offline") }).latestQuotes(setOf("AAPL"))
+        assertEquals(PriceFailure.OFFLINE, (offline as PriceResult.Failure).reason)
+    }
+
+    @Test
+    fun serviceUsesYahooOnlyWithoutAKey(): Unit = runBlocking {
+        val finnhub = FakeMarketDataProvider()
+        val yahoo = FakeMarketDataProvider()
+        val holdings = listOf(holding("AAPL", "USD"))
+
+        val noKey = PriceService(MemoryKeys(), MemoryCache(), { finnhub }, Clock.fixed(marketOpen, ZoneOffset.UTC), yahoo)
+        assertEquals(PriceSource.YAHOO, noKey.source())
+        noKey.refresh(holdings)
+        assertEquals(1, yahoo.requests.size)
+        assertEquals(0, finnhub.requests.size)
+
+        val withKey = PriceService(MemoryKeys("k"), MemoryCache(), { finnhub }, Clock.fixed(marketOpen, ZoneOffset.UTC), yahoo)
+        assertEquals(PriceSource.FINNHUB, withKey.source())
+        withKey.refresh(holdings)
+        assertEquals(1, yahoo.requests.size)
+        assertEquals(1, finnhub.requests.size)
+    }
+
     // --- Finnhub adapter ---
 
     @Test

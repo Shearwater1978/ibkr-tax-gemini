@@ -15,6 +15,7 @@ import com.ibkrtax.mobile.keys.LocalKeyFiles
 import com.ibkrtax.mobile.prices.FinnhubProvider
 import com.ibkrtax.mobile.prices.PriceService
 import com.ibkrtax.mobile.prices.RateLimiter
+import com.ibkrtax.mobile.prices.YahooProvider
 import com.ibkrtax.mobile.security.AesGcmKeyWrapper
 import com.ibkrtax.mobile.security.DeviceKeys
 import com.ibkrtax.mobile.security.Pseudonymizer
@@ -26,6 +27,7 @@ import com.ibkrtax.mobile.storage.PortfolioRepository
 import com.ibkrtax.mobile.storage.PriceStore
 import com.ibkrtax.mobile.storage.ReportImporter
 import java.io.File
+import java.time.Duration
 
 class IbkrTaxApplication : Application() {
     val container: AppContainer by lazy { AppContainer(this) }
@@ -44,7 +46,10 @@ class AppContainer(context: Context) {
     val importHistory: ImportHistory by lazy { ImportHistory(database) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
     private val finnhubLimiter = RateLimiter.forFinnhubFreeTier()
-    val prices: PriceService by lazy { PriceService(priceStore, priceStore, ::finnhub) }
+    private val yahooLimiter = RateLimiter(maxCalls = 30, window = Duration.ofMinutes(1))
+    val prices: PriceService by lazy {
+        PriceService(priceStore, priceStore, ::finnhub, fallback = YahooProvider(limiter = yahooLimiter))
+    }
 
     /** Finnhub client for [key]; all clients share one rate limiter. */
     fun finnhub(key: String): FinnhubProvider = FinnhubProvider(key, limiter = finnhubLimiter)
