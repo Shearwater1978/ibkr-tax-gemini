@@ -70,7 +70,6 @@ sealed interface PortfolioUiState {
 
     /** [prices] is null while a refresh is running. */
     data class Loaded(
-        val accounts: List<String>,
         val rows: List<PositionRow>,
         val totals: UsdTotals,
         val prices: RefreshOutcome?,
@@ -95,7 +94,6 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
                         container.portfolio.listingExchanges(),
                     )
                     PortfolioUiState.Loaded(
-                        accounts = reports.mapNotNull { it.accountMasked }.distinct(),
                         rows = rows,
                         totals = MainPage.usdTotals(rows, container.fx.rates()),
                         prices = prices,
@@ -162,8 +160,6 @@ private fun EmptyPortfolio(onImportReport: () -> Unit) {
         Text(stringResource(R.string.portfolio_empty_body), textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
         Button(onClick = onImportReport) { Text(stringResource(R.string.action_import_report)) }
-        Spacer(Modifier.height(24.dp))
-        Text(stringResource(R.string.informational_notice), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
     }
 }
 
@@ -201,11 +197,7 @@ private fun Positions(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onO
         item { ColumnHeaders(sort, onSort = { sort = sort.select(it) }) }
         if (rows.isEmpty()) item { Text(stringResource(R.string.portfolio_no_holdings), modifier = Modifier.padding(vertical = 16.dp)) }
         items(rows, key = { "${it.ticker}-${it.holding.isin}-${it.currency}" }) { PositionLine(it, mode) }
-        item {
-            Spacer(Modifier.height(16.dp))
-            Text(stringResource(R.string.informational_notice), style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(24.dp))
-        }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
@@ -214,9 +206,6 @@ private fun Header(state: PortfolioUiState.Loaded, onRefresh: () -> Unit, onOpen
     val totals = state.totals
     Column(modifier = Modifier.padding(top = 16.dp)) {
         Text(stringResource(R.string.portfolio_title), style = MaterialTheme.typography.titleMedium)
-        if (state.accounts.isNotEmpty()) {
-            Text(stringResource(R.string.portfolio_accounts, state.accounts.joinToString()), style = MaterialTheme.typography.bodySmall)
-        }
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {

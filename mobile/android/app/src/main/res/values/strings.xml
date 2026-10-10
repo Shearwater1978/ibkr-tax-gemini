@@ -6,7 +6,6 @@
     <string name="tab_imports">Imports</string>
     <string name="tab_settings">Settings</string>
 
-    <string name="informational_notice">Informational only. Not a tax calculation or PIT-38 output.</string>
 
     <string name="portfolio_empty_title">No reports imported</string>
     <string name="portfolio_empty_body">Import an IBKR Activity Flex Query CSV report to see your holdings.</string>
@@ -55,7 +54,6 @@
     <string name="storage_unavailable">Secure storage is unavailable on this device, so imported data cannot be opened.</string>
 
     <string name="portfolio_title">Positions</string>
-    <string name="portfolio_accounts">Accounts: %1$s</string>
     <string name="portfolio_no_holdings">All imported positions are fully sold.</string>
     <string name="portfolio_incomplete">Imported reports sell more %1$s than they buy (on %2$s). Import the missing earlier reports to see holdings.</string>
     <string name="header_total_value">Total value</string>

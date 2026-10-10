@@ -56,18 +56,22 @@ The P&L column SHALL switch between daily P&L (quantity × change since the prev
 - **WHEN** the P&L column is set to unrealized
 - **THEN** each row shows market value minus FIFO cost in its own currency
 
-### Requirement: Keep portfolio values informational
-The app SHALL label portfolio values as informational and SHALL NOT calculate or export a Polish PIT-38 report or present portfolio values as tax output.
+### Requirement: Keep tax output out of the app
+The app SHALL NOT calculate or export a Polish PIT-38 report or present portfolio values as tax output. Screens SHALL NOT carry a standing tax or PIT-38 disclaimer.
 
 #### Scenario: User reviews portfolio
 - **WHEN** the user views holdings or portfolio values
-- **THEN** the app identifies them as informational and provides no PIT-38 calculation or tax-report export action
+- **THEN** the app provides no PIT-38 calculation or tax-report export action and shows no tax or PIT-38 notice
 
 ### Requirement: Protect displayed personal data
-The overview SHALL NOT show raw account numbers, names, or tax identifiers. Any account reference SHALL be masked according to `mobile-encrypted-drive-backup`.
+The overview SHALL NOT show account numbers, masked or not, names, or tax identifiers. Elsewhere in the app, any account reference SHALL be masked according to `mobile-encrypted-drive-backup`.
 
-#### Scenario: Account reference shown
-- **WHEN** an account is referenced in the overview
+#### Scenario: Overview opened
+- **WHEN** the user opens the overview
+- **THEN** no account reference is shown
+
+#### Scenario: Account reference shown elsewhere
+- **WHEN** an account is referenced outside the overview, for example in the import history
 - **THEN** only the permitted masked value is shown
 
 ### Requirement: Show empty state
