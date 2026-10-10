@@ -43,6 +43,7 @@ import com.ibkrtax.mobile.keys.PassphraseProblem
 import com.ibkrtax.mobile.keys.PendingKeySetup
 import com.ibkrtax.mobile.keys.RecoveryCode
 import com.ibkrtax.mobile.keys.WrongSecretException
+import com.ibkrtax.mobile.ui.SensitiveClipboard
 import kotlinx.coroutines.launch
 
 private sealed interface EncryptionStep {
@@ -192,6 +193,7 @@ private fun SecretField(value: String, onChange: (String) -> Unit, label: String
 @Composable
 private fun RecoveryCodeCard(step: EncryptionStep.ShowRecoveryCode, onDone: () -> Unit) {
     var saved by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(stringResource(R.string.recovery_title), fontWeight = FontWeight.Bold)
@@ -202,6 +204,14 @@ private fun RecoveryCodeCard(step: EncryptionStep.ShowRecoveryCode, onDone: () -
                 fontSize = 20.sp,
                 modifier = Modifier.padding(vertical = 12.dp),
             )
+            val context = LocalContext.current
+            val label = stringResource(R.string.recovery_clip_label)
+            OutlinedButton(onClick = {
+                SensitiveClipboard.copy(context, label, RecoveryCode.format(step.pending.recoveryCode))
+                copied = true
+            }) { Text(stringResource(R.string.recovery_copy)) }
+            if (copied) Text(stringResource(R.string.recovery_copied), style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(8.dp))
             Text(
                 stringResource(if (step.cloudCopy) R.string.encryption_cloud_on else R.string.encryption_cloud_off),
                 style = MaterialTheme.typography.bodySmall,
