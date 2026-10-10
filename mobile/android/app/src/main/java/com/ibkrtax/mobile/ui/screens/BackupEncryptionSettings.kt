@@ -41,6 +41,7 @@ import com.ibkrtax.mobile.keys.BackupKeyStatus
 import com.ibkrtax.mobile.keys.PassphrasePolicy
 import com.ibkrtax.mobile.keys.PassphraseProblem
 import com.ibkrtax.mobile.keys.PendingKeySetup
+import com.ibkrtax.mobile.keys.PendingRecoveryCode
 import com.ibkrtax.mobile.keys.RecoveryCode
 import com.ibkrtax.mobile.keys.WrongSecretException
 import com.ibkrtax.mobile.ui.SensitiveClipboard
@@ -55,11 +56,19 @@ private sealed interface EncryptionStep {
 
     data object Working : EncryptionStep
 
+    data object NewCodeForm : EncryptionStep
+
     /** Shown exactly once; keys are stored only when the user confirms. */
     data class ShowRecoveryCode(val pending: PendingKeySetup, val cloudCopy: Boolean) : EncryptionStep
+
+    /** A replacement code; the old one keeps working until the user confirms. */
+    data class ShowNewRecoveryCode(val pending: PendingRecoveryCode) : EncryptionStep
 }
 
-/** Settings section for backup encryption: set up a passphrase, show the recovery code once, change the passphrase. */
+/**
+ * Settings section for backup encryption: set up a passphrase, show the recovery code once,
+ * change the passphrase, or replace a lost recovery code.
+ */
 @Composable
 fun BackupEncryptionSettings() {
     val context = LocalContext.current
@@ -91,12 +100,38 @@ fun BackupEncryptionSettings() {
 
     when (val current = step) {
         EncryptionStep.Working -> Text(stringResource(R.string.encryption_working))
-        is EncryptionStep.ShowRecoveryCode -> RecoveryCodeCard(current) {
+        is EncryptionStep.ShowRecoveryCode -> RecoveryCodeCard(current.pending.recoveryCode, current.cloudCopy) {
             step = EncryptionStep.Working
             scope.launch {
                 context.appContainer.backupKeys.confirm(current.pending)
                 step = EncryptionStep.Idle
                 reload++
+            }
+        }
+        is EncryptionStep.ShowNewRecoveryCode -> RecoveryCodeCard(current.pending.recoveryCode, cloudCopy = null) {
+            step = EncryptionStep.Working
+            scope.launch {
+                context.appContainer.backupKeys.confirmRecoveryCode(current.pending)
+                step = EncryptionStep.Idle
+                reload++
+            }
+        }
+        EncryptionStep.NewCodeForm -> PassphraseForm(
+            askCurrent = true,
+            askNew = false,
+            error = error,
+            submitLabel = stringResource(R.string.recovery_new_submit),
+            onCancel = { step = EncryptionStep.Idle; error = null },
+        ) { old, _, _ ->
+            error = null
+            step = EncryptionStep.Working
+            scope.launch {
+                step = try {
+                    EncryptionStep.ShowNewRecoveryCode(context.appContainer.backupKeys.prepareNewRecoveryCode(old.toCharArray()))
+                } catch (e: WrongSecretException) {
+                    error = wrongCurrent
+                    EncryptionStep.NewCodeForm
+                }
             }
         }
         EncryptionStep.CreateForm -> PassphraseForm(
@@ -149,6 +184,10 @@ fun BackupEncryptionSettings() {
                 OutlinedButton(onClick = { step = EncryptionStep.ChangeForm }, modifier = Modifier.padding(top = 8.dp)) {
                     Text(stringResource(R.string.encryption_change))
                 }
+                OutlinedButton(onClick = { step = EncryptionStep.NewCodeForm }, modifier = Modifier.padding(top = 4.dp)) {
+                    Text(stringResource(R.string.recovery_new))
+                }
+                Text(stringResource(R.string.recovery_new_hint), style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -158,6 +197,7 @@ fun BackupEncryptionSettings() {
 private fun PassphraseForm(
     askCurrent: Boolean,
     error: String?,
+    askNew: Boolean = true,
     submitLabel: String,
     onCancel: () -> Unit,
     onSubmit: (current: String, new: String, confirm: String) -> Unit,
@@ -166,10 +206,12 @@ private fun PassphraseForm(
     var new by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
 
-    Text(stringResource(R.string.passphrase_rule, PassphrasePolicy.MIN_LENGTH), style = MaterialTheme.typography.bodySmall)
+    if (askNew) Text(stringResource(R.string.passphrase_rule, PassphrasePolicy.MIN_LENGTH), style = MaterialTheme.typography.bodySmall)
     if (askCurrent) SecretField(current, { current = it }, stringResource(R.string.passphrase_current))
-    SecretField(new, { new = it }, stringResource(R.string.passphrase_new))
-    SecretField(confirm, { confirm = it }, stringResource(R.string.passphrase_confirm))
+    if (askNew) {
+        SecretField(new, { new = it }, stringResource(R.string.passphrase_new))
+        SecretField(confirm, { confirm = it }, stringResource(R.string.passphrase_confirm))
+    }
     error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
     Row(modifier = Modifier.padding(top = 8.dp)) {
         Button(onClick = { onSubmit(current, new, confirm) }) { Text(submitLabel) }
@@ -190,8 +232,9 @@ private fun SecretField(value: String, onChange: (String) -> Unit, label: String
     )
 }
 
+/** [cloudCopy] is shown after first setup; null for a replacement code, which warns that the old code stops working. */
 @Composable
-private fun RecoveryCodeCard(step: EncryptionStep.ShowRecoveryCode, onDone: () -> Unit) {
+private fun RecoveryCodeCard(code: String, cloudCopy: Boolean?, onDone: () -> Unit) {
     var saved by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -199,7 +242,7 @@ private fun RecoveryCodeCard(step: EncryptionStep.ShowRecoveryCode, onDone: () -
             Text(stringResource(R.string.recovery_title), fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.recovery_body), style = MaterialTheme.typography.bodySmall)
             Text(
-                RecoveryCode.format(step.pending.recoveryCode),
+                RecoveryCode.format(code),
                 fontFamily = FontFamily.Monospace,
                 fontSize = 20.sp,
                 modifier = Modifier.padding(vertical = 12.dp),
@@ -207,13 +250,17 @@ private fun RecoveryCodeCard(step: EncryptionStep.ShowRecoveryCode, onDone: () -
             val context = LocalContext.current
             val label = stringResource(R.string.recovery_clip_label)
             OutlinedButton(onClick = {
-                SensitiveClipboard.copy(context, label, RecoveryCode.format(step.pending.recoveryCode))
+                SensitiveClipboard.copy(context, label, RecoveryCode.format(code))
                 copied = true
             }) { Text(stringResource(R.string.recovery_copy)) }
             if (copied) Text(stringResource(R.string.recovery_copied), style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(8.dp))
             Text(
-                stringResource(if (step.cloudCopy) R.string.encryption_cloud_on else R.string.encryption_cloud_off),
+                when (cloudCopy) {
+                    null -> stringResource(R.string.recovery_new_replaces)
+                    true -> stringResource(R.string.encryption_cloud_on)
+                    false -> stringResource(R.string.encryption_cloud_off)
+                },
                 style = MaterialTheme.typography.bodySmall,
             )
             // The whole row toggles, not just the small checkbox.

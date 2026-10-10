@@ -73,6 +73,19 @@ class KeyVaultTest {
     }
 
     @Test
+    fun replacingTheRecoveryCodeRetiresTheOldOne() {
+        val setup = vault.setUp(passphrase)
+
+        val (changed, newCode) = vault.replaceRecoveryCode(setup.manifest, setup.dataKey)
+
+        assertNotEquals(setup.recoveryCode, newCode)
+        assertArrayEquals(setup.dataKey, vault.unlockWithRecoveryCode(changed, newCode))
+        assertThrows(WrongSecretException::class.java) { vault.unlockWithRecoveryCode(changed, setup.recoveryCode) }
+        assertArrayEquals(setup.dataKey, vault.unlockWithPassphrase(changed, passphrase))
+        assertArrayEquals(setup.manifest.passphraseWrappedKey, changed.passphraseWrappedKey)
+    }
+
+    @Test
     fun manifestRoundTripsAndContainsNoSecrets() {
         val setup = vault.setUp(passphrase)
         val json = setup.manifest.toJson()
