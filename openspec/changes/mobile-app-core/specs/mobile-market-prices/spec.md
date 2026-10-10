@@ -42,7 +42,7 @@ The app SHALL NOT ship with a market-data provider API key. Price retrieval SHAL
 - **THEN** the app informs the user and shows only stale last-known prices or an unavailable state
 
 ### Requirement: Fall back to Yahoo Finance without a key
-While no Finnhub key is set, the app SHALL retrieve prices for the same scope from Yahoo Finance's public chart endpoint, which needs no key. Requests SHALL contain only the ticker symbol (with share-class separators written the way Yahoo expects, e.g. `BRK-B`) and a generic browser user agent. Only USD quotes SHALL be accepted. The main page SHALL name Yahoo Finance as the price source, and Settings SHALL explain that this source is unofficial and may be delayed, limited, or stop working. Once a Finnhub key is set, the app SHALL use only Finnhub.
+While no Finnhub key is set, the app SHALL retrieve prices for the same scope from Yahoo Finance's public batch (spark) endpoint, which needs no key. Each request SHALL cover up to 20 symbols, so a refresh needs one request per 20 holdings, and SHALL contain only the ticker symbols (with share-class separators written the way Yahoo expects, e.g. `BRK-B`) and a generic browser user agent. The endpoint returns no currency; because only USD holdings are requested and symbols without an exchange suffix are US listings, the quotes SHALL be treated as USD. The main page SHALL name Yahoo Finance as the price source, and Settings SHALL explain that this source is unofficial and may be delayed, limited, or stop working. Once a Finnhub key is set, the app SHALL use only Finnhub.
 
 #### Scenario: No key
 - **WHEN** no Finnhub key is set and the user opens the overview or refreshes prices
@@ -53,7 +53,7 @@ While no Finnhub key is set, the app SHALL retrieve prices for the same scope fr
 - **THEN** the app requests prices only from Finnhub and sends nothing to Yahoo Finance
 
 #### Scenario: Symbol unknown to Yahoo Finance
-- **WHEN** Yahoo Finance does not know a symbol or quotes it in a currency other than USD
+- **WHEN** Yahoo Finance does not know a symbol
 - **THEN** the app shows that holding's price as unavailable
 
 ### Requirement: Show quote currency and freshness

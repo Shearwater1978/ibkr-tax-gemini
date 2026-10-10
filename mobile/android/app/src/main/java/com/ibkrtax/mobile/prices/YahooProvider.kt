@@ -11,9 +11,13 @@ import org.json.JSONException
 import org.json.JSONObject
 
 /**
- * Keyless fallback used while the user has no Finnhub key: Yahoo Finance's public chart
+ * Keyless fallback used while the user has no Finnhub key: Yahoo Finance's public spark
  * endpoint. It is unofficial and not licensed for this use (mobile-market-prices spec), so
- * it can throttle or change without notice. The only data sent is the symbol.
+ * it can throttle or change without notice. The only data sent is the symbols.
+ *
+ * One request covers up to [BATCH_SIZE] symbols, so a large portfolio refreshes in a few
+ * requests. Spark has no currency field; symbols without an exchange suffix are US listings,
+ * which Yahoo quotes in USD, and only USD holdings are requested (PriceScope).
  */
 class YahooProvider(
     private val transport: HttpTransport = UrlConnectionTransport(),
@@ -23,16 +27,17 @@ class YahooProvider(
     override suspend fun latestQuotes(symbols: Set<String>): PriceResult = withContext(Dispatchers.IO) {
         val quotes = mutableMapOf<String, Quote>()
         fun failure(reason: PriceFailure) = PriceResult.Failure(reason, quotes.toMap())
-        for (symbol in symbols.sorted()) {
+        for (batch in symbols.sorted().chunked(BATCH_SIZE)) {
             limiter?.acquire()
+            val query = batch.map(::yahooSymbol).distinct().joinToString(",") { URLEncoder.encode(it, "UTF-8") }
             val response = try {
-                transport.get("$BASE_URL/${URLEncoder.encode(yahooSymbol(symbol), "UTF-8")}?range=1d&interval=1d", HEADERS)
+                transport.get("$BASE_URL?symbols=$query&range=1d&interval=5m", HEADERS)
             } catch (e: IOException) {
                 return@withContext failure(PriceFailure.OFFLINE)
             }
             when (response.status) {
-                in 200..299 -> parse(symbol, response.body)?.let { quotes[symbol] = it }
-                // Unknown symbol: leave it unavailable.
+                in 200..299 -> quotes += parse(batch, response.body)
+                // None of the symbols is known: leave them unavailable.
                 404 -> Unit
                 429 -> return@withContext failure(PriceFailure.RATE_LIMITED)
                 else -> return@withContext failure(PriceFailure.PROVIDER_ERROR)
@@ -41,17 +46,32 @@ class YahooProvider(
         PriceResult.Success(quotes)
     }
 
-    private fun parse(symbol: String, body: String): Quote? =
+    /** Unknown symbols are absent from the response and stay unavailable. */
+    private fun parse(batch: List<String>, body: String): Map<String, Quote> {
+        val json = try {
+            JSONObject(body)
+        } catch (e: JSONException) {
+            return emptyMap()
+        }
+        val retrievedAt = clock.instant()
+        return batch.mapNotNull { symbol ->
+            json.optJSONObject(yahooSymbol(symbol))?.let { quote(symbol, it, retrievedAt) }?.let { symbol to it }
+        }.toMap()
+    }
+
+    private fun quote(symbol: String, series: JSONObject, retrievedAt: Instant): Quote? =
         try {
-            val meta = JSONObject(body).getJSONObject("chart").getJSONArray("result").getJSONObject(0).getJSONObject("meta")
-            val price = meta.decimal("regularMarketPrice")
-            val time = meta.optLong("regularMarketTime")
-            // The scope is USD holdings of US listings; another currency is a different listing.
-            if (price == null || price.signum() <= 0 || time <= 0 || meta.optString("currency") != "USD") {
+            val times = series.getJSONArray("timestamp")
+            val closes = series.getJSONArray("close")
+            // The latest 5-minute bar with a trade; bars without trades have a null close.
+            val last = (minOf(times.length(), closes.length()) - 1 downTo 0).firstOrNull { !closes.isNull(it) }
+            val price = last?.let { BigDecimal(closes.get(it).toString()) }
+            val time = last?.let { times.getLong(it) } ?: 0
+            if (price == null || price.signum() <= 0 || time <= 0) {
                 null
             } else {
-                val previousClose = (meta.decimal("previousClose") ?: meta.decimal("chartPreviousClose"))?.takeIf { it.signum() > 0 }
-                Quote(symbol, price, "USD", Instant.ofEpochSecond(time), clock.instant(), previousClose)
+                val previousClose = (series.decimal("previousClose") ?: series.decimal("chartPreviousClose"))?.takeIf { it.signum() > 0 }
+                Quote(symbol, price, "USD", Instant.ofEpochSecond(time), retrievedAt, previousClose)
             }
         } catch (e: JSONException) {
             null
@@ -63,7 +83,10 @@ class YahooProvider(
         opt(name)?.takeIf { it != JSONObject.NULL }?.toString()?.let(::BigDecimal)
 
     companion object {
-        private const val BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart"
+        private const val BASE_URL = "https://query1.finance.yahoo.com/v8/finance/spark"
+
+        /** Yahoo refuses spark requests with more than 20 symbols. */
+        const val BATCH_SIZE = 20
 
         // Yahoo answers 429 to requests without a browser-like user agent.
         private val HEADERS = mapOf("User-Agent" to "Mozilla/5.0 (Linux; Android) AppleWebKit/537.36 (KHTML, like Gecko) Mobile Safari/537.36")

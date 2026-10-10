@@ -36,48 +36,64 @@ class PricesTest {
     private fun holding(ticker: String, currency: String) =
         Holdings.fromLots(listOf(OpenLot(ticker, "", "2023-01-01", BigDecimal.ONE, BigDecimal.TEN, currency))).single()
 
-    private fun yahooJson(price: String, epochSeconds: Long, currency: String = "USD") =
-        HttpResponse(
-            200,
-            """{"chart":{"result":[{"meta":{"currency":"$currency","symbol":"X","regularMarketPrice":$price,""" +
-                """"regularMarketTime":$epochSeconds,"chartPreviousClose":189.5}}],"error":null}}""",
-        )
+    /** Spark series for [symbol]: an empty bar (null close) after the last trade, as Yahoo sends. */
+    private fun sparkSeries(symbol: String, price: String, epochSeconds: Long) =
+        """"$symbol":{"symbol":"$symbol","timestamp":[${epochSeconds - 300},$epochSeconds,${epochSeconds + 300}],""" +
+            """"close":[189.0,$price,null],"previousClose":189.5,"chartPreviousClose":189.5}"""
+
+    private fun spark(vararg series: String) = HttpResponse(200, series.joinToString(",", "{", "}"))
 
     // --- Yahoo fallback ---
 
     @Test
-    fun yahooSendsOnlyTheSymbolAndNoKey() = runBlocking {
-        val transport = RecordingTransport { yahooJson("190.1", marketOpen.epochSecond) }
+    fun yahooSendsOnlyTheSymbolsAndNoKey() = runBlocking {
+        val transport = RecordingTransport { spark(sparkSeries("AAPL", "190.1", marketOpen.epochSecond)) }
         val result = YahooProvider(transport, Clock.fixed(marketOpen, ZoneOffset.UTC)).latestQuotes(setOf("AAPL"))
 
         val (url, headers) = transport.calls.single()
-        assertEquals("https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=1d", url)
+        assertEquals("https://query1.finance.yahoo.com/v8/finance/spark?symbols=AAPL&range=1d&interval=5m", url)
         assertEquals(setOf("User-Agent"), headers.keys)
 
         val quote = (result as PriceResult.Success).quotes.getValue("AAPL")
         assertEquals(0, BigDecimal("190.1").compareTo(quote.price))
         assertEquals(0, BigDecimal("0.6").compareTo(quote.dailyChange))
+        assertEquals("USD", quote.currency)
         assertEquals(marketOpen, quote.quoteTime)
     }
 
     @Test
-    fun yahooMapsShareClassSymbols() {
-        assertEquals("BRK-B", YahooProvider.yahooSymbol("BRK B"))
-        assertEquals("BRK-B", YahooProvider.yahooSymbol("BRK.B"))
-        assertEquals("AAPL", YahooProvider.yahooSymbol("AAPL"))
+    fun yahooAsksForTwentySymbolsPerRequest() = runBlocking {
+        val symbols = (1..45).map { "S$it" }.toSet()
+        val transport = RecordingTransport { url ->
+            val requested = url.substringAfter("symbols=").substringBefore("&").split(",")
+            spark(*requested.map { sparkSeries(it, "10", marketOpen.epochSecond) }.toTypedArray())
+        }
+        val result = YahooProvider(transport).latestQuotes(symbols) as PriceResult.Success
+
+        assertEquals(listOf(20, 20, 5), transport.calls.map { it.first.substringAfter("symbols=").substringBefore("&").split(",").size })
+        assertEquals(symbols, result.quotes.keys)
     }
 
     @Test
-    fun yahooLeavesUnknownAndNonUsdSymbolsUnavailable() = runBlocking {
-        val transport = RecordingTransport { url ->
-            when {
-                "NOPE" in url -> HttpResponse(404, """{"chart":{"result":null,"error":{"code":"Not Found"}}}""")
-                "SAP" in url -> yahooJson("120", marketOpen.epochSecond, currency = "EUR")
-                else -> yahooJson("190.1", marketOpen.epochSecond)
-            }
-        }
-        val result = YahooProvider(transport).latestQuotes(setOf("AAPL", "NOPE", "SAP")) as PriceResult.Success
-        assertEquals(setOf("AAPL"), result.quotes.keys)
+    fun yahooMapsShareClassSymbols() = runBlocking {
+        assertEquals("BRK-B", YahooProvider.yahooSymbol("BRK B"))
+        assertEquals("BRK-B", YahooProvider.yahooSymbol("BRK.B"))
+        assertEquals("AAPL", YahooProvider.yahooSymbol("AAPL"))
+
+        val transport = RecordingTransport { spark(sparkSeries("BRK-B", "515.62", marketOpen.epochSecond)) }
+        val result = YahooProvider(transport).latestQuotes(setOf("BRK B")) as PriceResult.Success
+        assertEquals(setOf("BRK B"), result.quotes.keys)
+    }
+
+    @Test
+    fun yahooLeavesUnknownSymbolsUnavailable() = runBlocking {
+        val some = YahooProvider(RecordingTransport { spark(sparkSeries("AAPL", "190.1", marketOpen.epochSecond)) })
+            .latestQuotes(setOf("AAPL", "NOPE")) as PriceResult.Success
+        assertEquals(setOf("AAPL"), some.quotes.keys)
+
+        val none = YahooProvider(RecordingTransport { HttpResponse(404, """{"spark":{"result":null}}""") })
+            .latestQuotes(setOf("NOPE")) as PriceResult.Success
+        assertTrue(none.quotes.isEmpty())
     }
 
     @Test
