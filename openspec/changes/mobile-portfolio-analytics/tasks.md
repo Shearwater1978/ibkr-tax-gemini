@@ -22,8 +22,8 @@
 
 ## 5. Top movers (PR 5)
 
-- [ ] 5.1 Implement ranking by daily change percent (up to five each, no overlap, only positions with a previous close) and verify with unit tests, including all-up days and no data.
-- [ ] 5.2 Add the collapsible top-movers section with freshness labels, and verify on the emulator that it hides without price data and shows gainers and losers with Yahoo prices.
+- [x] 5.1 Implement ranking by daily change percent (up to five each, no overlap, only positions with a previous close) and verify with unit tests, including all-up days and no data.
+- [x] 5.2 Add the collapsible top-movers section with freshness labels, and verify on the emulator that it hides without price data and shows gainers and losers with Yahoo prices.
 
 ## 6. Documentation
 
