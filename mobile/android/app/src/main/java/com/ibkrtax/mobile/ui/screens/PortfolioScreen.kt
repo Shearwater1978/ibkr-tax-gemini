@@ -2,6 +2,7 @@ package com.ibkrtax.mobile.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,11 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,13 +37,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.appContainer
 import com.ibkrtax.mobile.portfolio.MainPage
+import com.ibkrtax.mobile.portfolio.Performance
 import com.ibkrtax.mobile.portfolio.PnlMode
+import com.ibkrtax.mobile.portfolio.PortfolioSummary
+import com.ibkrtax.mobile.portfolio.PositionPerformance
 import com.ibkrtax.mobile.portfolio.PositionRow
 import com.ibkrtax.mobile.portfolio.SortColumn
 import com.ibkrtax.mobile.portfolio.SortOrder
@@ -55,6 +62,7 @@ import com.ibkrtax.mobile.security.KeystoreUnavailableException
 import com.ibkrtax.mobile.storage.HoldingsResult
 import com.ibkrtax.mobile.ui.Formats
 import java.math.BigDecimal
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -73,6 +81,9 @@ sealed interface PortfolioUiState {
     data class Loaded(
         val rows: List<PositionRow>,
         val totals: UsdTotals,
+        /** Held positions (same order as [rows]) followed by fully sold ones. */
+        val performance: List<PositionPerformance>,
+        val summary: PortfolioSummary,
         val prices: RefreshOutcome?,
         val priceSource: PriceSource,
     ) : PortfolioUiState
@@ -94,9 +105,14 @@ fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
                         container.prices.prices(result.holdings, prices),
                         container.portfolio.listingExchanges(),
                     )
+                    val rates = container.fx.rates()
+                    val dividends = container.dividendEvents.all()
+                    val performance = Performance.positions(rows, result.realized, dividends)
                     PortfolioUiState.Loaded(
                         rows = rows,
-                        totals = MainPage.usdTotals(rows, container.fx.rates()),
+                        totals = MainPage.usdTotals(rows, rates),
+                        performance = performance,
+                        summary = Performance.summary(performance, dividends, rates, LocalDate.now()),
                         prices = prices,
                         priceSource = container.prices.source(),
                     )
@@ -182,6 +198,12 @@ private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?
     var sort by remember { mutableStateOf(SortOrder()) }
     var mode by rememberSaveable { mutableStateOf(PnlMode.DAILY) }
     val rows = MainPage.sorted(state.rows, sort, mode)
+    val context = LocalContext.current
+    var showSold by remember { mutableStateOf(UiPreferences.showSold(context)) }
+    var details by remember { mutableStateOf<PositionPerformance?>(null) }
+    val sold = state.performance.filter { it.isSold }
+
+    details?.let { PositionDetailsSheet(it, onDismiss = { details = null }) }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         item { Header(state, progress, onRefresh, onOpenSettings) }
@@ -200,7 +222,24 @@ private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?
         }
         item { ColumnHeaders(sort, onSort = { sort = sort.select(it) }) }
         if (rows.isEmpty()) item { Text(stringResource(R.string.portfolio_no_holdings), modifier = Modifier.padding(vertical = 16.dp)) }
-        items(rows, key = { "${it.ticker}-${it.holding.isin}-${it.currency}" }) { PositionLine(it, mode) }
+        items(rows, key = { "${it.ticker}-${it.holding.isin}-${it.currency}" }) { row ->
+            PositionLine(row, mode, onClick = { details = state.performance.firstOrNull { it.row === row } })
+        }
+        if (sold.isNotEmpty()) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().toggleable(value = showSold, role = Role.Switch, onValueChange = {
+                        showSold = it
+                        UiPreferences.setShowSold(context, it)
+                    }).padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(R.string.show_sold_positions, sold.size), modifier = Modifier.weight(1f))
+                    Switch(checked = showSold, onCheckedChange = null)
+                }
+            }
+            if (showSold) items(sold, key = { "sold-${it.ticker}-${it.currency}" }) { SoldLine(it, onClick = { details = it }) }
+        }
         item { Spacer(Modifier.height(24.dp)) }
     }
 }
@@ -211,24 +250,7 @@ private fun Header(state: PortfolioUiState.Loaded, progress: RefreshProgress?, o
     Column(modifier = Modifier.padding(top = 16.dp)) {
         Text(stringResource(R.string.portfolio_title), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.header_total_value), style = MaterialTheme.typography.bodySmall)
-                Text(Formats.money(totals.marketValue, "USD"), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.header_daily_pnl), style = MaterialTheme.typography.bodySmall)
-                Text(
-                    Formats.signedMoney(totals.dailyPnl, "USD"),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = signColor(totals.dailyPnl),
-                )
-                totals.dailyPnlPercent?.let {
-                    Text(Formats.signedPercent(it), color = signColor(it), style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
+        SummaryCards(state.summary, totals)
         val notes = buildList {
             add(stringResource(R.string.header_approximate))
             totals.rateDate?.let { add(stringResource(R.string.header_rate_date, it)) }
@@ -237,6 +259,77 @@ private fun Header(state: PortfolioUiState.Loaded, progress: RefreshProgress?, o
         Text(notes.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
         PriceStatus(state.prices, state.priceSource, progress, onRefresh, onOpenSettings)
     }
+}
+
+/** Value, total profit, today and 12-month dividends, in approximate USD (mobile-position-performance spec). */
+@Composable
+private fun SummaryCards(summary: PortfolioSummary, totals: UsdTotals) {
+    val incomplete = stringResource(R.string.card_incomplete)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SummaryCard(
+                title = stringResource(R.string.card_value),
+                value = Formats.money(summary.value.amount, "USD"),
+                detail = stringResource(R.string.card_invested, Formats.money(summary.invested.amount, "USD")),
+                incomplete = incomplete.takeUnless { summary.value.isComplete },
+                modifier = Modifier.weight(1f),
+            )
+            SummaryCard(
+                title = stringResource(R.string.card_profit),
+                value = Formats.signedMoney(summary.totalProfit.amount, "USD"),
+                detail = summary.totalProfitPercent?.let(Formats::signedPercent),
+                incomplete = incomplete.takeUnless { summary.totalProfit.isComplete },
+                color = signColor(summary.totalProfit.amount),
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SummaryCard(
+                title = stringResource(R.string.card_today),
+                value = Formats.signedMoney(totals.dailyPnl, "USD"),
+                detail = totals.dailyPnlPercent?.let(Formats::signedPercent),
+                incomplete = incomplete.takeIf { totals.missingDailyPnl > 0 },
+                color = signColor(totals.dailyPnl),
+                modifier = Modifier.weight(1f),
+            )
+            SummaryCard(
+                title = stringResource(R.string.card_dividends),
+                value = Formats.money(summary.dividends12Months.amount, "USD"),
+                detail = stringResource(R.string.card_dividends_net),
+                incomplete = incomplete.takeUnless { summary.dividends12Months.isComplete },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryCard(title: String, value: String, detail: String?, incomplete: String?, modifier: Modifier, color: Color = Color.Unspecified) {
+    Card(modifier = modifier) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(title, style = MaterialTheme.typography.labelMedium)
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
+            detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = color) }
+            // Its own line, so it is clear the headline value is incomplete, not the detail.
+            incomplete?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+        }
+    }
+}
+
+@Composable
+private fun SoldLine(position: PositionPerformance, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1.5f)) {
+            Text(position.ticker, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.sold_position, position.currency), style = MaterialTheme.typography.bodySmall)
+        }
+        val total = position.total
+        Text(total?.let { Formats.signedMoney(it, position.currency) } ?: "—", color = signColor(total), textAlign = TextAlign.End)
+    }
+    HorizontalDivider()
 }
 
 @Composable
@@ -275,10 +368,13 @@ private fun RowScope.HeaderCell(
 }
 
 @Composable
-private fun PositionLine(row: PositionRow, mode: PnlMode) {
+private fun PositionLine(row: PositionRow, mode: PnlMode, onClick: () -> Unit) {
     val pnl = if (mode == PnlMode.DAILY) row.dailyPnl else row.unrealizedPnl
     val muted = MaterialTheme.typography.bodySmall
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(modifier = Modifier.weight(1.5f)) {
             Text(row.ticker, fontWeight = FontWeight.Bold)
             Text(listOf(row.listingExchange, row.currency).filter { it.isNotEmpty() }.joinToString(" · "), style = muted)
