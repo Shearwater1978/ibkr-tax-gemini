@@ -1,6 +1,7 @@
 package com.ibkrtax.mobile.backup
 
 import com.ibkrtax.mobile.importer.FlexImportError
+import com.ibkrtax.mobile.storage.DeletedImports
 import com.ibkrtax.mobile.storage.ImportRejection
 import com.ibkrtax.mobile.storage.ImportResult
 import com.ibkrtax.mobile.testing.Fixtures
@@ -53,6 +54,19 @@ class BackupServiceTest {
 
         override fun markBackedUp(backupFile: String) {
             status[backupFile] = "backed_up"
+        }
+
+        override fun deleteReport(reportId: Long): DeletedImports? {
+            val name = status.keys.elementAtOrNull((reportId - 1).toInt()) ?: return null
+            status.remove(name)
+            return DeletedImports(removedRecords = 9, backupFiles = listOf(name))
+        }
+
+        override fun deleteAll(): DeletedImports {
+            val names = status.keys.toList()
+            status.clear()
+            imported.clear()
+            return DeletedImports(removedRecords = 11, backupFiles = names)
         }
     }
 
@@ -149,5 +163,33 @@ class BackupServiceTest {
         assertEquals(ImportOutcome.Imported(9, 0, BackupResult.ACCESS_LOST), service().importReport(report))
         assertEquals(RetryResult(backedUp = 0, stillPending = 1, accessLost = true), service().retryPending())
         assertEquals(BackupResult.ACCESS_LOST, service().syncManifest())
+    }
+
+    @Test
+    fun deletingAnImportRemovesItsBackupFile() {
+        service().importReport(report)
+        val name = folder.files.keys.single()
+
+        assertEquals(DeletionOutcome(removedRecords = 9, backupsDeleted = 1, backupsLeft = 0), service().deleteImport(1))
+        assertTrue(folder.files.isEmpty())
+        assertEquals(null, service().deleteImport(1))
+        assertFalse(java.io.File(pendingDir, name).exists())
+    }
+
+    @Test
+    fun deletingAllKeepsTheManifestAndCountsBackupsLeftWhenTheFolderIsGone() {
+        service().importReport(report)
+        service().importReport(Fixtures.flexQuery(Fixtures.VALID_FOLLOWUP))
+        service().syncManifest()
+        folder.accessLost = true
+        val gone = object : BackupFolder by folder {
+            override fun delete(name: String) = throw FolderAccessLostException()
+        }
+
+        val outcome = service(target = gone).deleteAllImports()
+
+        assertEquals(DeletionOutcome(removedRecords = 11, backupsDeleted = 0, backupsLeft = 2), outcome)
+        assertTrue(reports.pendingBackups().isEmpty())
+        assertNotNull(folder.files[BackupService.MANIFEST_FILE])
     }
 }

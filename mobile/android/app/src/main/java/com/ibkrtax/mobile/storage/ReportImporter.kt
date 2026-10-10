@@ -25,6 +25,9 @@ sealed interface ImportResult {
     data class Rejected(val reason: ImportRejection) : ImportResult
 }
 
+/** What a deletion removed: records, and backup files still to delete from the folder. */
+data class DeletedImports(val removedRecords: Int, val backupFiles: List<String>)
+
 sealed interface ImportRejection {
     data class Unparseable(val error: FlexImportError) : ImportRejection
 
@@ -82,6 +85,14 @@ class ReportImporter(
             for (transaction in plan.transactions) {
                 val rowId = db.insert("transactions", SQLiteDatabase.CONFLICT_IGNORE, transaction.toValues(reportId))
                 if (rowId == -1L) fillMissingIdentity(db, transaction) else inserted++
+                db.insert(
+                    "report_records",
+                    SQLiteDatabase.CONFLICT_IGNORE,
+                    ContentValues().apply {
+                        put("report_id", reportId)
+                        put("source_key", transaction.sourceKey)
+                    },
+                )
             }
             val skipped = plan.duplicatesInReport + plan.transactions.size - inserted
 
@@ -140,6 +151,59 @@ class ReportImporter(
         put("instrument_description", instrumentDescription)
         put("listing_exchange", listingExchange)
     }
+
+    /**
+     * Deletes one import and the records only it contains; records that other imports also
+     * contain stay and move to one of those imports. Returns the deleted report's backup file
+     * and how many records were removed, or null when the report does not exist.
+     */
+    fun deleteReport(reportId: Long): DeletedImports? {
+        val db = database.writableDatabase
+        db.beginTransaction()
+        try {
+            val backupFile = db.query("SELECT backup_file FROM reports WHERE id = ?", arrayOf(reportId)).use {
+                if (!it.moveToFirst()) return null
+                if (it.isNull(0)) null else it.getString(0)
+            }
+            val before = count(db, "transactions")
+            db.execSQL("DELETE FROM report_records WHERE report_id = ?", arrayOf(reportId))
+            db.execSQL("DELETE FROM transactions WHERE source_key NOT IN (SELECT source_key FROM report_records)")
+            db.execSQL(
+                "UPDATE transactions SET report_id = " +
+                    "(SELECT MIN(rr.report_id) FROM report_records rr WHERE rr.source_key = transactions.source_key) " +
+                    "WHERE report_id = ?",
+                arrayOf(reportId),
+            )
+            db.execSQL("DELETE FROM reports WHERE id = ?", arrayOf(reportId))
+            val removed = before - count(db, "transactions")
+            db.setTransactionSuccessful()
+            return DeletedImports(removedRecords = removed, backupFiles = listOfNotNull(backupFile))
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /** Deletes every import and record; returns the backup files to remove from the folder. */
+    fun deleteAll(): DeletedImports {
+        val db = database.writableDatabase
+        db.beginTransaction()
+        try {
+            val files = db.query("SELECT backup_file FROM reports WHERE backup_file IS NOT NULL").use { cursor ->
+                buildList { while (cursor.moveToNext()) add(cursor.getString(0)) }
+            }
+            val removed = count(db, "transactions")
+            db.execSQL("DELETE FROM report_records")
+            db.execSQL("DELETE FROM transactions")
+            db.execSQL("DELETE FROM reports")
+            db.setTransactionSuccessful()
+            return DeletedImports(removedRecords = removed, backupFiles = files)
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    private fun count(db: SupportSQLiteDatabase, table: String): Int =
+        db.query("SELECT count(*) FROM $table").use { it.moveToFirst(); it.getInt(0) }
 
     fun pendingBackups(): List<String> =
         database.readableDatabase.query("SELECT backup_file FROM reports WHERE backup_status = ?", arrayOf(BACKUP_PENDING)).use { cursor ->

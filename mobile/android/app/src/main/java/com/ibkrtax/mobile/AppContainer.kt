@@ -62,6 +62,10 @@ class AppContainer(context: Context) {
                 override fun pendingBackups() = importer.pendingBackups()
 
                 override fun markBackedUp(backupFile: String) = importer.markBackedUp(backupFile)
+
+                override fun deleteReport(reportId: Long) = importer.deleteReport(reportId)
+
+                override fun deleteAll() = importer.deleteAll()
             },
             pendingDir = File(appContext.noBackupFilesDir, "pending-backups"),
         )

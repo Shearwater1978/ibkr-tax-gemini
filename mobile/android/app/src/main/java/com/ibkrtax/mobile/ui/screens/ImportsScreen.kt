@@ -6,16 +6,20 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,10 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.appContainer
 import com.ibkrtax.mobile.backup.BackupResult
+import com.ibkrtax.mobile.backup.DeletionOutcome
 import com.ibkrtax.mobile.backup.ImportOutcome
 import com.ibkrtax.mobile.debug.SampleReports
 import com.ibkrtax.mobile.importer.FlexImportError
@@ -64,6 +71,8 @@ fun ImportsScreen() {
     var importing by remember { mutableStateOf(false) }
     var progress by remember { mutableStateOf<String?>(null) }
     var fileResults by remember { mutableStateOf(emptyList<String>()) }
+    var deleteTarget by remember { mutableStateOf<ImportedReport?>(null) }
+    var deleteAllOpen by remember { mutableStateOf(false) }
     val keyStatus by produceState<BackupKeyStatus?>(null) {
         value = runCatching { context.appContainer.backupKeys.status() }.getOrNull()
     }
@@ -106,6 +115,34 @@ fun ImportsScreen() {
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+        deleteTarget?.let { report ->
+            DeleteOneDialog(
+                onConfirm = {
+                    deleteTarget = null
+                    scope.launch {
+                        importMessage = withContext(Dispatchers.IO) {
+                            context.appContainer.backup.deleteImport(report.id)?.let(texts::deleted)
+                        }
+                        fileResults = emptyList()
+                        refresh++
+                    }
+                },
+                onDismiss = { deleteTarget = null },
+            )
+        }
+        if (deleteAllOpen) {
+            DeleteAllDialog(
+                needsPassphrase = keyStatus is BackupKeyStatus.Ready,
+                onDeleted = { message ->
+                    deleteAllOpen = false
+                    importMessage = message
+                    fileResults = emptyList()
+                    refresh++
+                },
+                onDismiss = { deleteAllOpen = false },
+                texts = texts,
+            )
+        }
         Text(stringResource(R.string.imports_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.imports_supported_format))
@@ -168,13 +205,19 @@ fun ImportsScreen() {
         when {
             reports == null -> Text(stringResource(R.string.loading))
             reports.isEmpty() -> Text(stringResource(R.string.imports_empty))
-            else -> reports.forEach { ReportRow(it) }
+            else -> {
+                reports.forEach { report -> ReportRow(report, onDelete = { deleteTarget = report }) }
+                Spacer(Modifier.height(16.dp))
+                OutlinedButton(onClick = { deleteAllOpen = true }) {
+                    Text(stringResource(R.string.delete_all_action), color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ReportRow(report: ImportedReport) {
+private fun ReportRow(report: ImportedReport, onDelete: () -> Unit) {
     val time = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
         .withZone(ZoneId.systemDefault())
         .format(Instant.parse(report.importedAt))
@@ -191,7 +234,72 @@ private fun ReportRow(report: ImportedReport) {
             ),
             style = MaterialTheme.typography.bodySmall,
         )
+        TextButton(onClick = onDelete) { Text(stringResource(R.string.delete_one_action), color = MaterialTheme.colorScheme.error) }
     }
+}
+
+@Composable
+private fun DeleteOneDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.delete_one_title)) },
+        text = { Text(stringResource(R.string.delete_one_body)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete_confirm), color = MaterialTheme.colorScheme.error) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** "Delete all" needs the backup passphrase when backup encryption is set up (mobile-report-upload spec). */
+@Composable
+private fun DeleteAllDialog(needsPassphrase: Boolean, onDeleted: (String) -> Unit, onDismiss: () -> Unit, texts: ImportTexts) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var passphrase by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var working by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = { if (!working) onDismiss() },
+        title = { Text(stringResource(R.string.delete_all_title)) },
+        text = {
+            Column {
+                Text(stringResource(if (needsPassphrase) R.string.delete_all_body else R.string.delete_all_body_no_keys))
+                if (needsPassphrase) {
+                    OutlinedTextField(
+                        value = passphrase,
+                        onValueChange = { passphrase = it },
+                        label = { Text(stringResource(R.string.delete_all_passphrase)) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                if (working) Text(stringResource(R.string.delete_working), style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = !working && (!needsPassphrase || passphrase.isNotEmpty()),
+                onClick = {
+                    working = true
+                    error = null
+                    scope.launch {
+                        val container = context.appContainer
+                        val allowed = !needsPassphrase || container.backupKeys.verifyPassphrase(passphrase.toCharArray())
+                        if (!allowed) {
+                            error = texts.wrongPassphrase
+                            working = false
+                            return@launch
+                        }
+                        val outcome = withContext(Dispatchers.IO) { container.backup.deleteAllImports() }
+                        onDeleted(texts.deleted(outcome))
+                    }
+                },
+            ) { Text(stringResource(R.string.delete_confirm), color = MaterialTheme.colorScheme.error) }
+        },
+        dismissButton = { TextButton(enabled = !working, onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 /** IBKR exports may be labelled as CSV, plain text, Excel CSV or generic binary by different apps. */
@@ -235,7 +343,17 @@ private class ImportTexts(
     val accessLost: String,
     val retried: String,
     val progress: String,
+    private val deletedDone: String,
+    private val deletedLeft: String,
+    val wrongPassphrase: String,
 ) {
+    fun deleted(outcome: DeletionOutcome): String =
+        if (outcome.backupsLeft == 0) {
+            deletedDone.format(outcome.removedRecords, outcome.backupsDeleted)
+        } else {
+            deletedLeft.format(outcome.removedRecords, outcome.backupsLeft)
+        }
+
     fun describe(outcome: ImportOutcome): String = when (outcome) {
         is ImportOutcome.Imported -> when (outcome.backup) {
             BackupResult.BACKED_UP -> importedDone
@@ -270,6 +388,9 @@ private fun ImportTexts() = ImportTexts(
     accessLost = stringResource(R.string.backup_access_lost),
     retried = stringResource(R.string.backup_retried),
     progress = stringResource(R.string.import_progress),
+    deletedDone = stringResource(R.string.delete_done),
+    deletedLeft = stringResource(R.string.delete_done_left),
+    wrongPassphrase = stringResource(R.string.delete_wrong_passphrase),
 )
 
 /** Resolves result strings while in composition so they can be used from a coroutine. */
