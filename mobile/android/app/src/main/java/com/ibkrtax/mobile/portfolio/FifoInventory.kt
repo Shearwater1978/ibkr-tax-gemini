@@ -28,8 +28,26 @@ data class OpenLot(
     val currency: String,
 )
 
+/**
+ * One sell matched against FIFO lots, in the sale's currency and excluding commissions.
+ * [cost] is null when a closed lot was bought in another currency: the gain is then unknown
+ * rather than mixed across currencies.
+ */
+data class RealizedSale(
+    val ticker: String,
+    val isin: String,
+    val currency: String,
+    val date: String,
+    val quantity: BigDecimal,
+    val proceeds: BigDecimal,
+    val cost: BigDecimal?,
+) {
+    val gain: BigDecimal? get() = cost?.let { proceeds.subtract(it, MathContext(28, RoundingMode.HALF_EVEN)) }
+}
+
 sealed interface FifoResult {
-    data class Success(val lots: List<OpenLot>) : FifoResult
+    /** [realized] holds one entry per sell, in matching order; open lots are unaffected by it. */
+    data class Success(val lots: List<OpenLot>, val realized: List<RealizedSale> = emptyList()) : FifoResult
 
     /** A removal exceeded the held quantity (desktop `UNMATCHED_SELL`): the data is incomplete. */
     data class UnmatchedSell(val ticker: String, val date: String) : FifoResult
@@ -61,7 +79,8 @@ object FifoInventory {
         val trades = InstrumentIdentities.resolve(events.sortedWith(compareBy({ it.date }, { it.order })))
             .filter { it.eventType !in NON_FIFO }
         return try {
-            FifoResult.Success(Matcher(trades).run())
+            val matcher = Matcher(trades)
+            FifoResult.Success(matcher.run(), matcher.realized)
         } catch (e: UnmatchedSellException) {
             FifoResult.UnmatchedSell(e.ticker, e.date)
         }
@@ -78,6 +97,7 @@ object FifoInventory {
         private val inventory = LinkedHashMap<Pair<String, String?>, ArrayDeque<Lot>>()
         private val sensitive: Set<String>
         private val carry = mutableMapOf<Pair<String, String>, MutableList<Lot>>()
+        val realized = mutableListOf<RealizedSale>()
 
         init {
             val observed = mutableMapOf<String, MutableSet<String>>()
@@ -120,7 +140,10 @@ object FifoInventory {
                     }
                 } else if (quantity.signum() < 0) {
                     val consumed = consume(trade)
-                    if (trade.eventType == "SELL") continue
+                    if (trade.eventType == "SELL") {
+                        realized += realizedSale(trade, consumed)
+                        continue
+                    }
                     val group = actionGroup(trade) ?: continue
                     removals[group] = removals.getValue(group) - 1
                     if (consumed.isNotEmpty()) carry.getOrPut(group) { mutableListOf() }.addAll(consumed)
@@ -134,6 +157,20 @@ object FifoInventory {
             deferred.values.flatten().forEach { buy(it, BigDecimal.ZERO) }
 
             return inventory.values.flatten().map { OpenLot(it.ticker, it.isin, it.date, it.quantity, it.price, it.currency) }
+        }
+
+        private fun realizedSale(trade: PortfolioEvent, consumed: List<Lot>): RealizedSale {
+            val quantity = trade.quantity.abs()
+            val sameCurrency = consumed.all { it.currency == trade.currency }
+            return RealizedSale(
+                ticker = trade.ticker,
+                isin = trade.isin,
+                currency = trade.currency,
+                date = trade.date,
+                quantity = quantity,
+                proceeds = quantity.multiply(trade.price, PY),
+                cost = if (sameCurrency) consumed.fold(BigDecimal.ZERO) { sum, lot -> sum.add(lot.quantity.multiply(lot.price, PY), PY) } else null,
+            )
         }
 
         private fun key(trade: PortfolioEvent): Pair<String, String?> =

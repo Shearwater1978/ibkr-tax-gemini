@@ -6,10 +6,12 @@ import com.ibkrtax.mobile.portfolio.FifoResult
 import com.ibkrtax.mobile.portfolio.Holding
 import com.ibkrtax.mobile.portfolio.Holdings
 import com.ibkrtax.mobile.portfolio.PortfolioEvent
+import com.ibkrtax.mobile.portfolio.RealizedSale
 import java.math.BigDecimal
 
 sealed interface HoldingsResult {
-    data class Success(val holdings: List<Holding>) : HoldingsResult
+    /** [realized] lists every matched sell, including sells of positions no longer held. */
+    data class Success(val holdings: List<Holding>, val realized: List<RealizedSale> = emptyList()) : HoldingsResult
 
     /** Imported data sells more than it buys for [ticker]; holdings would be wrong, so none are shown. */
     data class Incomplete(val ticker: String, val date: String) : HoldingsResult
@@ -19,7 +21,7 @@ sealed interface HoldingsResult {
 class PortfolioRepository(private val database: SupportSQLiteOpenHelper) {
     fun holdings(): HoldingsResult =
         when (val result = FifoInventory.openLots(events())) {
-            is FifoResult.Success -> HoldingsResult.Success(Holdings.fromLots(result.lots))
+            is FifoResult.Success -> HoldingsResult.Success(Holdings.fromLots(result.lots), result.realized)
             is FifoResult.UnmatchedSell -> HoldingsResult.Incomplete(result.ticker, result.date)
         }
 

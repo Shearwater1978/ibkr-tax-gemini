@@ -11,9 +11,9 @@
 
 ## 3. Position performance (PR 3)
 
-- [ ] 3.1 Extend the FIFO pass to report gains from each sell, and verify the open-lot parity test on existing fixtures and new tests for partial sales, splits and identity changes.
-- [ ] 3.2 Implement the summary (value, invested, total profit and percentage, today, 12-month net dividends) and per-position breakdown, and verify with unit tests, including missing prices and unmatched sells.
-- [ ] 3.3 Add the summary cards, the position details bottom sheet and the remembered "Show sold positions" switch, and verify on the emulator that a sold synthetic instrument appears only with the switch on and that the cards include its gain.
+- [x] 3.1 Extend the FIFO pass to report gains from each sell, and verify the open-lot parity test on existing fixtures and new tests for partial sales, splits and identity changes.
+- [x] 3.2 Implement the summary (value, invested, total profit and percentage, today, 12-month net dividends) and per-position breakdown, and verify with unit tests, including missing prices and unmatched sells.
+- [x] 3.3 Add the summary cards, the position details bottom sheet and the remembered "Show sold positions" switch, and verify on the emulator that a sold synthetic instrument appears only with the switch on and that the cards include its gain.
 
 ## 4. USD view (PR 4)
 
