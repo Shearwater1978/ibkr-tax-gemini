@@ -39,3 +39,7 @@
 - [x] 6.3 Retrieve and cache NBP table A rates and compute PLN cross rates to USD, and verify requests send only currency codes and the offline and missing-rate states.
 - [x] 6.4 Build the compact positions table with default alphabetical order, column sorting, and the daily/unrealized P&L switch, and verify it with synthetic holdings.
 - [x] 6.5 Add the header with the approximate USD total, daily P&L amount and percentage, rate date, and incomplete marking, and verify mixed-currency synthetic cases.
+
+## 7. Report management
+
+- [x] 7.1 Import several reports at once, each on its own, with a per-file result and masked file names.

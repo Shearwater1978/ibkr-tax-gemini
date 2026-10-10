@@ -2,6 +2,7 @@ package com.ibkrtax.mobile.ui.screens
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import com.ibkrtax.mobile.backup.BackupResult
 import com.ibkrtax.mobile.backup.ImportOutcome
 import com.ibkrtax.mobile.debug.SampleReports
 import com.ibkrtax.mobile.importer.FlexImportError
+import com.ibkrtax.mobile.security.FileNameMasking
 import com.ibkrtax.mobile.keys.BackupKeyStatus
 import com.ibkrtax.mobile.storage.ImportHistory
 import com.ibkrtax.mobile.storage.ImportRejection
@@ -60,6 +62,8 @@ fun ImportsScreen() {
     var debugMessages by remember { mutableStateOf(emptyList<String>()) }
     var importMessage by remember { mutableStateOf<String?>(null) }
     var importing by remember { mutableStateOf(false) }
+    var progress by remember { mutableStateOf<String?>(null) }
+    var fileResults by remember { mutableStateOf(emptyList<String>()) }
     val keyStatus by produceState<BackupKeyStatus?>(null) {
         value = runCatching { context.appContainer.backupKeys.status() }.getOrNull()
     }
@@ -78,17 +82,26 @@ fun ImportsScreen() {
         refresh++
     }
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
+    // Several files at once; each is imported on its own, so one bad file does not stop the rest.
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isEmpty()) return@rememberLauncherForActivityResult
         importing = true
         importMessage = null
+        fileResults = emptyList()
         scope.launch {
-            importMessage = withContext(Dispatchers.IO) {
-                val bytes = readLimited(context, uri)
-                if (bytes == null) texts.tooLarge else texts.describe(context.appContainer.backup.importReport(bytes))
+            for ((index, uri) in uris.withIndex()) {
+                progress = texts.progress.format(index + 1, uris.size)
+                val line = withContext(Dispatchers.IO) {
+                    val name = FileNameMasking.mask(displayName(context, uri))
+                    val bytes = readLimited(context, uri)
+                    val message = if (bytes == null) texts.tooLarge else texts.describe(context.appContainer.backup.importReport(bytes))
+                    "$name: $message"
+                }
+                fileResults = fileResults + line
+                refresh++
             }
+            progress = null
             importing = false
-            refresh++
         }
     }
 
@@ -112,6 +125,9 @@ fun ImportsScreen() {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+        Text(stringResource(R.string.import_multiple_hint), style = MaterialTheme.typography.bodySmall)
+        progress?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
+        fileResults.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
         importMessage?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
         val pending = history.orEmpty().count { it.backupStatus == ImportHistory.PENDING }
         if (pending > 0) {
@@ -183,6 +199,12 @@ private val CSV_TYPES = arrayOf("text/csv", "text/comma-separated-values", "text
 
 private const val MAX_REPORT_BYTES = 20 * 1024 * 1024
 
+/** The picked file's name as the storage app reports it. */
+private fun displayName(context: Context, uri: Uri): String =
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) cursor.getString(0) else null
+    } ?: uri.lastPathSegment.orEmpty()
+
 /** Reads the picked file into memory; null when it is larger than any plausible report. */
 private fun readLimited(context: Context, uri: Uri): ByteArray? =
     context.contentResolver.openInputStream(uri)?.use { input ->
@@ -212,6 +234,7 @@ private class ImportTexts(
     val tooLarge: String,
     val accessLost: String,
     val retried: String,
+    val progress: String,
 ) {
     fun describe(outcome: ImportOutcome): String = when (outcome) {
         is ImportOutcome.Imported -> when (outcome.backup) {
@@ -246,6 +269,7 @@ private fun ImportTexts() = ImportTexts(
     tooLarge = stringResource(R.string.import_too_large),
     accessLost = stringResource(R.string.backup_access_lost),
     retried = stringResource(R.string.backup_retried),
+    progress = stringResource(R.string.import_progress),
 )
 
 /** Resolves result strings while in composition so they can be used from a coroutine. */

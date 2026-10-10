@@ -5,11 +5,15 @@ Lets users import supported IBKR reports safely from their device and review imp
 ## ADDED Requirements
 
 ### Requirement: Import supported IBKR report
-The app SHALL let the user select an IBKR Activity Flex Query CSV file through the system file picker. The app SHALL validate the file format and parseability on-device before creating a backup or storing derived records.
+The app SHALL let the user select one or more IBKR Activity Flex Query CSV files at once through the system file picker. Each file SHALL be validated and imported on its own, so one rejected file does not affect the others. The app SHALL validate the file format and parseability on-device before creating a backup or storing derived records.
 
 #### Scenario: Supported report selected
 - **WHEN** the user selects a valid IBKR Activity Flex Query CSV file
 - **THEN** the app validates and processes it on-device and reports the import result
+
+#### Scenario: Several reports selected
+- **WHEN** the user selects several files at once
+- **THEN** each file is imported on its own and the app reports a result per file, with account numbers in file names masked
 
 #### Scenario: Unsupported or corrupted report
 - **WHEN** the user selects a different format or a CSV file that cannot be parsed
