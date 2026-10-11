@@ -123,10 +123,10 @@ object FocusSkin : Skin {
         Feature.ACTIVITY_SEARCH_AND_FILTERS to "+ menu: Activity and operations",
         Feature.REPORT_IMPORT to "+ menu: Add reports",
         Feature.BACKUP_KEYS_AND_LOCATION to "+ menu: Security and recovery code",
-        Feature.PRICE_KEY to "+ menu: Settings and skins",
+        Feature.PRICE_KEY to "Today: Settings button, or + menu: Settings and skins",
         Feature.DELETE_IMPORTS to "+ menu: Delete imported data",
-        Feature.APP_VERSION to "+ menu: Settings and skins",
-        Feature.SKIN_SETTING to "+ menu: Settings and skins",
+        Feature.APP_VERSION to "Today: Settings button, or + menu: Settings and skins",
+        Feature.SKIN_SETTING to "Today: Settings button, or + menu: Settings and skins",
     )
 
     @Composable
@@ -204,6 +204,7 @@ private fun FocusNavigation(states: AppStates, nav: NavHostController = remember
                     onOpen = { nav.navigate(FocusRoute.story(it)) },
                     onIncome = { nav.tab(FocusRoute.INCOME) },
                     onImport = { nav.navigate(FocusRoute.IMPORT) },
+                    onSettings = { nav.navigate(FocusRoute.SETTINGS) },
                 )
             }
             composable(FocusRoute.HOLDINGS) { FocusHoldings(states.portfolio, usd, onOpen = { nav.navigate(FocusRoute.story(it)) }, onBack = { nav.popBackStack() }) }

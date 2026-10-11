@@ -47,6 +47,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.fx.UsdConverter
 import com.ibkrtax.mobile.portfolio.Dividends
@@ -103,7 +111,15 @@ internal fun Mono(ticker: String) {
 
 /** Today (mobile-skin-focus): value, the summary sentence, insight cards and what you own. */
 @Composable
-fun FocusToday(state: PortfolioState, income: IncomeState, onHoldings: () -> Unit, onOpen: (String) -> Unit, onIncome: () -> Unit, onImport: () -> Unit) {
+fun FocusToday(
+    state: PortfolioState,
+    income: IncomeState,
+    onHoldings: () -> Unit,
+    onOpen: (String) -> Unit,
+    onIncome: () -> Unit,
+    onImport: () -> Unit,
+    onSettings: () -> Unit,
+) {
     val ui by state.ui.collectAsState()
     val progress by state.progress.collectAsState()
     val dividends by income.data.collectAsState()
@@ -116,7 +132,8 @@ fun FocusToday(state: PortfolioState, income: IncomeState, onHoldings: () -> Uni
         PortfolioUiState.StorageUnavailable -> Message(stringResource(R.string.storage_unavailable))
         is PortfolioUiState.Incomplete -> Message(stringResource(R.string.portfolio_incomplete, data.ticker, data.date))
         PortfolioUiState.NoReports -> Column(Modifier.fillMaxSize().padding(22.dp)) {
-            Text(stringResource(R.string.portfolio_empty_title), fontFamily = Serif, fontSize = 28.sp, modifier = Modifier.padding(top = 24.dp))
+            TopLine("", onSettings)
+            Text(stringResource(R.string.portfolio_empty_title), fontFamily = Serif, fontSize = 28.sp, modifier = Modifier.padding(top = 12.dp))
             Text(stringResource(R.string.portfolio_empty_body), color = FocusColors.Muted, modifier = Modifier.padding(vertical = 10.dp))
             Button(onClick = onImport) { Text(stringResource(R.string.calm_add_reports)) }
         }
@@ -136,7 +153,7 @@ fun FocusToday(state: PortfolioState, income: IncomeState, onHoldings: () -> Uni
             Column(Modifier.padding(horizontal = 22.dp)) {
                 val hour = LocalTime.now().hour
                 val greeting = stringResource(if (hour < 12) R.string.focus_morning else if (hour < 18) R.string.focus_afternoon else R.string.focus_evening)
-                Text("$greeting · ${freshWord.lowercase()}", color = FocusColors.Muted, fontSize = 15.sp)
+                TopLine("$greeting · ${freshWord.lowercase()}", onSettings)
                 Text(
                     "$" + Formats.number(totals.marketValue.setScale(0, RoundingMode.HALF_UP), 0, 0),
                     fontFamily = Serif, fontSize = 46.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 2.dp, bottom = 6.dp),
@@ -148,7 +165,8 @@ fun FocusToday(state: PortfolioState, income: IncomeState, onHoldings: () -> Uni
                 )
             }
 
-            LazyRow(contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 18.dp)) {
+            val cards = rememberLazyListState()
+            LazyRow(state = cards, contentPadding = PaddingValues(horizontal = 22.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 18.dp)) {
                 item {
                     val today = LocalDate.now()
                     val events = dividends?.events.orEmpty().filter { it.date.startsWith(today.toString().take(7)) }
@@ -177,6 +195,7 @@ fun FocusToday(state: PortfolioState, income: IncomeState, onHoldings: () -> Uni
                     InsightCard(stringResource(R.string.focus_card_12m), skinMoney(data.summary.dividends12Months.amount, "USD"), stringResource(R.string.focus_card_12m_body), onClick = onIncome)
                 }
             }
+            PageDots(cards)
 
             Column(Modifier.padding(horizontal = 22.dp)) {
                 Row(Modifier.fillMaxWidth().padding(top = 22.dp, bottom = 10.dp), verticalAlignment = Alignment.Bottom) {
@@ -186,6 +205,37 @@ fun FocusToday(state: PortfolioState, income: IncomeState, onHoldings: () -> Uni
                 Allocation(data, onHoldings)
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** The greeting line with the Settings button at its end, so Settings is one tap from Today. */
+@Composable
+private fun TopLine(text: String, onSettings: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(text, color = FocusColors.Muted, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        IconButton(onClick = onSettings, modifier = Modifier.size(40.dp).background(FocusColors.Sand, CircleShape)) {
+            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings_title), tint = FocusColors.Ink)
+        }
+    }
+}
+
+/** One dot per card; the dot of the first fully visible card is dark, so the row reads as swipeable. */
+@Composable
+private fun PageDots(state: LazyListState) {
+    val count by remember { derivedStateOf { state.layoutInfo.totalItemsCount } }
+    val current by remember {
+        derivedStateOf {
+            if (!state.canScrollForward) state.layoutInfo.totalItemsCount - 1
+            else state.layoutInfo.visibleItemsInfo.firstOrNull { it.offset >= 0 }?.index ?: state.firstVisibleItemIndex
+        }
+    }
+    if (count < 2) return
+    val label = stringResource(R.string.focus_card_position, current + 1, count)
+    Row(Modifier.fillMaxWidth().padding(top = 10.dp).semantics { contentDescription = label }, horizontalArrangement = Arrangement.Center) {
+        repeat(count) { i ->
+            val on = i == current
+            Box(Modifier.padding(horizontal = 3.dp).size(width = if (on) 18.dp else 6.dp, height = 6.dp).background(if (on) FocusColors.Ink else FocusColors.Line, CircleShape))
         }
     }
 }
