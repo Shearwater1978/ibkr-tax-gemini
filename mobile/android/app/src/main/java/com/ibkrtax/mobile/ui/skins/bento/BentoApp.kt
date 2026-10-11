@@ -211,7 +211,18 @@ private fun BentoNavigation(states: AppStates, nav: NavHostController = remember
         Box(Modifier.fillMaxSize().padding(padding)) {
             NavHost(nav, startDestination = BentoRoute.HOME, modifier = Modifier.fillMaxSize()) {
                 composable(BentoRoute.HOME) { BentoHome(states.portfolio, states.income, onOpen = { nav.navigate(BentoRoute.position(it)) }, onIncome = { nav.tab(BentoRoute.INCOME) }) }
-                composable(BentoRoute.POSITION) { e -> BentoPosition(states.portfolio, e.arguments?.getString("key").orEmpty(), onBack = { nav.popBackStack() }) }
+                composable(BentoRoute.POSITION) { e ->
+                    BentoPosition(
+                        states.portfolio,
+                        e.arguments?.getString("key").orEmpty(),
+                        onBack = { nav.popBackStack() },
+                        // Switch to Income first, so Back from the history returns to Income.
+                        onDividends = { t, c ->
+                            nav.tab(BentoRoute.INCOME)
+                            nav.navigate(BentoRoute.payer(t, c))
+                        },
+                    )
+                }
                 composable(BentoRoute.INCOME) { BentoIncome(states.income, onPayer = { t, c -> nav.navigate(BentoRoute.payer(t, c)) }) }
                 composable(BentoRoute.PAYER) { e ->
                     BentoPayer(states.income, e.arguments?.getString("ticker").orEmpty(), e.arguments?.getString("currency").orEmpty(), onBack = { nav.popBackStack() })

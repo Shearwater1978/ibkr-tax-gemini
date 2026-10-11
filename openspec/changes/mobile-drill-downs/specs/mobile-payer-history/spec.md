@@ -18,3 +18,10 @@ Tapping an instrument in the per-position income list of any skin SHALL open its
 #### Scenario: Same ticker in two currencies
 - **WHEN** an instrument paid dividends in two currencies
 - **THEN** each currency's history opens from its own line in the income list
+
+### Requirement: Open a company's dividend history from its position
+In Bento, the gross-dividend and withholding-tax tiles of a position detail SHALL open that instrument's dividend history on the Income tab when the position has dividends, so that Back returns to Income. Without dividends the tiles SHALL NOT be tappable.
+
+#### Scenario: From the position detail
+- **WHEN** the user opens Apple from Home and taps "Dividends gross"
+- **THEN** the Income tab is active and shows Apple's dividend history
