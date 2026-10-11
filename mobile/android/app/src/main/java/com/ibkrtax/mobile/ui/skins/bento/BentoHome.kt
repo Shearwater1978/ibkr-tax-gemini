@@ -329,27 +329,29 @@ fun BentoPosition(state: PortfolioState, key: String, onBack: () -> Unit) {
             Tile(Modifier.fillMaxWidth()) {
                 TileLabel(stringResource(R.string.bento_return_steps))
                 val steps = listOf(
-                    Triple(stringResource(R.string.bento_invested_short), p.invested, BentoColors.Tile2),
+                    Triple(stringResource(R.string.bento_invested_short), p.invested, BentoColors.Muted),
                     Triple(stringResource(R.string.bento_price_short), p.priceGain, BentoColors.Violet),
                     Triple(stringResource(R.string.bento_sales_short), p.realizedGain, BentoColors.Cyan),
                     Triple(stringResource(R.string.bento_dividends_short), p.dividends.net, BentoColors.Amber),
                     Triple(stringResource(R.string.bento_total_short), p.total, BentoColors.Gain),
                 )
                 val max = steps.mapNotNull { it.second?.abs()?.toDouble() }.maxOrNull()?.takeIf { it > 0 } ?: 1.0
-                Row(Modifier.fillMaxWidth().height(120.dp).padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom) {
-                    steps.forEach { (_, v, c) ->
-                        val h = ((v?.abs()?.toDouble() ?: 0.0) / max).toFloat().coerceIn(0.03f, 1f)
-                        Box(Modifier.weight(1f).fillMaxHeight(h).background(c, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp, bottomStart = 4.dp, bottomEnd = 4.dp)))
-                    }
-                }
-                Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    steps.forEachIndexed { i, (label, v, _) ->
-                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(label, color = BentoColors.Muted, fontSize = 11.sp)
+                // One row per step (label, bar, amount), so long amounts always fit.
+                Column(Modifier.fillMaxWidth().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    steps.forEachIndexed { i, (label, v, c) ->
+                        val last = i == steps.lastIndex
+                        val w = ((v?.abs()?.toDouble() ?: 0.0) / max).toFloat().coerceIn(0.02f, 1f)
+                        val bar = if (i > 0 && v != null && v.signum() < 0) BentoColors.Loss else c
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(label, color = BentoColors.Muted, fontSize = 12.sp, maxLines = 1, modifier = Modifier.width(80.dp))
+                            Box(Modifier.weight(1f).height(12.dp)) {
+                                Box(Modifier.fillMaxHeight().fillMaxWidth(w).background(bar, RoundedCornerShape(6.dp)))
+                            }
                             Text(
                                 v?.let { skinMoney(it, cur, signed = i > 0) } ?: "—",
-                                color = if (i == steps.lastIndex) bentoSign(v) else BentoColors.Muted,
-                                fontSize = 11.sp, fontWeight = if (i == steps.lastIndex) FontWeight.Bold else FontWeight.Normal, textAlign = TextAlign.Center,
+                                color = if (last) bentoSign(v) else BentoColors.Ink,
+                                fontSize = 12.sp, fontWeight = if (last) FontWeight.Bold else FontWeight.Normal, textAlign = TextAlign.End,
+                                maxLines = 1, modifier = Modifier.width(104.dp),
                             )
                         }
                     }

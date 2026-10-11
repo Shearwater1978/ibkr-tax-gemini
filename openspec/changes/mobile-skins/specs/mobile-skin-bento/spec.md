@@ -27,7 +27,7 @@ Below the tiles, the holdings list SHALL show each position's value, today's cha
 
 ### Requirement: Bento details, income and data
 Bento SHALL provide the following screens:
-- **Position detail:** a full screen showing the return as steps: invested, price gain, sales, dividends, total. It also shows gross dividends and tax withheld.
+- **Position detail:** a full screen showing the return as steps: invested, price gain, sales, dividends, total. Each step is one row with its label, a bar and the amount, so amounts are never cut off. It also shows gross dividends and tax withheld.
 - **Income:** year pills and a chart comparing net dividends per month for up to three years, where tapping a month shows each year's value.
 - **Data:** report import, plus status badges for backup, US and EU price sources, imported reports and FX rates, and entries for keys, deletion and the app version.
 

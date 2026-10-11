@@ -113,7 +113,7 @@ fun BentoIncome(state: IncomeState) {
         val colors = YEAR_COLORS.takeLast(shown.size)
         val locale = Locale.getDefault()
 
-        Header(stringResource(R.string.calm_tab_income)) { Pill(year.toString(), active = false) {} }
+        Header(stringResource(R.string.calm_tab_income))
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             val choices = YearChoices.of(years)
             choices.direct.reversed().forEach { y -> Pill(y.toString(), active = y == year) { year = y; month = null } }
