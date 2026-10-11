@@ -414,4 +414,23 @@
     <string name="focus_a_share">%1$s a share</string>
     <string name="focus_story_total">All in all</string>
     <string name="focus_tax_withheld">%1$s tax withheld</string>
+    <string name="restore_title">Restore from a backup</string>
+    <string name="restore_body">New phone? Choose the folder that holds your backups. If this phone cannot unlock them by itself, the app asks for your backup passphrase or recovery code.</string>
+    <string name="restore_choose">Choose backup folder</string>
+    <string name="restore_running">Restoring…</string>
+    <string name="restore_unlock_title">Unlock your backup</string>
+    <string name="restore_unlock_body">Enter the backup passphrase or the recovery code you saved when you set up backups.</string>
+    <string name="restore_use_passphrase">Passphrase</string>
+    <string name="restore_use_code">Recovery code</string>
+    <string name="restore_action">Restore</string>
+    <string name="restore_wrong">This does not unlock the backup. Nothing was restored.</string>
+    <string name="restore_no_backup">No backup found in this folder. Choose the folder that contains the backup files.</string>
+    <string name="restore_access_lost">The folder could not be read. Choose it again.</string>
+    <string name="restore_newer">This backup was made by a newer version of the app. Update the app first.</string>
+    <plurals name="restore_done">
+        <item quantity="one">Restored %1$d report with %2$d records.</item>
+        <item quantity="other">Restored %1$d reports with %2$d records.</item>
+    </plurals>
+    <string name="restore_already">%1$d already on this phone.</string>
+    <string name="restore_unreadable">%1$d backup files could not be read.</string>
 </resources>

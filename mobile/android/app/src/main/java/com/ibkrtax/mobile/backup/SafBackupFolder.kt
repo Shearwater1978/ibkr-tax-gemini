@@ -63,7 +63,22 @@ class SafBackupFolder(private val context: Context, private val treeUri: Uri, pr
         fun containsManifest(context: Context, treeUri: Uri): Boolean =
             DocumentFile.fromTreeUri(context, treeUri)?.findFile(BackupService.MANIFEST_FILE) != null
 
+        /**
+         * Where a picked folder keeps its backup: the folder itself, or the app's subfolder (current
+         * or pre-rename name) inside it. Null when none of them holds a manifest.
+         */
+        fun locateBackup(context: Context, treeUri: Uri): FoundBackup? {
+            val tree = DocumentFile.fromTreeUri(context, treeUri) ?: return null
+            if (tree.findFile(BackupService.MANIFEST_FILE) != null) return FoundBackup(null)
+            return listOf(BackupLocationKind.SUBFOLDER, BackupLocationKind.LEGACY_SUBFOLDER)
+                .firstOrNull { name -> tree.findFile(name)?.takeIf { it.isDirectory }?.findFile(BackupService.MANIFEST_FILE) != null }
+                ?.let(::FoundBackup)
+        }
+
         fun hasSubfolder(context: Context, treeUri: Uri, name: String): Boolean =
             DocumentFile.fromTreeUri(context, treeUri)?.findFile(name)?.isDirectory == true
     }
 }
+
+/** A backup found in a picked folder; [subfolder] is null when the folder itself holds it. */
+data class FoundBackup(val subfolder: String?)

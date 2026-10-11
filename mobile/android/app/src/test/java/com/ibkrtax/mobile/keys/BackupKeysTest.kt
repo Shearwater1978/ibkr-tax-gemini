@@ -104,4 +104,21 @@ class BackupKeysTest {
         assertEquals(BackupKeyStatus.NotSetUp, keys.status())
         assertNull(cloud.stored)
     }
+
+    @Test
+    fun adoptKeepsRestoredKeysAndRefusesToReplaceOthers() = runBlocking {
+        val oldPhone = vault.setUp(passphrase)
+        val cloud = FakeCloudCopy(available = true)
+        val keys = BackupKeys(files, cloud, vault)
+
+        assertTrue(keys.adopt(oldPhone.manifest, oldPhone.dataKey))
+        assertArrayEquals(oldPhone.dataKey, keys.dataKey())
+        assertArrayEquals(oldPhone.dataKey, keys.cloudKey())
+        assertEquals(BackupKeyStatus.Ready(cloudCopy = true), keys.status())
+        // Adopting the same keys again is fine; other keys are not overwritten.
+        keys.adopt(oldPhone.manifest, oldPhone.dataKey)
+        val other = vault.setUp(passphrase)
+        assertThrows(IllegalStateException::class.java) { runBlocking { keys.adopt(other.manifest, other.dataKey) } }
+        assertArrayEquals(oldPhone.dataKey, keys.dataKey())
+    }
 }
