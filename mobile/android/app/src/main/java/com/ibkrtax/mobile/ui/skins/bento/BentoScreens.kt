@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -88,7 +89,7 @@ private fun Header(title: String, trailing: @Composable () -> Unit = {}) {
 
 /** Year pills, up to three years side by side per month, and the payers (mobile-skin-bento). */
 @Composable
-fun BentoIncome(state: IncomeState) {
+fun BentoIncome(state: IncomeState, onPayer: (ticker: String, currency: String) -> Unit) {
     val data by state.data.collectAsState()
     LaunchedEffect(Unit) { state.reload() }
     val current = data
@@ -185,13 +186,14 @@ fun BentoIncome(state: IncomeState) {
         Spacer(Modifier.height(10.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(BentoColors.Tile).padding(horizontal = 14.dp, vertical = 4.dp)) {
             period.positions.forEachIndexed { i, p ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clickable { onPayer(p.ticker, p.currency) }.padding(vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
                     LogoTile(p.ticker)
                     Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                         Text(p.ticker, fontWeight = FontWeight.Bold)
                         Text(stringResource(R.string.dividends_line, skinMoney(p.amounts.gross, p.currency), skinMoney(p.amounts.tax, p.currency)), color = BentoColors.Muted, fontSize = 12.sp)
                     }
                     Text(skinMoney(p.amounts.net, p.currency), fontWeight = FontWeight.Bold)
+                    Text(" ›", color = BentoColors.Muted)
                 }
                 if (i < period.positions.lastIndex) HorizontalDivider(color = BentoColors.Line)
             }
@@ -339,5 +341,55 @@ private fun Entry(label: String, onClick: () -> Unit, color: Color = BentoColors
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp)) {
         Text(label, color = color, modifier = Modifier.weight(1f))
         Text("›", color = BentoColors.Muted)
+    }
+}
+
+/** All dividend and tax bookings of one payer, newest first, with totals (mobile-payer-history). */
+@Composable
+fun BentoPayer(state: IncomeState, ticker: String, currency: String, onBack: () -> Unit) {
+    val data by state.data.collectAsState()
+    val events = data?.events ?: return
+    val history = remember(events, ticker, currency) { Dividends.history(events, ticker, currency) }
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
+        Text("‹ " + stringResource(R.string.calm_back), color = BentoColors.Muted, modifier = Modifier.clickable(onClick = onBack).padding(vertical = 12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
+            LogoTile(ticker, 48)
+            Column(Modifier.padding(start = 12.dp)) {
+                Text(ticker + " · " + stringResource(R.string.payer_history_title), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.payer_history_subtitle, currency, pluralStringResource(R.plurals.payer_history_count, history.lines.size, history.lines.size)), color = BentoColors.Muted, fontSize = 13.sp)
+            }
+        }
+        Tile(Modifier.fillMaxWidth()) {
+            TileLabel(stringResource(R.string.payer_history_totals))
+            listOf(
+                stringResource(R.string.dividends_gross) to history.total.gross,
+                stringResource(R.string.dividends_tax) to history.total.tax,
+                stringResource(R.string.dividends_net) to history.total.net,
+            ).forEachIndexed { i, (label, amount) ->
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Text(label, color = BentoColors.Muted, modifier = Modifier.weight(1f))
+                    Text(skinMoney(amount, currency), fontWeight = if (i == 2) FontWeight.Bold else FontWeight.Normal)
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(BentoColors.Tile).padding(horizontal = 14.dp, vertical = 4.dp)) {
+            history.lines.forEachIndexed { i, line ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(line.date, fontWeight = FontWeight.Bold)
+                        val a = line.amounts
+                        Text(
+                            if (a.gross.signum() == 0) stringResource(R.string.payer_history_tax_only, skinMoney(a.tax, currency))
+                            else stringResource(R.string.dividends_line, skinMoney(a.gross, currency), skinMoney(a.tax, currency)),
+                            color = BentoColors.Muted, fontSize = 12.sp,
+                        )
+                    }
+                    Text(skinMoney(line.amounts.net, currency), fontWeight = FontWeight.Bold)
+                }
+                if (i < history.lines.lastIndex) HorizontalDivider(color = BentoColors.Line)
+            }
+        }
+        Spacer(Modifier.height(TAB_BAR_ROOM))
     }
 }

@@ -142,4 +142,38 @@ class DividendsTest {
         assertEquals(listOf(2025), Dividends.years(events))
         assertAmount("2", Dividends.year(events, 2025, null).usdNet.amount)
     }
+
+    @Test
+    fun payerHistoryListsAllYearsNewestFirstWithTotals() {
+        val events = listOf(
+            dividend("2024-05-16", "AAPL", "1.20"), tax("2024-05-16", "AAPL", "-0.18"),
+            dividend("2025-05-15", "AAPL", "1.30"), tax("2025-05-15", "AAPL", "-0.20"),
+            dividend("2025-06-01", "KO", "5"),
+        )
+        val history = Dividends.history(events, "AAPL", "USD")
+        assertEquals(listOf("2025-05-15", "2024-05-16"), history.lines.map { it.date })
+        assertAmount("1.10", history.lines.first().amounts.net)
+        assertAmount("2.50", history.total.gross)
+        assertAmount("-0.38", history.total.tax)
+        assertAmount("2.12", history.total.net)
+    }
+
+    @Test
+    fun aLaterTaxCorrectionIsItsOwnLine() {
+        val events = listOf(dividend("2025-05-15", "AAPL", "1.00"), tax("2025-05-15", "AAPL", "-0.30"), tax("2025-06-20", "AAPL", "0.15"))
+        val history = Dividends.history(events, "AAPL", "USD")
+        assertEquals(listOf("2025-06-20", "2025-05-15"), history.lines.map { it.date })
+        assertAmount("0", history.lines.first().amounts.gross)
+        assertAmount("0.15", history.lines.first().amounts.tax)
+        assertAmount("-0.15", history.total.tax)
+        assertAmount("0.85", history.total.net)
+    }
+
+    @Test
+    fun payerHistoryKeepsCurrenciesApart() {
+        val events = listOf(dividend("2025-03-01", "SHEL", "2", "GBP"), dividend("2025-04-01", "SHEL", "3", "EUR"))
+        assertAmount("2", Dividends.history(events, "SHEL", "GBP").total.gross)
+        assertAmount("3", Dividends.history(events, "SHEL", "EUR").total.gross)
+        assertEquals(1, Dividends.history(events, "SHEL", "EUR").lines.size)
+    }
 }

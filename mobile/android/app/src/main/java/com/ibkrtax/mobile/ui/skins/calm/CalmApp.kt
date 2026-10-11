@@ -101,6 +101,7 @@ object CalmSkin : Skin {
         Feature.OWN_CURRENCY_AND_USD to "Home: View > Amounts in",
         Feature.TOP_MOVERS to "Home: View > Sort by today",
         Feature.DIVIDENDS_BY_YEAR_AND_MONTH to "Income tab",
+        Feature.PAYER_HISTORY to "Income: tap a payer (sheet)",
         Feature.ACTIVITY_SEARCH_AND_FILTERS to "Activity tab",
         Feature.REPORT_IMPORT to "Home: + button",
         Feature.BACKUP_KEYS_AND_LOCATION to "Home: avatar > Settings",

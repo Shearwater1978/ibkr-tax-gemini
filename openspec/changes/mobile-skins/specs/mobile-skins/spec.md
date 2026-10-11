@@ -47,7 +47,7 @@ Every skin SHALL give access, directly or behind taps, to:
 - sold positions;
 - the own-currency and USD views;
 - today's top gainers and losers;
-- dividends by year and month with withholding tax;
+- dividends by year and month with withholding tax, and each company's dividend history;
 - the activity list with search and type filters;
 - report import;
 - backup encryption, recovery code and backup location;

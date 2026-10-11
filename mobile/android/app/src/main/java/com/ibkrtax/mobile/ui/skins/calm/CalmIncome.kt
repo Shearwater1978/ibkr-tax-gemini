@@ -27,12 +27,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,6 +43,7 @@ import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.ui.common.skinMoney
 import com.ibkrtax.mobile.ui.common.skinPercent
 import com.ibkrtax.mobile.portfolio.Dividends
+import com.ibkrtax.mobile.portfolio.PayerHistory
 import com.ibkrtax.mobile.state.DividendData
 import com.ibkrtax.mobile.state.IncomeState
 import com.ibkrtax.mobile.ui.BarChart
@@ -97,6 +100,7 @@ private fun IncomeContent(data: DividendData) {
     var compare by rememberSaveable { mutableStateOf(false) }
     var month by rememberSaveable { mutableStateOf<Int?>(null) }
     var pickYear by rememberSaveable { mutableStateOf(false) }
+    var payer by remember { mutableStateOf<Pair<String, String>?>(null) }
     val period = Dividends.period(data.events, year.takeIf { it != ALL_YEARS }, data.rates)
     val before = if (year != ALL_YEARS && compare) Dividends.year(data.events, year - 1, data.rates) else null
     val locale = Locale.getDefault()
@@ -159,7 +163,7 @@ private fun IncomeContent(data: DividendData) {
     }
     Spacer(Modifier.height(8.dp))
     period.positions.forEach { p ->
-        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().clickable { payer = p.ticker to p.currency }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             TickerTile(p.ticker)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(p.ticker, fontWeight = FontWeight.SemiBold)
@@ -187,6 +191,44 @@ private fun IncomeContent(data: DividendData) {
                     HorizontalDivider(color = CalmColors.Line)
                 }
             }
+        }
+    }
+
+    payer?.let { (ticker, currency) ->
+        ModalBottomSheet(onDismissRequest = { payer = null }, containerColor = Color.White) {
+            PayerHistorySheet(Dividends.history(data.events, ticker, currency))
+        }
+    }
+}
+
+/** A payer's bookings over all years, newest first, with totals (mobile-payer-history). */
+@Composable
+private fun PayerHistorySheet(history: PayerHistory) {
+    val cur = history.currency
+    Column(Modifier.padding(horizontal = 22.dp).padding(bottom = 30.dp).verticalScroll(rememberScrollState())) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TickerTile(history.ticker)
+            Column(Modifier.padding(start = 12.dp)) {
+                Text(history.ticker + " · " + stringResource(R.string.payer_history_title), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.payer_history_subtitle, cur, pluralStringResource(R.plurals.payer_history_count, history.lines.size, history.lines.size)), color = CalmColors.Muted, fontSize = 13.sp)
+            }
+        }
+        Text(stringResource(R.string.calm_net, skinMoney(history.total.net, cur)), fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp))
+        Text(stringResource(R.string.dividends_line, skinMoney(history.total.gross, cur), skinMoney(history.total.tax, cur)), color = CalmColors.Muted, modifier = Modifier.padding(bottom = 8.dp))
+        history.lines.forEach { line ->
+            val a = line.amounts
+            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(line.date, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (a.gross.signum() == 0) stringResource(R.string.payer_history_tax_only, skinMoney(a.tax, cur))
+                        else stringResource(R.string.dividends_line, skinMoney(a.gross, cur), skinMoney(a.tax, cur)),
+                        color = CalmColors.Muted, fontSize = 12.sp,
+                    )
+                }
+                Text(skinMoney(a.net, cur), fontWeight = FontWeight.SemiBold)
+            }
+            HorizontalDivider(color = CalmColors.Line)
         }
     }
 }
