@@ -22,6 +22,7 @@ import com.ibkrtax.mobile.security.Pseudonymizer
 import com.ibkrtax.mobile.storage.BackupLocationStore
 import com.ibkrtax.mobile.storage.EncryptedDatabase
 import com.ibkrtax.mobile.storage.FxStore
+import com.ibkrtax.mobile.state.AppStates
 import com.ibkrtax.mobile.storage.DividendEvents
 import com.ibkrtax.mobile.storage.ImportHistory
 import com.ibkrtax.mobile.storage.OperationsRepository
@@ -48,6 +49,9 @@ class AppContainer(context: Context) {
     val importHistory: ImportHistory by lazy { ImportHistory(database) }
     val operations: OperationsRepository by lazy { OperationsRepository(database) }
     val dividendEvents: DividendEvents by lazy { DividendEvents(database) }
+
+    /** Shared by every skin for the whole session (mobile-skins spec). */
+    val states: AppStates by lazy { AppStates.create(this) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
     private val finnhubLimiter = RateLimiter.forFinnhubFreeTier()
     // European listings need one request each, so allow a little more than for US batches alone.

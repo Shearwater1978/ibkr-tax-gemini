@@ -3,6 +3,8 @@
     <string name="app_name">IBKR Tax Assistant</string>
 
     <string name="tab_portfolio">Portfolio</string>
+    <string name="skin_classic_name">Classic</string>
+    <string name="skin_classic_description">Every number on one screen: the full positions table, five tabs and all switches.</string>
     <string name="tab_dividends">Dividends</string>
     <string name="tab_operations">Operations</string>
     <string name="dividends_title">Dividends</string>

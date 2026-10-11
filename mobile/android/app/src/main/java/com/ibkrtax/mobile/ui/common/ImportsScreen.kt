@@ -1,4 +1,4 @@
-package com.ibkrtax.mobile.ui.screens
+package com.ibkrtax.mobile.ui.common
 
 import android.content.Context
 import android.net.Uri
@@ -21,11 +21,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -48,6 +48,7 @@ import com.ibkrtax.mobile.storage.ImportHistory
 import com.ibkrtax.mobile.storage.ImportRejection
 import com.ibkrtax.mobile.storage.ImportResult
 import com.ibkrtax.mobile.storage.ImportedReport
+import com.ibkrtax.mobile.state.DataState
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -62,7 +63,7 @@ import kotlinx.coroutines.withContext
  * synthetic sample reports, which are imported without a backup.
  */
 @Composable
-fun ImportsScreen() {
+fun ImportsScreen(state: DataState) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
@@ -73,15 +74,12 @@ fun ImportsScreen() {
     var fileResults by remember { mutableStateOf(emptyList<String>()) }
     var deleteTarget by remember { mutableStateOf<ImportedReport?>(null) }
     var deleteAllOpen by remember { mutableStateOf(false) }
-    val keyStatus by produceState<BackupKeyStatus?>(null) {
-        value = runCatching { context.appContainer.backupKeys.status() }.getOrNull()
-    }
-    val ready by produceState(false, refresh) {
-        value = withContext(Dispatchers.IO) { runCatching { context.appContainer.backup.isReady }.getOrDefault(false) }
-    }
-    val history by produceState<List<ImportedReport>?>(null, refresh) {
-        value = withContext(Dispatchers.IO) { runCatching { context.appContainer.importHistory.list() }.getOrNull() }
-    }
+    val data by state.view.collectAsState()
+    val keyStatus = data.keyStatus
+    val ready = data.importReady
+    val history = data.history
+    // Every change below bumps refresh; the shared state then reloads for all screens and skins.
+    LaunchedEffect(refresh) { state.reload() }
     val texts = ImportTexts()
 
     // Backups that could not be written earlier are retried whenever this screen opens.

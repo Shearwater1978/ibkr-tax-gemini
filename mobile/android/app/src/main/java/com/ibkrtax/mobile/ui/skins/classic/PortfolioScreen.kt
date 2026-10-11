@@ -1,6 +1,5 @@
-package com.ibkrtax.mobile.ui.screens
+package com.ibkrtax.mobile.ui.skins.classic
 
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,10 +24,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -42,10 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
-import com.ibkrtax.mobile.appContainer
-import com.ibkrtax.mobile.fx.FxRates
 import com.ibkrtax.mobile.portfolio.MainPage
-import com.ibkrtax.mobile.portfolio.Performance
 import com.ibkrtax.mobile.portfolio.PnlMode
 import com.ibkrtax.mobile.portfolio.PortfolioSummary
 import com.ibkrtax.mobile.portfolio.PositionPerformance
@@ -57,116 +53,30 @@ import com.ibkrtax.mobile.portfolio.TopMoversRanking
 import com.ibkrtax.mobile.portfolio.UsdTotals
 import com.ibkrtax.mobile.prices.PriceFailure
 import com.ibkrtax.mobile.prices.PriceFreshness
-import com.ibkrtax.mobile.prices.Markets
-import com.ibkrtax.mobile.prices.PriceScope
 import com.ibkrtax.mobile.prices.PriceSource
 import com.ibkrtax.mobile.prices.RefreshProgress
 import com.ibkrtax.mobile.prices.RefreshOutcome
-import com.ibkrtax.mobile.security.KeyUnwrapException
-import com.ibkrtax.mobile.security.KeystoreUnavailableException
-import com.ibkrtax.mobile.storage.HoldingsResult
+import com.ibkrtax.mobile.state.PortfolioState
+import com.ibkrtax.mobile.state.PortfolioUiState
+import com.ibkrtax.mobile.ui.common.UiPreferences
 import com.ibkrtax.mobile.ui.Formats
 import java.math.BigDecimal
-import java.time.LocalDate
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
-
-sealed interface PortfolioUiState {
-    data object Loading : PortfolioUiState
-
-    data object NoReports : PortfolioUiState
-
-    data object StorageUnavailable : PortfolioUiState
-
-    data class Incomplete(val ticker: String, val date: String) : PortfolioUiState
-
-    /** [prices] is null while a refresh is running. */
-    data class Loaded(
-        val rows: List<PositionRow>,
-        val totals: UsdTotals,
-        /** Held positions (same order as [rows]) followed by fully sold ones. */
-        val performance: List<PositionPerformance>,
-        val summary: PortfolioSummary,
-        val rates: FxRates?,
-        /** Some held positions are European listings, which are always priced from Yahoo Finance. */
-        val hasEuropean: Boolean,
-        val prices: RefreshOutcome?,
-        val priceSource: PriceSource,
-    ) : PortfolioUiState
-}
-
-/** Reads the encrypted database, cached prices and cached NBP rates; must run off the main thread. */
-fun loadPortfolio(context: Context, prices: RefreshOutcome?): PortfolioUiState =
-    try {
-        val container = context.appContainer
-        val reports = container.importHistory.list()
-        if (reports.isEmpty()) {
-            PortfolioUiState.NoReports
-        } else {
-            when (val result = container.portfolio.holdings()) {
-                is HoldingsResult.Incomplete -> PortfolioUiState.Incomplete(result.ticker, result.date)
-                is HoldingsResult.Success -> {
-                    val exchanges = container.portfolio.listingExchanges()
-                    val rows = MainPage.rows(result.holdings, container.prices.prices(result.holdings, prices, exchanges), exchanges)
-                    val rates = container.fx.rates()
-                    val dividends = container.dividendEvents.all()
-                    val performance = Performance.positions(rows, result.realized, dividends)
-                    PortfolioUiState.Loaded(
-                        rows = rows,
-                        totals = MainPage.usdTotals(rows, rates),
-                        performance = performance,
-                        summary = Performance.summary(performance, dividends, rates, LocalDate.now()),
-                        rates = rates,
-                        hasEuropean = rows.any { row -> PriceScope.symbol(row.holding, row.listingExchange)?.let(Markets::isEuropean) == true },
-                        prices = prices,
-                        priceSource = container.prices.source(),
-                    )
-                }
-            }
-        }
-    } catch (e: KeystoreUnavailableException) {
-        PortfolioUiState.StorageUnavailable
-    } catch (e: KeyUnwrapException) {
-        PortfolioUiState.StorageUnavailable
-    }
-
-/** Refreshes prices for in-scope holdings and the NBP table in parallel (network); call off the main thread. */
-suspend fun refreshMarketData(context: Context, onProgress: (RefreshProgress) -> Unit = {}): RefreshOutcome = coroutineScope {
-    val container = context.appContainer
-    val rates = async { container.fx.refresh() }
-    val holdings = (container.portfolio.holdings() as? HoldingsResult.Success)?.holdings.orEmpty()
-    val prices = container.prices.refresh(holdings, container.portfolio.listingExchanges(), onProgress)
-    rates.await()
-    prices
-}
 
 @Composable
-fun PortfolioScreen(onImportReport: () -> Unit, onOpenSettings: () -> Unit = {}) {
-    val context = LocalContext.current
-    var refreshTick by remember { mutableIntStateOf(0) }
-    var progress by remember { mutableStateOf<RefreshProgress?>(null) }
+fun PortfolioScreen(state: PortfolioState, onImportReport: () -> Unit, onOpenSettings: () -> Unit = {}) {
+    val ui by state.ui.collectAsState()
+    val progress by state.progress.collectAsState()
     // Show cached data at once, then refresh when the page opens or the user asks.
-    val state by produceState<PortfolioUiState>(PortfolioUiState.Loading, refreshTick) {
-        val cached = withContext(Dispatchers.IO) { loadPortfolio(context, prices = null) }
-        value = cached
-        if (cached is PortfolioUiState.Loaded) {
-            progress = null
-            val outcome = withContext(Dispatchers.IO) { refreshMarketData(context) { progress = it } }
-            value = withContext(Dispatchers.IO) { loadPortfolio(context, outcome) }
-            progress = null
-        }
-    }
+    LaunchedEffect(Unit) { state.refresh() }
 
-    when (val current = state) {
+    when (val current = ui) {
         PortfolioUiState.Loading -> Centered { Text(stringResource(R.string.loading)) }
         PortfolioUiState.NoReports -> EmptyPortfolio(onImportReport)
         PortfolioUiState.StorageUnavailable -> Centered { Text(stringResource(R.string.storage_unavailable), textAlign = TextAlign.Center) }
         is PortfolioUiState.Incomplete -> Centered {
             Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center)
         }
-        is PortfolioUiState.Loaded -> Positions(current, progress, onRefresh = { refreshTick++ }, onOpenSettings = onOpenSettings)
+        is PortfolioUiState.Loaded -> Positions(current, progress, onRefresh = state::refresh, onOpenSettings = onOpenSettings)
     }
 }
 

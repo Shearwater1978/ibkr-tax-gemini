@@ -1,8 +1,8 @@
 ## 1. Skin infrastructure and Classic (PR 1)
 
-- [ ] 1.1 Move data loading into session-wide state holders (`PortfolioState`, `IncomeState`, `ActivityState`, `DataState`) and verify with unit tests that they produce the same values as today's screen code on synthetic data.
-- [ ] 1.2 Add the `Skin` contract, the skin catalog and `UiPreferences.skin` with the fallback to Classic, and verify with unit tests for stored, missing and unknown values.
-- [ ] 1.3 Make today's UI the Classic skin on top of the state holders, move the Settings list and import flow into `ui/common`, and verify on the emulator that every Classic screen looks and behaves as before.
+- [x] 1.1 Move data loading into session-wide state holders (`PortfolioState`, `IncomeState`, `ActivityState`, `DataState`) and verify with unit tests that they produce the same values as today's screen code on synthetic data.
+- [x] 1.2 Add the `Skin` contract, the skin catalog and `UiPreferences.skin` with the fallback to Classic, and verify with unit tests for stored, missing and unknown values.
+- [x] 1.3 Make today's UI the Classic skin on top of the state holders, move the Settings list and import flow into `ui/common`, and verify on the emulator that every Classic screen looks and behaves as before.
 
 ## 2. Calm and skin choice (PR 2)
 
