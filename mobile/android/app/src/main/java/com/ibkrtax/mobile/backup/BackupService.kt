@@ -28,6 +28,9 @@ interface ReportStore {
 /** [backupsLeft]: backup files that could not be deleted because the folder was unreachable. */
 data class DeletionOutcome(val removedRecords: Int, val backupsDeleted: Int, val backupsLeft: Int)
 
+/** [left]: files that stayed because deleting them failed; unreadable anyway once the keys are destroyed. */
+data class FolderErasure(val removedRecords: Int, val filesDeleted: Int, val folderReachable: Boolean, val left: Int = 0)
+
 enum class BackupResult {
     BACKED_UP,
 
@@ -125,6 +128,26 @@ class BackupService(
         return DeletionOutcome(deleted.removedRecords, removed, left)
     }
 
+    /**
+     * Erasure (data-anonymization "Erasure and minimization"): all imports, then every backup file
+     * and the manifest in the backup folder, including files no import refers to any more.
+     */
+    fun eraseAll(): FolderErasure {
+        val removedRecords = reports.deleteAll().removedRecords
+        pendingDir.deleteRecursively()
+        val target = folder() ?: return FolderErasure(removedRecords, 0, folderReachable = false)
+        return try {
+            val ours = target.list().filter { it == MANIFEST_FILE || BACKUP_FILE.matches(it) }
+            var deleted = 0
+            for (name in ours) {
+                runCatching { target.delete(name) }.onSuccess { deleted++ }
+            }
+            FolderErasure(removedRecords, deleted, folderReachable = true, left = ours.size - deleted)
+        } catch (e: IOException) {
+            FolderErasure(removedRecords, 0, folderReachable = false)
+        }
+    }
+
     /** Writes the wrapped-key manifest; needed for restore and after any key change. */
     fun syncManifest(): BackupResult {
         val target = folder() ?: return BackupResult.PENDING
@@ -166,5 +189,8 @@ class BackupService(
     companion object {
         /** Fixed name so a restore can find it; it contains only wrapped keys and KDF parameters. */
         const val MANIFEST_FILE = "ibkr-tax-backup-manifest.json"
+
+        /** Backup file names as written by [randomFileName]. */
+        private val BACKUP_FILE = Regex("""[0-9a-f]{32}\.bin""")
     }
 }

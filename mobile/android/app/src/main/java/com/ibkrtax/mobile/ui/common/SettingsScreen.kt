@@ -73,6 +73,8 @@ fun SettingsScreen() {
         Spacer(Modifier.height(24.dp))
         BackupFolderSettings()
         Spacer(Modifier.height(24.dp))
+        EraseDataSection()
+        Spacer(Modifier.height(24.dp))
         Text(
             stringResource(R.string.settings_version_full, version, BuildConfig.BUILD_TIME_UTC, BuildConfig.BUILD_TYPE),
             style = MaterialTheme.typography.bodySmall,

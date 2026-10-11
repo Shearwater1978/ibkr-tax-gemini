@@ -53,4 +53,9 @@ object UiPreferences {
     fun setBrokerStepDone(context: Context) {
         prefs(context).edit().putBoolean(BROKER_STEP_DONE, true).apply()
     }
+
+    /** Erasure: every UI setting, including skin, broker and currency view. */
+    fun clear(context: Context) {
+        prefs(context).edit().clear().commit()
+    }
 }

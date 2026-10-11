@@ -18,6 +18,7 @@ import com.ibkrtax.mobile.prices.PriceService
 import com.ibkrtax.mobile.prices.RateLimiter
 import com.ibkrtax.mobile.prices.YahooProvider
 import com.ibkrtax.mobile.security.AesGcmKeyWrapper
+import com.ibkrtax.mobile.security.DataEraser
 import com.ibkrtax.mobile.security.DeviceKeys
 import com.ibkrtax.mobile.security.Pseudonymizer
 import com.ibkrtax.mobile.storage.BackupLocationStore
@@ -30,6 +31,7 @@ import com.ibkrtax.mobile.storage.OperationsRepository
 import com.ibkrtax.mobile.storage.PortfolioRepository
 import com.ibkrtax.mobile.storage.PriceStore
 import com.ibkrtax.mobile.storage.ReportImporter
+import com.ibkrtax.mobile.ui.common.UiPreferences
 import java.io.File
 import java.time.Duration
 
@@ -73,6 +75,24 @@ class AppContainer(context: Context) {
             folder = { backupLocation.get()?.let { SafBackupFolder(appContext, Uri.parse(it.treeUri), it.subfolder) } },
             reports = reportStore,
             pendingDir = File(appContext.noBackupFilesDir, "pending-backups"),
+        )
+    }
+
+    /** Erase all data (task 7.6); afterwards the app must restart, since this container is unusable. */
+    val eraser: DataEraser by lazy {
+        DataEraser(
+            eraseFolder = { backup.eraseAll() },
+            eraseBackupKeys = { backupKeys.erase() },
+            deleteLocalData = {
+                database.close()
+                EncryptedDatabase.delete(appContext)
+                File(appContext.noBackupFilesDir, "pending-backups").deleteRecursively()
+                appContext.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
+                UiPreferences.clear(appContext)
+            },
+            deleteDeviceKeys = {
+                listOf(DeviceKeys.DATABASE_WRAP_ALIAS, DeviceKeys.PSEUDONYM_ALIAS, DeviceKeys.BACKUP_DATA_KEY_WRAP_ALIAS).forEach(DeviceKeys::delete)
+            },
         )
     }
 
