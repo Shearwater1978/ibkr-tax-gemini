@@ -45,7 +45,7 @@
 - [x] 7.2 Implement HMAC-SHA256 pseudonymization with device-bound key _Status: Android done (account and report fingerprint). Key rotation is not offered; a restore re-imports reports, so pseudonyms are derived again with the new device key._
 - [x] 7.3 Implement masking for account numbers and tax IDs in UI and notifications _Status: Android done; only the last four account characters are stored for display and shown, file names are masked; names and tax IDs are not read; the app sends no notifications and offers no reveal._
 - [x] 7.4 Ensure logs, crash reports, and analytics receive only pseudonyms or masked values _Status: Android done; the app does not log (`NoLoggingTest`) and has no crash-reporting or analytics SDK (Decision 9)._
-- [ ] 7.5 Restrict full identity to tax output and its export, and document the exception
+- [x] 7.5 Restrict full identity to tax output and its export, and document the exception _Status: no tax output on mobile (decision 2026-10-11), so the app never reads or keeps the full identity; spec requirement "No tax output in the mobile app"._
 - [x] 7.6 Implement erasure across local DB, backup folder, and keys (destroying keys makes leftover copies unreadable) _Status: Android done ("Erase all data" in Settings, verified on an emulator). No retention period applies, so nothing is deleted automatically._
-- [ ] 7.7 Implement export of tax output in CSV or PDF for portability
+- [x] 7.7 Implement export of tax output in CSV or PDF for portability _Status: not in the mobile app (decision 2026-10-11); tax output stays in the desktop tool._
 - [x] 7.8 Write privacy notice and record processing activities (Art. 30 GDPR) _Status: drafts in `mobile/PRIVACY.md` and `mobile/PROCESSING_RECORD.md`, short version in Settings; publisher and contact are placeholders to fill and review before any public release._

@@ -50,18 +50,18 @@ or masked values. Direct identifiers, financial amounts tied to a person, and ra
 - **WHEN** an analytics event is sent
 - **THEN** the event payload contains no direct identifiers and no per-person financial values
 
-### Requirement: Full identity only in tax output
-The full identity SHALL be used only to generate the tax output and its export. This is a documented exception
-to the pseudonymization requirements. The tax output SHALL be generated on the device and SHALL be
-protected with the same controls as the local database.
+### Requirement: No tax output in the mobile app
+The mobile app SHALL NOT generate, store or export tax output (decision 2026-10-11): it is informational, and tax
+reports such as PIT-38 come from the desktop tool. Because there is no tax output, the mobile app SHALL NOT read
+or keep the full identity (names, tax identification numbers or full account numbers) for any purpose.
 
-#### Scenario: Tax report generation
-- **WHEN** the user generates a tax report
-- **THEN** the full identifiers are included only in the generated document and are not written to logs
+#### Scenario: Looking for a tax report
+- **WHEN** a user looks for a tax report in the mobile app
+- **THEN** the app offers none, and the documentation points to the desktop tool
 
-#### Scenario: Exported tax report
-- **WHEN** the user exports the tax report
-- **THEN** the export is generated on demand, is not stored in the application's cache, and is deleted from temporary storage after sharing
+#### Scenario: Report with identity data
+- **WHEN** an imported report contains the account holder's identity
+- **THEN** only the pseudonymized and masked account is kept, and no other identity field is read
 
 ### Requirement: Anonymization for aggregate statistics
 If the application produces aggregate statistics (for example, totals across all users or across all reports of one user
