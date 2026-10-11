@@ -22,7 +22,8 @@ class AppStates(
                 portfolio = PortfolioState.create(container, scope),
                 income = IncomeState.create(container, scope),
                 activity = ActivityState.create(container, scope),
-                data = DataState.create(container, scope),
+                // Loading data once at start also starts backup retries if any are pending.
+                data = DataState.create(container, scope).also { it.reload() },
             )
         }
     }

@@ -21,7 +21,7 @@
 
 ## 4. Encrypted backup
 - [x] 4.1 Implement encrypted file format with versioned header
-- [ ] 4.2 Implement writing to the backup folder with retries _Status: writing done (Android); retries run when the Imports screen opens and on "Retry backup", without automatic exponential backoff yet._
+- [x] 4.2 Implement writing to the backup folder with retries _Status: Android done; pending backups are retried automatically while the app runs (30 s, doubling up to 15 min, stopping on lost folder access), plus on opening Imports and "Retry backup". No background job when the app is closed._
 - [x] 4.3 Implement read-back verification (size and SHA-256)
 - [x] 4.4 Delete original only after verification succeeds
 - [x] 4.5 Implement restore flow on new device _Status: Android done (import screen, Block Store key or passphrase/recovery code, verified on an emulator with a wiped app); iOS postponed._
