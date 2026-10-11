@@ -1,5 +1,9 @@
 package com.ibkrtax.mobile.ui.skins.classic
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -86,11 +90,13 @@ private fun NoDividends(onImportReport: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DividendContent(data: DividendData) {
     val years = Dividends.years(data.events)
     var selected by rememberSaveable { mutableStateOf(years.first()) }
     if (selected !in years) selected = years.first()
+    var payer by remember { mutableStateOf<Pair<String, String>?>(null) }
     val year = Dividends.year(data.events, selected, data.rates)
     val muted = MaterialTheme.typography.bodySmall
     val locale = Locale.getDefault()
@@ -173,7 +179,7 @@ private fun DividendContent(data: DividendData) {
 
     // Per position.
     SectionTitle(stringResource(R.string.dividends_by_position, selected))
-    year.positions.forEach { position -> AmountsLine(position.ticker, position.amounts, position.currency) }
+    year.positions.forEach { position -> AmountsLine(position.ticker, position.amounts, position.currency, onClick = { payer = position.ticker to position.currency }) }
 
     Dividends.coverage(data.events)?.let { (first, last) ->
         val format = DateTimeFormatter.ofPattern("MMM yyyy", locale)
@@ -182,6 +188,22 @@ private fun DividendContent(data: DividendData) {
             style = muted,
             modifier = Modifier.padding(top = 12.dp),
         )
+    }
+
+    payer?.let { (ticker, currency) ->
+        ModalBottomSheet(onDismissRequest = { payer = null }) {
+            val history = Dividends.history(data.events, ticker, currency)
+            Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
+                Text("$ticker · " + stringResource(R.string.payer_history_title), style = MaterialTheme.typography.titleLarge)
+                Text(
+                    stringResource(R.string.payer_history_subtitle, currency, pluralStringResource(R.plurals.payer_history_count, history.lines.size, history.lines.size)),
+                    style = muted,
+                )
+                SectionTitle(stringResource(R.string.payer_history_totals))
+                AmountsLine(currency, history.total, currency)
+                history.lines.forEach { line -> AmountsLine(line.date, line.amounts, currency) }
+            }
+        }
     }
 }
 
@@ -203,8 +225,8 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun AmountsLine(title: String, amounts: DividendAmounts, currency: String) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+private fun AmountsLine(title: String, amounts: DividendAmounts, currency: String, onClick: (() -> Unit)? = null) {
+    Column(modifier = Modifier.fillMaxWidth().then(onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier).padding(vertical = 6.dp)) {
         Row {
             Text(title, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Text(Formats.money(amounts.net, currency))

@@ -34,6 +34,12 @@ data class MonthDividends(val month: Int, val byCurrency: Map<String, DividendAm
 
 data class PositionDividends(val ticker: String, val currency: String, val amounts: DividendAmounts, val usdNet: BigDecimal?)
 
+/** One booking date of a payer: the dividend and any tax booked that day, in the payment currency. */
+data class PayerLine(val date: String, val amounts: DividendAmounts)
+
+/** Every dividend and tax booking of one instrument in one currency (mobile-payer-history spec). */
+data class PayerHistory(val ticker: String, val currency: String, val lines: List<PayerLine>, val total: DividendAmounts)
+
 data class YearDividends(
     /** Null for all years together. */
     val year: Int?,
@@ -106,6 +112,15 @@ object Dividends {
         val before = net(year - 1)
         if (before.signum() <= 0) return null
         return net(year).subtract(before, PY).divide(before, PY).multiply(BigDecimal(100), PY)
+    }
+
+    /** All years of one instrument in one currency, newest booking date first; rows with a non-ISO date are left out. */
+    fun history(events: List<CashEvent>, ticker: String, currency: String): PayerHistory {
+        val lines = events.filter { it.ticker == ticker && it.currency == currency && it.month != null }
+            .groupBy { it.date.take(10) }
+            .map { (date, rows) -> PayerLine(date, rows.map(DividendAmounts::of).reduce(DividendAmounts::plus)) }
+            .sortedByDescending { it.date }
+        return PayerHistory(ticker, currency, lines, lines.fold(DividendAmounts()) { sum, line -> sum + line.amounts })
     }
 
     /** Net USD per month (twelve entries) for each of up to [count] most recent years, oldest year first. */

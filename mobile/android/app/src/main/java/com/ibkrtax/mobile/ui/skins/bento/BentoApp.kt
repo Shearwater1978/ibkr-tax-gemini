@@ -122,6 +122,7 @@ object BentoSkin : Skin {
         Feature.OWN_CURRENCY_AND_USD to "Home: USD / Own currency pill",
         Feature.TOP_MOVERS to "Home: Best and Worst today tiles; sort by today",
         Feature.DIVIDENDS_BY_YEAR_AND_MONTH to "Income tab",
+        Feature.PAYER_HISTORY to "Income: tap a payer",
         Feature.ACTIVITY_SEARCH_AND_FILTERS to "Activity tab",
         Feature.REPORT_IMPORT to "Data tab: Add reports",
         Feature.BACKUP_KEYS_AND_LOCATION to "Data tab: Settings",
@@ -166,8 +167,10 @@ internal object BentoRoute {
     const val IMPORT = "import"
     const val SETTINGS = "settings"
     const val POSITION = "position/{key}"
+    const val PAYER = "payer/{ticker}/{currency}"
 
     fun position(key: String) = "position/" + android.net.Uri.encode(key)
+    fun payer(ticker: String, currency: String) = "payer/" + android.net.Uri.encode(ticker) + "/" + android.net.Uri.encode(currency)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -195,7 +198,10 @@ private fun BentoNavigation(states: AppStates, nav: NavHostController = remember
             NavHost(nav, startDestination = BentoRoute.HOME, modifier = Modifier.fillMaxSize()) {
                 composable(BentoRoute.HOME) { BentoHome(states.portfolio, states.income, onOpen = { nav.navigate(BentoRoute.position(it)) }, onIncome = { nav.tab(BentoRoute.INCOME) }) }
                 composable(BentoRoute.POSITION) { e -> BentoPosition(states.portfolio, e.arguments?.getString("key").orEmpty(), onBack = { nav.popBackStack() }) }
-                composable(BentoRoute.INCOME) { BentoIncome(states.income) }
+                composable(BentoRoute.INCOME) { BentoIncome(states.income, onPayer = { t, c -> nav.navigate(BentoRoute.payer(t, c)) }) }
+                composable(BentoRoute.PAYER) { e ->
+                    BentoPayer(states.income, e.arguments?.getString("ticker").orEmpty(), e.arguments?.getString("currency").orEmpty(), onBack = { nav.popBackStack() })
+                }
                 composable(BentoRoute.ACTIVITY) { BentoActivity(states.activity, onImport = { nav.navigate(BentoRoute.IMPORT) }) }
                 composable(BentoRoute.DATA) { BentoData(states, onImport = { nav.navigate(BentoRoute.IMPORT) }, onSettings = { nav.navigate(BentoRoute.SETTINGS) }) }
                 composable(BentoRoute.IMPORT) { ImportsScreen(states.data) }
@@ -231,7 +237,7 @@ private fun TabBar(current: String?, onTab: (String) -> Unit, modifier: Modifier
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         tabs.forEach { (route, label) ->
-            val on = current == route || (route == BentoRoute.HOME && current == BentoRoute.POSITION)
+            val on = current == route || (route == BentoRoute.HOME && current == BentoRoute.POSITION) || (route == BentoRoute.INCOME && current == BentoRoute.PAYER)
             Text(
                 label,
                 color = if (on) BentoColors.Page else BentoColors.Muted,

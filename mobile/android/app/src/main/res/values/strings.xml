@@ -357,4 +357,12 @@
     <string name="settings_api_key_save">Save key</string>
     <string name="settings_api_key_saved">Key saved: %1$s</string>
     <string name="settings_api_key_remove">Remove key</string>
+    <string name="payer_history_title">Dividend history</string>
+    <string name="payer_history_subtitle">%1$s · all years · %2$s</string>
+    <plurals name="payer_history_count">
+        <item quantity="one">%1$d booking</item>
+        <item quantity="other">%1$d bookings</item>
+    </plurals>
+    <string name="payer_history_totals">Totals</string>
+    <string name="payer_history_tax_only">withholding tax correction %1$s</string>
 </resources>
