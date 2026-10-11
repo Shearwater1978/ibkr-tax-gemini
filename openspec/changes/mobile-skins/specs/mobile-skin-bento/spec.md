@@ -5,7 +5,7 @@ Defines the Bento skin: a dark tile dashboard where every key number sits in its
 ## ADDED Requirements
 
 ### Requirement: Bento navigation
-Bento SHALL use a dark theme and a floating pill-shaped tab bar with Home, Income, Activity and Data. The tab bar SHALL NOT permanently hide content: the last item of every list SHALL be scrollable above it.
+Bento SHALL use a dark theme and a floating pill-shaped tab bar with Home, Income, Activity and Data. The tab bar SHALL stay visible on every Bento screen, including Add reports, Imported reports and Settings, and SHALL highlight the tab the screen was opened from. The tab bar SHALL NOT permanently hide content: the last item of every list SHALL be scrollable above it.
 
 #### Scenario: Last row reachable
 - **WHEN** the user scrolls to the end of the holdings list
