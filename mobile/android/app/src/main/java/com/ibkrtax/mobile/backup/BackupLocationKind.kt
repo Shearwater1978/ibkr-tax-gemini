@@ -16,8 +16,14 @@ enum class BackupLocationKind {
             "com.android.providers.downloads.documents",
         )
 
-        /** The app's own folder inside the folder the user confirms. */
-        const val SUBFOLDER = "IBKR Tax Assistant backups"
+        /** The app's own folder inside the folder the user confirms (mobile-neutral-presentation). */
+        const val SUBFOLDER = "Portfolio Companion backups"
+
+        /** The folder name used before the app was renamed. */
+        const val LEGACY_SUBFOLDER = "IBKR Tax Assistant backups"
+
+        /** Reuses a folder from before the rename if the confirmed folder has one, so backups are not split. */
+        fun subfolderFor(hasFolder: (String) -> Boolean): String = if (hasFolder(LEGACY_SUBFOLDER)) LEGACY_SUBFOLDER else SUBFOLDER
 
         /** Which offered location a picked folder belongs to; null for other storage apps. */
         fun of(authority: String?): BackupLocationKind? = when (authority) {

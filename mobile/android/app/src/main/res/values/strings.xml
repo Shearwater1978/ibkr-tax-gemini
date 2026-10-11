@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">IBKR Tax Assistant</string>
+    <string name="app_name">Portfolio Companion</string>
 
     <string name="tab_portfolio">Portfolio</string>
     <string name="skin_picker_title">Choose how the app looks</string>
@@ -80,8 +80,9 @@
     <string name="bento_first_year">first year</string>
     <string name="bento_of_gross">%1$d%% of gross</string>
     <string name="bento_net_per_month">Net per month · %1$s</string>
-    <string name="bento_add_reports">Add IBKR reports</string>
-    <string name="bento_add_reports_hint">Activity Flex Query CSV · several at once</string>
+    <string name="bento_add_reports">Add reports</string>
+    <string name="bento_add_reports_hint">%1$s · several at once</string>
+    <string name="bento_add_reports_choose">Choose your broker first</string>
     <string name="bento_backup">Encrypted backup</string>
     <string name="bento_on">On</string>
     <string name="bento_off">Off · set up in Settings</string>
@@ -98,6 +99,17 @@
     <string name="bento_delete_entry">Delete imported data</string>
     <string name="bento_version">About · version %1$s</string>
     <string name="year_older">Older</string>
+    <string name="broker_ibkr_name">Interactive Brokers</string>
+    <string name="broker_ibkr_format">IBKR Activity Flex Query CSV</string>
+    <string name="broker_report_generic">broker</string>
+    <string name="broker_question">Which broker are your reports from?</string>
+    <string name="broker_question_body">The app reads the report format of your broker and uses its terms. More brokers will follow.</string>
+    <string name="broker_more_later">Only supported brokers are listed.</string>
+    <string name="broker_later">Choose later</string>
+    <string name="broker_settings_title">Broker</string>
+    <string name="broker_not_chosen">Not chosen</string>
+    <string name="broker_change">Change broker</string>
+    <string name="broker_use">Use this broker</string>
     <string name="skin_classic_name">Classic</string>
     <string name="skin_classic_description">Every number on one screen: the full positions table, five tabs and all switches.</string>
     <string name="tab_dividends">Dividends</string>
@@ -125,7 +137,7 @@
     <string name="operations_filter_other">Corporate actions</string>
     <string name="operations_no_match">No operations match the search and filters.</string>
     <string name="operations_clear_all">Clear search and filters</string>
-    <string name="operations_empty">No operations yet. Import an IBKR report to see its buys, sells, dividends and corporate actions here.</string>
+    <string name="operations_empty">No operations yet. Add reports from your broker to see buys, sells, dividends and corporate actions here.</string>
     <string name="operations_commission">commission %1$s</string>
     <string name="operation_buy">Buy</string>
     <string name="operation_sell">Sell</string>
@@ -140,11 +152,11 @@
 
 
     <string name="portfolio_empty_title">No reports imported</string>
-    <string name="portfolio_empty_body">Import an IBKR Activity Flex Query CSV report to see your holdings.</string>
+    <string name="portfolio_empty_body">Add reports from your broker to see your holdings.</string>
     <string name="action_import_report">Import report</string>
 
     <string name="imports_title">Report imports</string>
-    <string name="imports_supported_format">Supported format: IBKR Activity Flex Query CSV.</string>
+    <string name="imports_supported_format">Supported format: %1$s.</string>
     <string name="imports_unavailable_keys">Import needs working backups first. In Settings: 1. set up backup encryption, 2. choose a backup folder.</string>
     <string name="imports_unavailable_folder">Backup encryption is set up. Choose a backup folder in Settings to enable import.</string>
     <string name="importing">Importing…</string>
@@ -168,11 +180,11 @@
     <string name="import_done_access_lost">Imported: %1$d new records, %2$d already present. The app lost access to the backup folder: choose it again in Settings.</string>
     <string name="import_already">This report was already imported. Nothing changed.</string>
     <string name="import_not_ready">Set up backup encryption and a backup folder in Settings first.</string>
-    <string name="import_unsupported">This is not an IBKR Activity Flex Query CSV report. Nothing was imported.</string>
+    <string name="import_unsupported">This is not a %1$s report. Nothing was imported.</string>
     <string name="import_empty">The file is empty. Nothing was imported.</string>
     <string name="import_malformed">The report could not be read (problem near line %1$d). Nothing was imported.</string>
     <string name="import_invalid_record">The report contains an entry without date, ticker or currency, or of an unknown type. Nothing was imported.</string>
-    <string name="import_too_large">The file is larger than 20 MB, which is too big for an IBKR report. Nothing was imported.</string>
+    <string name="import_too_large">The file is larger than 20 MB, which is too big for a broker report. Nothing was imported.</string>
     <string name="backup_status_done">Encrypted backup: saved</string>
     <string name="backup_status_pending">Encrypted backup: pending</string>
     <string name="backup_status_none">Encrypted backup: none (sample data)</string>
@@ -267,7 +279,7 @@
 
     <string name="lock_locked">Locked to protect your portfolio data.</string>
     <string name="lock_unlock">Unlock</string>
-    <string name="lock_prompt_title">Unlock IBKR Tax Assistant</string>
+    <string name="lock_prompt_title">Unlock Portfolio Companion</string>
     <string name="lock_no_screen_lock">This device has no screen lock, so the app cannot verify it is you. Set a PIN, pattern or fingerprint in system settings to protect your data.</string>
     <string name="lock_continue">Continue without lock</string>
 
@@ -298,17 +310,17 @@
     <string name="recovery_new_hint">Lost your recovery code or never saved it? Create a new one; your backups and passphrase stay the same.</string>
     <string name="recovery_new_submit">Create code</string>
     <string name="recovery_new_replaces">When you tap Done, this code replaces your previous one, which then stops working.</string>
-    <string name="recovery_clip_label">IBKR Tax Assistant recovery code</string>
+    <string name="recovery_clip_label">Portfolio Companion recovery code</string>
     <string name="recovery_copied">Copied. Paste it into your password manager now: the clipboard is cleared after 1 minute.</string>
     <string name="cancel">Cancel</string>
 
     <string name="location_title">Backup location</string>
     <string name="location_question">Where should backups be stored?</string>
     <string name="location_drive">Google Drive</string>
-    <string name="location_drive_hint">In the picker, open the menu (☰), choose Google Drive, go to where the backups should be kept and tap "Use this folder". The app creates its own folder "IBKR Tax Assistant backups" there.</string>
+    <string name="location_drive_hint">In the picker, open the menu (☰), choose Google Drive, go to where the backups should be kept and tap "Use this folder". The app creates its own folder "Portfolio Companion backups" there.</string>
     <string name="location_drive_missing">Needs the Google Drive app, which is not installed on this phone.</string>
     <string name="location_phone">This phone</string>
-    <string name="location_phone_hint">The picker opens in Documents. Tap "Use this folder" (or pick another folder); the app creates its own folder "IBKR Tax Assistant backups" there.</string>
+    <string name="location_phone_hint">The picker opens in Documents. Tap "Use this folder" (or pick another folder); the app creates its own folder "Portfolio Companion backups" there.</string>
     <string name="location_current">Backups go to %1$s: %2$s</string>
     <string name="location_label_drive">Google Drive</string>
     <string name="location_label_phone">this phone</string>

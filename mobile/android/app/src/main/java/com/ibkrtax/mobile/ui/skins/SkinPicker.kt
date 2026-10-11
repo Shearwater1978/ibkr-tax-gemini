@@ -42,6 +42,10 @@ import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.appContainer
 import com.ibkrtax.mobile.state.AppStates
+import com.ibkrtax.mobile.ui.common.BrokerChooser
+import com.ibkrtax.mobile.ui.common.BrokerId
+import com.ibkrtax.mobile.ui.common.FirstLaunchBrokerStep
+import com.ibkrtax.mobile.ui.common.LocalBrokerChooser
 import com.ibkrtax.mobile.ui.common.UiPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -61,33 +65,57 @@ fun SkinRoot(states: AppStates) {
     var stored by remember { mutableStateOf(UiPreferences.skin(context)) }
     var noticePending by remember { mutableStateOf(UiPreferences.skinNoticePending(context)) }
     var pickerOpen by remember { mutableStateOf(false) }
+    var broker by remember { mutableStateOf(BrokerId.resolve(UiPreferences.broker(context))) }
+    var brokerStepDone by remember { mutableStateOf(UiPreferences.brokerStepDone(context)) }
     val choose: (SkinId) -> Unit = { id ->
         UiPreferences.setSkin(context, id.name)
         stored = id.name
         pickerOpen = false
     }
+    val chooseBroker: (BrokerId) -> Unit = { id ->
+        UiPreferences.setBroker(context, id.name)
+        UiPreferences.setBrokerStepDone(context)
+        broker = id
+        brokerStepDone = true
+    }
 
-    if (stored == null) {
+    // Data on the device means an update from an earlier version: keep Classic and Interactive Brokers.
+    if (stored == null || (broker == null && !brokerStepDone)) {
         val hasData by produceState<Boolean?>(null) {
             value = withContext(Dispatchers.IO) { runCatching { context.appContainer.importHistory.list().isNotEmpty() }.getOrDefault(false) }
         }
         when (hasData) {
             null -> return
             true -> {
-                UiPreferences.setSkin(context, SkinId.CLASSIC.name)
-                UiPreferences.setSkinNoticePending(context, true)
-                stored = SkinId.CLASSIC.name
-                noticePending = true
+                if (stored == null) {
+                    UiPreferences.setSkin(context, SkinId.CLASSIC.name)
+                    UiPreferences.setSkinNoticePending(context, true)
+                    stored = SkinId.CLASSIC.name
+                    noticePending = true
+                }
+                if (broker == null) chooseBroker(BrokerId.INTERACTIVE_BROKERS)
             }
             false -> {
-                MaterialTheme { FirstLaunchPicker(onContinue = choose) }
+                if (stored == null) {
+                    MaterialTheme { FirstLaunchPicker(onContinue = choose) }
+                    return
+                }
+                MaterialTheme {
+                    FirstLaunchBrokerStep(onChoose = chooseBroker, onLater = {
+                        UiPreferences.setBrokerStepDone(context)
+                        brokerStepDone = true
+                    })
+                }
                 return
             }
         }
     }
 
     val skin = SkinCatalog.resolve(stored)
-    CompositionLocalProvider(LocalSkinChooser provides SkinChooser(skin.id, choose)) {
+    CompositionLocalProvider(
+        LocalSkinChooser provides SkinChooser(skin.id, choose),
+        LocalBrokerChooser provides BrokerChooser(broker, chooseBroker),
+    ) {
         skin.App(states)
         MaterialTheme {
             if (noticePending) {

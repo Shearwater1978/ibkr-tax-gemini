@@ -126,7 +126,8 @@ fun BackupFolderSettings() {
 
 /** Uses the confirmed folder (or the app's subfolder in it), then writes the manifest there. */
 private fun useFolder(context: Context, uri: Uri, texts: LocationTexts): String {
-    val subfolder = if (SafBackupFolder.containsManifest(context, uri)) null else BackupLocationKind.SUBFOLDER
+    val subfolder = if (SafBackupFolder.containsManifest(context, uri)) null
+    else BackupLocationKind.subfolderFor { SafBackupFolder.hasSubfolder(context, uri, it) }
     val container = context.appContainer
     container.backupLocation.set(BackupLocation(uri.toString(), subfolder))
     return when (container.backup.syncManifest()) {

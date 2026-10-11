@@ -53,7 +53,7 @@ class SafBackupFolder(private val context: Context, private val treeUri: Uri, pr
 
         fun isLocalOnly(treeUri: Uri): Boolean = BackupLocationKind.of(treeUri.authority) == BackupLocationKind.PHONE
 
-        /** A readable path for Settings, e.g. "Backups › IBKR Tax Assistant backups". */
+        /** A readable path for Settings, e.g. "Backups › Portfolio Companion backups". */
         fun displayName(context: Context, treeUri: Uri, subfolder: String?): String {
             val parent = DocumentFile.fromTreeUri(context, treeUri)?.name ?: "?"
             return if (subfolder == null) parent else "$parent › $subfolder"
@@ -62,5 +62,8 @@ class SafBackupFolder(private val context: Context, private val treeUri: Uri, pr
         /** True when the confirmed folder already holds a backup manifest, so no subfolder is needed. */
         fun containsManifest(context: Context, treeUri: Uri): Boolean =
             DocumentFile.fromTreeUri(context, treeUri)?.findFile(BackupService.MANIFEST_FILE) != null
+
+        fun hasSubfolder(context: Context, treeUri: Uri, name: String): Boolean =
+            DocumentFile.fromTreeUri(context, treeUri)?.findFile(name)?.isDirectory == true
     }
 }

@@ -6,6 +6,6 @@
 
 ## 2. App name and broker choice (PR B)
 
-- [ ] 2.1 Rename the app to "Portfolio Companion" (launcher, lock prompt, recovery-code clip label), name new backup folders "Portfolio Companion backups", and verify that an existing backup location keeps its folder.
-- [ ] 2.2 Add the broker catalog and preference, the broker step after the skin on first launch, the Settings entry, and Interactive Brokers preselected for existing users with data. Verify on the emulator for a fresh install and an update.
-- [ ] 2.3 Make import ask for the broker first and use broker-neutral texts without a chosen broker. Verify on the emulator that no visible text mentions IBKR until Interactive Brokers is chosen.
+- [x] 2.1 Rename the app to "Portfolio Companion" (launcher, lock prompt, recovery-code clip label), name new backup folders "Portfolio Companion backups", and verify that an existing backup location keeps its folder.
+- [x] 2.2 Add the broker catalog and preference, the broker step after the skin on first launch, the Settings entry, and Interactive Brokers preselected for existing users with data. Verify on the emulator for a fresh install and an update.
+- [x] 2.3 Make import ask for the broker first and use broker-neutral texts without a chosen broker. Verify on the emulator that no visible text mentions IBKR until Interactive Brokers is chosen.
