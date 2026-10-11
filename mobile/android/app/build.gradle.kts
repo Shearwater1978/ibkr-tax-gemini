@@ -17,7 +17,12 @@ fun git(vararg args: String): String =
 
 val gitCommit = git("rev-parse", "--short=7", "HEAD").ifEmpty { "unknown" }
 val gitDirty = git("status", "--porcelain").isNotEmpty()
-val gitCommitCount = git("rev-list", "--count", "HEAD").toIntOrNull() ?: 1
+// Minutes from 2025-01-01 to the HEAD commit. Unlike the commit count, a merged main cannot fall
+// below an earlier branch build, the history may move without resetting it, and CI needs no full clone.
+val VERSION_EPOCH_SECONDS = 1_735_689_600L
+val gitCommitMinutes = git("log", "-1", "--format=%ct", "HEAD").toLongOrNull()
+    ?.let { ((it - VERSION_EPOCH_SECONDS) / 60).toInt() }
+    ?.takeIf { it > 0 } ?: 1
 val buildTimeUtc: String = LocalDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
 
 android {
@@ -29,8 +34,8 @@ android {
         // Android 10, the supported minimum in mobile-app-core design.
         minSdk = 29
         targetSdk = 35
-        // Commit count keeps increasing, so every newer build installs as an update.
-        versionCode = gitCommitCount
+        // Later commits get higher codes, so every newer build installs as an update.
+        versionCode = gitCommitMinutes
         // e.g. 0.1.0+5c4e2a1, or 0.1.0+5c4e2a1-dirty when built with uncommitted changes.
         versionName = "0.1.0+" + gitCommit + if (gitDirty) "-dirty" else ""
         buildConfigField("String", "BUILD_TIME_UTC", "\"$buildTimeUtc\"")
