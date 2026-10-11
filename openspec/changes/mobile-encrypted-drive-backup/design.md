@@ -55,8 +55,8 @@ Format is implemented using a vetted library (Tink or CryptoKit primitives).
   contexts by pseudonyms or masked values.
 - Pseudonyms are derived with HMAC-SHA256 using a secret held in the device keystore.
   Without that key, the pseudonym cannot be linked back to the identifier.
-- The full identity is kept only where the tax output requires it (generated tax report
-  and its export). This is a documented exception.
+- The mobile app produces no tax output (decision 2026-10-11: PIT-38 stays in the desktop tool), so it never
+  needs the full identity and never reads or keeps it.
 - Pseudonymized data remains personal data under GDPR. True anonymization (no reasonable
   means of re-identification) is applied only for aggregated statistics, if any are produced.
 - The Android app keeps the classification in code (`security/DataClassification.kt`); a unit test fails when a
@@ -70,7 +70,8 @@ Format is implemented using a vetted library (Tink or CryptoKit primitives).
 - Erasure request from the user: delete local data, delete the backup files and manifest in the backup
   folder, and destroy the keys (device key entries and the data key). Provider trash or version history
   may keep copies; without the keys they cannot be decrypted (crypto-shredding).
-- Portability: the user can export the tax output in a standard format (CSV or PDF).
+- Portability: the user's data stays on the phone and in the user's own backup folder; tax reports come from
+  the desktop tool, which reads the same broker reports.
 
 ## Decision 9: No logging and a reviewed set of libraries (tasks 6.3, 6.4)
 

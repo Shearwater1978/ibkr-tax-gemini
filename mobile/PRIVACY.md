@@ -59,7 +59,7 @@ Until you delete it. There is no automatic deletion, because the data serves onl
 
 - **Delete one import or all imports:** on the import screen.
 - **Erase all data:** at the end of Settings. It deletes the database, every backup file and the manifest in the backup folder, the backup keys (also the Block Store copy), your price key and all settings. Copies that your storage provider keeps in its trash can no longer be decrypted.
-- **Access and portability:** your data is on your phone and in your own backup folder. Exporting reports in a standard format is planned.
+- **Access and portability:** your data is on your phone and in your own backup folder. The app makes no tax reports; for PIT-38, use the desktop tool with the same broker reports.
 - **Market prices:** requested automatically when the portfolio opens; there is no switch to turn that off yet.
 - **Questions or complaints:** contact `[CONTACT ADDRESS]`. You can also contact your data protection authority.
 
