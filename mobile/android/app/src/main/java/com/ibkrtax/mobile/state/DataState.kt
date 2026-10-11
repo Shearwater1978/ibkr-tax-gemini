@@ -1,6 +1,8 @@
 package com.ibkrtax.mobile.state
 
 import com.ibkrtax.mobile.AppContainer
+import com.ibkrtax.mobile.backup.BackupRetry
+import com.ibkrtax.mobile.backup.RetryResult
 import com.ibkrtax.mobile.keys.BackupKeyStatus
 import com.ibkrtax.mobile.storage.ImportedReport
 import kotlinx.coroutines.CoroutineDispatcher
@@ -28,9 +30,13 @@ class DataState(
     private val importReady: () -> Boolean,
     private val history: () -> List<ImportedReport>?,
     private val io: CoroutineDispatcher = Dispatchers.IO,
+    /** Pending backups and one retry round; null where backups are not involved (tests). */
+    pendingBackups: () -> Int = { 0 },
+    retryBackups: (() -> RetryResult)? = null,
 ) {
     private val _view = MutableStateFlow(DataView())
     val view: StateFlow<DataView> = _view.asStateFlow()
+    private val retry = retryBackups?.let { BackupRetry(scope, pendingBackups, it, onChange = ::reload, io = io) }
 
     /** Reloads everything; call after an import, a deletion or a change of keys or folder. */
     fun reload() {
@@ -38,6 +44,8 @@ class DataState(
             val status = keyStatus()
             val (ready, reports) = withContext(io) { importReady() to history() }
             _view.value = DataView(status, ready, reports)
+            // Every import, deletion and key or folder change comes through here.
+            retry?.kick()
         }
     }
 
@@ -47,6 +55,8 @@ class DataState(
             keyStatus = { runCatching { container.backupKeys.status() }.getOrNull() },
             importReady = { runCatching { container.backup.isReady }.getOrDefault(false) },
             history = { runCatching { container.importHistory.list() }.getOrNull() },
+            pendingBackups = { runCatching { if (container.backup.isReady) container.importer.pendingBackups().size else 0 }.getOrDefault(0) },
+            retryBackups = { container.backup.retryPending() },
         )
     }
 }
