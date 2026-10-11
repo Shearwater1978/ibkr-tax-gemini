@@ -3,6 +3,9 @@ package com.ibkrtax.mobile.ui.common
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -162,6 +165,7 @@ fun ImportsScreen(state: DataState, reportsOnly: Boolean = false) {
                 return@Column
             }
             Text(stringResource(R.string.imports_supported_format, stringResource(broker.formatRes)))
+            ReportSteps(broker)
             Spacer(Modifier.height(16.dp))
             Button(onClick = { picker.launch(CSV_TYPES) }, enabled = ready && !importing) {
                 Text(stringResource(if (importing) R.string.importing else R.string.action_import_report))
@@ -430,3 +434,17 @@ private fun SampleMessages() = SampleMessages(
     already = stringResource(R.string.debug_samples_already),
     rejected = stringResource(R.string.debug_samples_rejected),
 )
+
+/** "How to get this report" for the chosen broker (mobile-broker-choice). */
+@Composable
+private fun ReportSteps(broker: BrokerId) {
+    var open by rememberSaveable { mutableStateOf(false) }
+    TextButton(onClick = { open = !open }, contentPadding = PaddingValues(0.dp)) {
+        Text(stringResource(if (open) R.string.report_help_hide else R.string.report_help_show))
+    }
+    if (open) {
+        stringArrayResource(broker.reportStepsRes).forEachIndexed { i, step ->
+            Text("${i + 1}. $step", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 4.dp))
+        }
+    }
+}

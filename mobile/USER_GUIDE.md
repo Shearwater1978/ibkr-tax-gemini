@@ -9,7 +9,31 @@ Portfolio Companion shows your portfolio, returns, dividends and activity from y
 3. **Set up backups.** Before the first import, open Settings and
    1. set up **backup encryption** (a passphrase plus a recovery code — keep the code somewhere safe), then
    2. choose a **backup folder** (for example a cloud-synced folder offered by the system file picker).
-4. **Add reports.** Pick one or more **IBKR Activity Flex Query CSV** files. Each file is checked and imported on its own; a rejected file does not affect the others, and a report imported twice adds nothing new.
+4. **Add reports.** Pick one or more **IBKR Activity Statements** saved as CSV in English (see [Getting your IBKR report](#getting-your-ibkr-report)). Each file is checked and imported on its own; a rejected file does not affect the others, and a report imported twice adds nothing new.
+
+## Getting your IBKR report
+
+The app reads Interactive Brokers **Activity Statements** saved as **CSV** in **English**. (A Flex Query export has a different layout and is not accepted.) The same steps are in the app: on the import screen, tap **How to get this report**.
+
+1. Sign in to the Interactive Brokers portal: the website, on a computer or in your phone's browser.
+2. Open **Performance & Reports** → **Statements**.
+3. Under **Default Statements**, run the **Activity Statement**.
+4. Choose the period:
+   - **Annual** for each past year;
+   - **Custom Date Range** for the current year so far (from 1 January to today).
+5. Choose **Format: CSV** and **Language: English**, then run it and download the file.
+6. Repeat for every year since you opened the account.
+
+Then move the files to the phone, for example:
+
+- download them directly in the phone's browser (they land in **Downloads**); or
+- save them to **Google Drive** on the computer and pick them from Drive in the app.
+
+On the import screen, select all files at once. Overlapping periods are fine: records that are already imported are skipped, and each file is checked on its own. To bring the portfolio up to date later, download a new statement for the current year and import it; only the new records are added.
+
+The files contain your account number. Keep them private, and delete them from Downloads once they are imported: the app keeps its own encrypted copy, and stores the account number only masked.
+
+If the import says the format is not supported, check that the statement is an **Activity Statement**, in **CSV**, in **English**. IBKR may label menus slightly differently over time; the statement name and these options stay the same.
 
 ## What the app shows
 

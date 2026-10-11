@@ -100,7 +100,7 @@
     <string name="bento_version">About · version %1$s</string>
     <string name="year_older">Older</string>
     <string name="broker_ibkr_name">Interactive Brokers</string>
-    <string name="broker_ibkr_format">IBKR Activity Flex Query CSV</string>
+    <string name="broker_ibkr_format">IBKR Activity Statement (CSV, English)</string>
     <string name="broker_report_generic">broker</string>
     <string name="broker_question">Which broker are your reports from?</string>
     <string name="broker_question_body">The app reads the report format of your broker and uses its terms. More brokers will follow.</string>
@@ -451,4 +451,15 @@
     <string name="privacy_on_device">Reports are read and kept encrypted on this phone. The publisher runs no server and receives none of your data. There are no accounts, ads, analytics or crash reports.</string>
     <string name="privacy_leaves">Only ticker symbols leave the phone, to get prices (Finnhub with your own key, Yahoo Finance). Backups and the automatic key copy are encrypted on this phone before they reach your storage provider or your Android backup.</string>
     <string name="privacy_choices">Delete imports on the import screen, or erase everything below. The full privacy notice comes with the app documentation (PRIVACY.md).</string>
+    <string name="report_help_show">How to get this report ▾</string>
+    <string name="report_help_hide">Hide the steps ▴</string>
+    <string-array name="ibkr_report_steps">
+        <item>Sign in to the Interactive Brokers portal (the website, on a computer or in your phone browser).</item>
+        <item>Open Performance &amp; Reports, then Statements.</item>
+        <item>Next to Activity Statement (under Default Statements), run it.</item>
+        <item>Period: Annual for a past year, or Custom Date Range for this year so far.</item>
+        <item>Format: CSV. Language: English. Then Run and download the file.</item>
+        <item>Repeat for every year since you opened the account. Save the files on this phone (for example in Downloads or Google Drive) and import them here together. Overlapping periods are fine: records already imported are skipped.</item>
+        <item>The files contain your account number, so keep them private. The app stores it only masked.</item>
+    </string-array>
 </resources>

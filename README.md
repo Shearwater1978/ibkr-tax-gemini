@@ -212,7 +212,7 @@ browser session.
 
 ## 📱 Mobile app (Android)
 
-**Portfolio Companion** (`mobile/android`) is an informational portfolio viewer for the phone: it imports IBKR Activity Flex Query CSV reports on the device and shows holdings, returns, dividends and activity in four skins. It does not calculate PIT-38. See the [user guide](mobile/USER_GUIDE.md) and the [developer notes](mobile/README.md).
+**Portfolio Companion** (`mobile/android`) is an informational portfolio viewer for the phone: it imports IBKR Activity Statements (CSV) on the device and shows holdings, returns, dividends and activity in four skins. It does not calculate PIT-38. See the [user guide](mobile/USER_GUIDE.md) and the [developer notes](mobile/README.md).
 
 ## ⚠️ Disclaimer
 Educational purpose only. Not financial advice.
