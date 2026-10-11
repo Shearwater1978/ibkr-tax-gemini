@@ -27,4 +27,4 @@
 
 ## 6. Documentation
 
-- [ ] 6.1 Update the mobile user documentation (with `mobile-app-core` task 5.3) to describe the new tabs, the approximate USD conversion and that amounts are informational, and verify it matches these specs.
+- [x] 6.1 Update the mobile user documentation (with `mobile-app-core` task 5.3) to describe the new tabs, the approximate USD conversion and that amounts are informational, and verify it matches these specs.

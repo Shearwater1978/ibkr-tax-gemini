@@ -18,4 +18,4 @@
 
 - [x] 4.1 Implement the Focus sentences as pure code and verify with unit tests for up, down, flat, missing prices and income change.
 - [x] 4.2 Build the Focus skin (summary, insight cards, donut, rising/falling holdings, stories, income timeline, "+" menu) and verify on the emulator against `mobile-skin-focus`.
-- [ ] 4.3 Update user documentation and the navigation contract in `mobile/README.md` per skin, and verify they match the specs.
+- [x] 4.3 Update user documentation and the navigation contract in `mobile/README.md` per skin, and verify they match the specs.
