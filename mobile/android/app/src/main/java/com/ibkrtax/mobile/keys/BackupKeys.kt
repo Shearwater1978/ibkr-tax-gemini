@@ -75,6 +75,21 @@ class BackupKeys(
         return storeCloudCopy(pending.setup.dataKey)
     }
 
+    /**
+     * Keeps keys unlocked during a restore on this device, plus a Block Store copy when possible.
+     * Refuses to replace different keys that are already set up here.
+     */
+    suspend fun adopt(manifest: KeyManifest, dataKey: ByteArray): Boolean {
+        withContext(Dispatchers.IO) {
+            files.manifest()?.let { check(vault.matches(it, dataKey)) { "Other backup keys are already set up" } }
+            files.save(manifest, dataKey)
+        }
+        return storeCloudCopy(dataKey)
+    }
+
+    /** The Block Store copy of the data key, if this phone has one (for example after a device restore). */
+    suspend fun cloudKey(): ByteArray? = cloudCopy.retrieve()
+
     /** Whether confirming would also store a Block Store copy. */
     suspend fun cloudCopyAvailable(): Boolean = cloudCopy.isAvailable()
 

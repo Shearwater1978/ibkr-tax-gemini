@@ -45,7 +45,15 @@ Switch skins in Settings → **Skin** → **Change skin**.
 ## Privacy and security
 
 - Reports are read and processed **on the device**; their contents are never sent anywhere. Data is stored in an encrypted database, and account identifiers are masked on screen.
-- Backups are **encrypted on the device** before they are written to your backup folder. Keep your passphrase and recovery code: without them the backups cannot be decrypted. Restoring onto a new phone is not available yet.
+- Backups are **encrypted on the device** before they are written to your backup folder. Keep your passphrase and recovery code: without them the backups cannot be decrypted.
+
+## Moving to a new phone
+
+1. Install the app on the new phone and open the import screen (Classic: Imports tab; Calm: "+"; Bento: Data → Add reports; Focus: "+" → Add reports).
+2. Under **Restore from a backup**, tap **Choose backup folder** and pick the folder that holds your backups (or the folder that contains "Portfolio Companion backups").
+3. If you set up the new phone from your old phone's Android backup and both phones have a screen lock, the app unlocks the backup by itself. Otherwise enter your **passphrase** or **recovery code**.
+
+All reports come back, new imports are backed up to the same folder again, and the old backups stay as they are. A wrong passphrase or code restores nothing.
 - The app locks with your device's screen lock and blocks screenshots and previews in the app switcher. Without a device screen lock it cannot verify it is you; set one in system settings.
 - Network requests: prices (ticker symbols only) and exchange rates (currency codes only).
 

@@ -141,6 +141,16 @@ fun ImportsScreen(state: DataState, reportsOnly: Boolean = false) {
                 texts = texts,
             )
         }
+        // A new phone without keys or reports can restore its backups first.
+        if (!reportsOnly && keyStatus == BackupKeyStatus.NotSetUp && history?.isEmpty() == true) {
+            val brokers = LocalBrokerChooser.current
+            RestoreSection(onRestored = { result ->
+                importMessage = result
+                refresh++
+                // Backups hold Interactive Brokers reports, the only supported format so far.
+                if (brokers != null && brokers.current == null) brokers.choose(BrokerId.INTERACTIVE_BROKERS)
+            })
+        }
         // From a report count only the list is shown (mobile-report-list).
         if (!reportsOnly) {
             Text(stringResource(R.string.imports_title), style = MaterialTheme.typography.titleLarge)

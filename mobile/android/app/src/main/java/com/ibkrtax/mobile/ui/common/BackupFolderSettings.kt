@@ -154,4 +154,4 @@ private fun isInstalled(context: Context, packageName: String): Boolean =
     }
 
 /** Primary storage "Documents", where the phone option's picker opens. */
-private val DOCUMENTS: Uri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Documents")
+internal val DOCUMENTS: Uri = DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Documents")

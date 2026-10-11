@@ -11,7 +11,7 @@
 - [x] 2.3 Implement recovery code generation and display-once flow
 - [x] 2.4 Implement DK wrapping and unwrapping
 - [x] 2.5 Implement passphrase change with re-wrap
-- [ ] 2.6 Store DK in Android Block Store when end-to-end encryption is available and use it to restore on a new device; fall back to passphrase or recovery code _Status: storing done (Android); using it on restore comes with the restore flow (4.5)._
+- [x] 2.6 Store DK in Android Block Store when end-to-end encryption is available and use it to restore on a new device; fall back to passphrase or recovery code _Status: Android done; used by the restore flow (4.5)._
 - [x] 2.7 Let the user replace the recovery code after entering the passphrase
 
 ## 3. Report ingestion
@@ -24,7 +24,7 @@
 - [ ] 4.2 Implement writing to the backup folder with retries _Status: writing done (Android); retries run when the Imports screen opens and on "Retry backup", without automatic exponential backoff yet._
 - [x] 4.3 Implement read-back verification (size and SHA-256)
 - [x] 4.4 Delete original only after verification succeeds
-- [ ] 4.5 Implement restore flow on new device
+- [x] 4.5 Implement restore flow on new device _Status: Android done (import screen, Block Store key or passphrase/recovery code, verified on an emulator with a wiped app); iOS postponed._
 - [ ] 4.6 Implement backup deletion in the backup folder
 
 ## 5. Local storage

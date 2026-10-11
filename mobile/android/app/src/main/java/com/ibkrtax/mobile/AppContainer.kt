@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.ibkrtax.mobile.backup.BackupService
 import com.ibkrtax.mobile.backup.ReportStore
+import com.ibkrtax.mobile.backup.RestoreService
 import com.ibkrtax.mobile.backup.SafBackupFolder
 import com.ibkrtax.mobile.fx.FxService
 import com.ibkrtax.mobile.fx.NbpClient
@@ -70,19 +71,26 @@ class AppContainer(context: Context) {
             dataKey = { backupKeys.dataKey() },
             manifestJson = { backupKeys.manifestJson() },
             folder = { backupLocation.get()?.let { SafBackupFolder(appContext, Uri.parse(it.treeUri), it.subfolder) } },
-            reports = object : ReportStore {
-                override fun import(bytes: ByteArray, backupFile: String) = importer.import(bytes, backupFile)
-
-                override fun pendingBackups() = importer.pendingBackups()
-
-                override fun markBackedUp(backupFile: String) = importer.markBackedUp(backupFile)
-
-                override fun deleteReport(reportId: Long) = importer.deleteReport(reportId)
-
-                override fun deleteAll() = importer.deleteAll()
-            },
+            reports = reportStore,
             pendingDir = File(appContext.noBackupFilesDir, "pending-backups"),
         )
+    }
+
+    /** Restore on a new device from the backup folder (encrypted-backup "Restore on a new device"). */
+    val restore: RestoreService by lazy { RestoreService(reportStore) }
+
+    private val reportStore: ReportStore by lazy {
+        object : ReportStore {
+            override fun import(bytes: ByteArray, backupFile: String) = importer.import(bytes, backupFile)
+
+            override fun pendingBackups() = importer.pendingBackups()
+
+            override fun markBackedUp(backupFile: String) = importer.markBackedUp(backupFile)
+
+            override fun deleteReport(reportId: Long) = importer.deleteReport(reportId)
+
+            override fun deleteAll() = importer.deleteAll()
+        }
     }
     val backupKeys: BackupKeys by lazy {
         BackupKeys(

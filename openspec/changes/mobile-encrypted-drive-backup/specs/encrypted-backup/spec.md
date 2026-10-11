@@ -43,7 +43,7 @@ The original report SHALL NOT be deleted from the device until the uploaded back
 - **THEN** the written file is deleted from the backup folder, the local original is kept, and the user is notified
 
 ### Requirement: Restore on a new device
-The application SHALL allow restoring backups on a new device using the passphrase or recovery code.
+The application SHALL allow restoring backups on a new device. Restore SHALL be offered on the import screen while no backup encryption is set up and no report is imported. The user picks the backup folder (or the folder that contains the app's backup subfolder); the data key comes from Android Block Store when that copy matches the manifest, otherwise from the passphrase or recovery code. Restored reports SHALL be imported like new imports (with this device's pseudonyms) and recorded as backed up, the unlocked keys SHALL be kept on this device, and the picked folder SHALL become the backup folder. A backup file that cannot be decrypted SHALL be reported and skipped without stopping the others.
 
 #### Scenario: Restore
 - **WHEN** the user picks the backup folder and provides the passphrase or recovery code on a new device
@@ -52,6 +52,10 @@ The application SHALL allow restoring backups on a new device using the passphra
 #### Scenario: Wrong passphrase
 - **WHEN** the provided passphrase cannot unwrap the data key
 - **THEN** the application reports an authentication failure and does not partially restore data
+
+#### Scenario: Restore without a passphrase
+- **WHEN** the new phone was restored from the user's Android backup, so Block Store holds the data key, and the user picks the backup folder
+- **THEN** the backups are restored without asking for the passphrase or recovery code
 
 ### Requirement: Backup deletion
 When a user deletes a report backup, the application SHALL delete the file from the backup folder. Because storage
