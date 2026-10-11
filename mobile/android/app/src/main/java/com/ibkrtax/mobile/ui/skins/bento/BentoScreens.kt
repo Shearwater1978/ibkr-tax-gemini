@@ -270,7 +270,7 @@ private fun ActivityItem(op: Operation) {
 
 /** Import, status badges and the way into Settings (mobile-skin-bento "Data"). */
 @Composable
-fun BentoData(states: AppStates, onImport: () -> Unit, onSettings: () -> Unit) {
+fun BentoData(states: AppStates, onImport: () -> Unit, onReports: () -> Unit, onSettings: () -> Unit) {
     val data by states.data.view.collectAsState()
     val portfolio by states.portfolio.ui.collectAsState()
     LaunchedEffect(Unit) { states.data.reload() }
@@ -307,14 +307,14 @@ fun BentoData(states: AppStates, onImport: () -> Unit, onSettings: () -> Unit) {
                 else -> "—" to false
             })
             Badge(stringResource(R.string.bento_eu_prices), stringResource(R.string.bento_yahoo_delayed) to false)
-            Badge(stringResource(R.string.bento_reports), (data.history?.size?.toString() ?: "—") to true)
+            Badge(stringResource(R.string.bento_reports), (data.history?.size?.toString() ?: "—") to true, onClick = onReports)
             Badge(stringResource(R.string.bento_fx_rates), (loaded?.rates?.effectiveDate?.let { stringResource(R.string.bento_nbp, it) } ?: "—") to true, last = true)
         }
         Spacer(Modifier.height(12.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(BentoColors.Tile).padding(horizontal = 14.dp, vertical = 4.dp)) {
             Entry(stringResource(R.string.bento_settings_entry), onSettings)
             HorizontalDivider(color = BentoColors.Line)
-            Entry(stringResource(R.string.bento_delete_entry), onImport, color = BentoColors.Loss)
+            Entry(stringResource(R.string.bento_delete_entry), onReports, color = BentoColors.Loss)
             HorizontalDivider(color = BentoColors.Line)
             Entry(stringResource(R.string.bento_version, version), onSettings)
         }
@@ -323,15 +323,17 @@ fun BentoData(states: AppStates, onImport: () -> Unit, onSettings: () -> Unit) {
 }
 
 @Composable
-private fun Badge(label: String, value: Pair<String, Boolean>, last: Boolean = false) {
+private fun Badge(label: String, value: Pair<String, Boolean>, last: Boolean = false, onClick: (() -> Unit)? = null) {
     val (text, ok) = value
-    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    val click = onClick?.let { Modifier.clickable(onClick = it) } ?: Modifier
+    Row(Modifier.fillMaxWidth().then(click).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, modifier = Modifier.weight(1f), fontSize = 14.sp)
         Text(
             text, fontSize = 12.sp, fontWeight = FontWeight.Bold,
             color = if (ok) BentoColors.Gain else BentoColors.Amber,
             modifier = Modifier.background((if (ok) BentoColors.Gain else BentoColors.Amber).copy(alpha = 0.15f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp),
         )
+        if (onClick != null) Text(" ›", color = BentoColors.Muted)
     }
     if (!last) HorizontalDivider(color = BentoColors.Line)
 }

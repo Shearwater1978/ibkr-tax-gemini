@@ -63,7 +63,7 @@ import kotlinx.coroutines.withContext
  * synthetic sample reports, which are imported without a backup.
  */
 @Composable
-fun ImportsScreen(state: DataState) {
+fun ImportsScreen(state: DataState, reportsOnly: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var refresh by remember { mutableIntStateOf(0) }
@@ -141,70 +141,74 @@ fun ImportsScreen(state: DataState) {
                 texts = texts,
             )
         }
-        Text(stringResource(R.string.imports_title), style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(8.dp))
-        // Reports are read in the chosen broker's format, so ask for the broker first (mobile-broker-choice).
-        val broker = LocalBrokerChooser.current?.current
-        if (broker == null) {
-            BrokerGate()
-            return@Column
-        }
-        Text(stringResource(R.string.imports_supported_format, stringResource(broker.formatRes)))
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = { picker.launch(CSV_TYPES) }, enabled = ready && !importing) {
-            Text(stringResource(if (importing) R.string.importing else R.string.action_import_report))
-        }
-        if (!ready) {
-            // Import stays off until backups work (mobile-app-core task 1.2); say which step is next.
-            Text(
-                stringResource(
-                    when (keyStatus) {
-                        BackupKeyStatus.NotSetUp -> R.string.imports_unavailable_keys
-                        else -> R.string.imports_unavailable_folder
-                    },
-                ),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        Text(stringResource(R.string.import_multiple_hint), style = MaterialTheme.typography.bodySmall)
-        progress?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
-        fileResults.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
-        importMessage?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
-        val pending = history.orEmpty().count { it.backupStatus == ImportHistory.PENDING }
-        if (pending > 0) {
-            Text(stringResource(R.string.backup_pending_count, pending), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
-            OutlinedButton(onClick = {
-                scope.launch {
-                    val retry = withContext(Dispatchers.IO) { context.appContainer.backup.retryPending() }
-                    importMessage = if (retry.accessLost) texts.accessLost else texts.retried.format(retry.backedUp, retry.stillPending)
-                    refresh++
-                }
-            }) { Text(stringResource(R.string.backup_retry)) }
-        }
-
-        if (SampleReports.AVAILABLE) {
-            Spacer(Modifier.height(24.dp))
-            Text(stringResource(R.string.debug_samples_title), style = MaterialTheme.typography.titleMedium)
-            val messages = SampleMessages()
-            OutlinedButton(onClick = {
-                scope.launch {
-                    debugMessages = withContext(Dispatchers.IO) {
-                        val container = context.appContainer
-                        // Synthetic, past-dated prices and rates so the table and USD total can be checked offline.
-                        container.priceStore.putAll(SampleReports.samplePrices())
-                        SampleReports.sampleRates()?.let(container.fxStore::put)
-                        SampleReports.names.map { name ->
-                            messages.describe(name, container.importer.import(SampleReports.read(context, name)))
-                        }
+        // From a report count only the list is shown (mobile-report-list).
+        if (!reportsOnly) {
+            Text(stringResource(R.string.imports_title), style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            // Reports are read in the chosen broker's format, so ask for the broker first (mobile-broker-choice).
+            val broker = LocalBrokerChooser.current?.current
+            if (broker == null) {
+                BrokerGate()
+                return@Column
+            }
+            Text(stringResource(R.string.imports_supported_format, stringResource(broker.formatRes)))
+            Spacer(Modifier.height(16.dp))
+            Button(onClick = { picker.launch(CSV_TYPES) }, enabled = ready && !importing) {
+                Text(stringResource(if (importing) R.string.importing else R.string.action_import_report))
+            }
+            if (!ready) {
+                // Import stays off until backups work (mobile-app-core task 1.2); say which step is next.
+                Text(
+                    stringResource(
+                        when (keyStatus) {
+                            BackupKeyStatus.NotSetUp -> R.string.imports_unavailable_keys
+                            else -> R.string.imports_unavailable_folder
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Text(stringResource(R.string.import_multiple_hint), style = MaterialTheme.typography.bodySmall)
+            progress?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
+            fileResults.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
+            importMessage?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
+            val pending = history.orEmpty().count { it.backupStatus == ImportHistory.PENDING }
+            if (pending > 0) {
+                Text(stringResource(R.string.backup_pending_count, pending), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        val retry = withContext(Dispatchers.IO) { context.appContainer.backup.retryPending() }
+                        importMessage = if (retry.accessLost) texts.accessLost else texts.retried.format(retry.backedUp, retry.stillPending)
+                        refresh++
                     }
-                    refresh++
-                }
-            }) { Text(stringResource(R.string.debug_samples_action)) }
-            debugMessages.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
-        }
+                }) { Text(stringResource(R.string.backup_retry)) }
+            }
 
-        Spacer(Modifier.height(24.dp))
-        Text(stringResource(R.string.imports_history_title), style = MaterialTheme.typography.titleMedium)
+            if (SampleReports.AVAILABLE) {
+                Spacer(Modifier.height(24.dp))
+                Text(stringResource(R.string.debug_samples_title), style = MaterialTheme.typography.titleMedium)
+                val messages = SampleMessages()
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        debugMessages = withContext(Dispatchers.IO) {
+                            val container = context.appContainer
+                            // Synthetic, past-dated prices and rates so the table and USD total can be checked offline.
+                            container.priceStore.putAll(SampleReports.samplePrices())
+                            SampleReports.sampleRates()?.let(container.fxStore::put)
+                            SampleReports.names.map { name ->
+                                messages.describe(name, container.importer.import(SampleReports.read(context, name)))
+                            }
+                        }
+                        refresh++
+                    }
+                }) { Text(stringResource(R.string.debug_samples_action)) }
+                debugMessages.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+            }
+            Spacer(Modifier.height(24.dp))
+            Text(stringResource(R.string.imports_history_title), style = MaterialTheme.typography.titleMedium)
+        } else {
+            importMessage?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(bottom = 8.dp)) }
+        }
         val reports = history
         when {
             reports == null -> Text(stringResource(R.string.loading))

@@ -5,4 +5,4 @@
 
 ## 2. Report list from the count (PR B)
 
-- [ ] 2.1 Make the report count tappable where a skin shows it, opening the imported-reports list with delete, and verify on the emulator with synthetic reports.
+- [x] 2.1 Make the report count tappable where a skin shows it, opening the imported-reports list with delete, and verify on the emulator with synthetic reports.
