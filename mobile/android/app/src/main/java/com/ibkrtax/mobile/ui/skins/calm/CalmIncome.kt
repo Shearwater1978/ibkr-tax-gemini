@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ibkrtax.mobile.R
+import com.ibkrtax.mobile.ui.common.skinMoney
+import com.ibkrtax.mobile.ui.common.skinPercent
 import com.ibkrtax.mobile.portfolio.Dividends
 import com.ibkrtax.mobile.state.DividendData
 import com.ibkrtax.mobile.state.IncomeState
@@ -109,13 +111,13 @@ private fun IncomeContent(data: DividendData) {
         },
         color = CalmColors.Muted, fontSize = 14.sp,
     )
-    Text(calmMoney(period.usdNet.amount, "USD"), fontSize = 36.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp))
+    Text(skinMoney(period.usdNet.amount, "USD"), fontSize = 36.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(vertical = 4.dp))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.calm_after_tax, calmMoney(period.usdTax.amount.abs(), "USD")), color = CalmColors.Muted, fontSize = 13.sp)
+        Text(stringResource(R.string.calm_after_tax, skinMoney(period.usdTax.amount.abs(), "USD")), color = CalmColors.Muted, fontSize = 13.sp)
         if (year != ALL_YEARS) {
             Dividends.changeFromYearBefore(data.events, year, data.rates, today)?.let { change ->
                 Chip(
-                    stringResource(R.string.calm_vs_year, calmPercent(change), year - 1),
+                    stringResource(R.string.calm_vs_year, skinPercent(change), year - 1),
                     if (change.signum() >= 0) CalmColors.GainSoft else CalmColors.LossSoft,
                     if (change.signum() >= 0) CalmColors.Gain else CalmColors.Loss,
                 )
@@ -135,7 +137,7 @@ private fun IncomeContent(data: DividendData) {
             val label = Month.of(m.month).getDisplayName(TextStyle.NARROW, locale)
             val bars = buildList {
                 before?.let { add(ChartBar(it.months[i].usdNet.amount.toDouble(), Color(0xFFC8D8FF), "$label ${year - 1}")) }
-                add(ChartBar(m.usdNet.amount.toDouble(), if (month == i || before != null) CalmColors.Accent else CalmColors.AccentSoft, "$label: ${calmMoney(m.usdNet.amount, "USD")}"))
+                add(ChartBar(m.usdNet.amount.toDouble(), if (month == i || before != null) CalmColors.Accent else CalmColors.AccentSoft, "$label: ${skinMoney(m.usdNet.amount, "USD")}"))
             }
             BarGroup(label, bars)
         },
@@ -146,7 +148,7 @@ private fun IncomeContent(data: DividendData) {
     month?.let { i ->
         Row(Modifier.fillMaxWidth().padding(top = 10.dp).background(CalmColors.Card, RoundedCornerShape(14.dp)).padding(horizontal = 14.dp, vertical = 12.dp)) {
             Text(Month.of(i + 1).getDisplayName(TextStyle.FULL, locale) + if (year == ALL_YEARS) "" else " $year", modifier = Modifier.weight(1f))
-            Text(stringResource(R.string.calm_net, calmMoney(period.months[i].usdNet.amount, "USD")), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.calm_net, skinMoney(period.months[i].usdNet.amount, "USD")), fontWeight = FontWeight.Bold)
         }
     }
     if (year != ALL_YEARS) {
@@ -161,10 +163,10 @@ private fun IncomeContent(data: DividendData) {
             TickerTile(p.ticker)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(p.ticker, fontWeight = FontWeight.SemiBold)
-                Text(stringResource(R.string.dividends_line, calmMoney(p.amounts.gross, p.currency), calmMoney(p.amounts.tax, p.currency)), color = CalmColors.Muted, fontSize = 12.sp)
+                Text(stringResource(R.string.dividends_line, skinMoney(p.amounts.gross, p.currency), skinMoney(p.amounts.tax, p.currency)), color = CalmColors.Muted, fontSize = 12.sp)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(calmMoney(p.amounts.net, p.currency), fontWeight = FontWeight.SemiBold)
+                Text(skinMoney(p.amounts.net, p.currency), fontWeight = FontWeight.SemiBold)
                 Text(stringResource(R.string.calm_net_short), color = CalmColors.Muted, fontSize = 12.sp)
             }
         }

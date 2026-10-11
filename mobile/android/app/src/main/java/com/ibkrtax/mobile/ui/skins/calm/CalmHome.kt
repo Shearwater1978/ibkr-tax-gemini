@@ -55,6 +55,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ibkrtax.mobile.R
+import com.ibkrtax.mobile.ui.common.skinMoney
+import com.ibkrtax.mobile.ui.common.skinPercent
+import com.ibkrtax.mobile.ui.common.tickerColor
 import com.ibkrtax.mobile.fx.UsdConverter
 import com.ibkrtax.mobile.portfolio.MainPage
 import com.ibkrtax.mobile.portfolio.PositionPerformance
@@ -78,30 +81,10 @@ private sealed interface CalmSheet {
     data class Position(val key: String) : CalmSheet
 }
 
-/** Own-currency amounts with a symbol where one is common ("$1,234.50", "€12.00"), else the code. */
-internal fun calmMoney(value: BigDecimal, currency: String, signed: Boolean = false): String {
-    val symbol = mapOf("USD" to "$", "EUR" to "€", "GBP" to "£")[currency]
-    val sign = when {
-        signed && value.signum() > 0 -> "+"
-        value.signum() < 0 -> "−"
-        else -> ""
-    }
-    val number = Formats.number(value.abs(), 2, 2)
-    return if (symbol != null) "$sign$symbol$number" else "$sign$number $currency"
-}
-
-internal fun calmPercent(value: BigDecimal): String = Formats.signedPercent(value).replace("-", "−")
-
 internal fun signColor(value: BigDecimal?): Color = when (value?.signum()) {
     1 -> CalmColors.Gain
     -1 -> CalmColors.Loss
     else -> CalmColors.Muted
-}
-
-/** A stable colour per ticker for the letter tiles. */
-internal fun tickerColor(ticker: String): Color {
-    val palette = listOf(0xFF111111, 0xFF2B8A3E, 0xFF0A66C2, 0xFFE11D48, 0xFF1D4ED8, 0xFF0B3D91, 0xFFB45309, 0xFF7C3AED, 0xFF0E7490)
-    return Color(palette[Math.floorMod(ticker.hashCode(), palette.size)])
 }
 
 @Composable
@@ -180,7 +163,7 @@ private fun Loaded(data: PortfolioUiState.Loaded, progress: String?, onRefresh: 
                     Icon(Icons.Filled.Info, contentDescription = stringResource(R.string.calm_about_value), tint = CalmColors.Muted, modifier = Modifier.size(16.dp))
                 }
             }
-            val whole = calmMoney(totals.marketValue, "USD")
+            val whole = skinMoney(totals.marketValue, "USD")
             val dot = whole.lastIndexOf('.')
             Text(
                 buildAnnotatedString {
@@ -193,7 +176,7 @@ private fun Loaded(data: PortfolioUiState.Loaded, progress: String?, onRefresh: 
             )
             val day = totals.dailyPnl
             Chip(
-                "${if (day.signum() >= 0) "▲" else "▼"} ${calmMoney(day.abs(), "USD")} · ${Formats.number(totals.dailyPnlPercent?.abs() ?: BigDecimal.ZERO, 2, 2)}% ${stringResource(R.string.calm_today)}",
+                "${if (day.signum() >= 0) "▲" else "▼"} ${skinMoney(day.abs(), "USD")} · ${Formats.number(totals.dailyPnlPercent?.abs() ?: BigDecimal.ZERO, 2, 2)}% ${stringResource(R.string.calm_today)}",
                 if (day.signum() >= 0) CalmColors.GainSoft else CalmColors.LossSoft,
                 if (day.signum() >= 0) CalmColors.Gain else CalmColors.Loss,
             )
@@ -208,9 +191,9 @@ private fun Loaded(data: PortfolioUiState.Loaded, progress: String?, onRefresh: 
                 buildAnnotatedString {
                     append(stringResource(R.string.calm_total_return) + " ")
                     withStyle(SpanStyle(color = signColor(profit.amount), fontWeight = FontWeight.Bold)) {
-                        append(calmMoney(profit.amount, "USD", signed = true))
+                        append(skinMoney(profit.amount, "USD", signed = true))
                         val percent = data.summary.totalProfitPercent
-                        if (percent != null) append(" (" + calmPercent(percent) + ")")
+                        if (percent != null) append(" (" + skinPercent(percent) + ")")
                     }
                     append(" " + stringResource(R.string.calm_incl_sales_dividends) + " ›")
                 },
@@ -309,8 +292,8 @@ private fun HoldingRow(row: PositionRow, onClick: () -> Unit) {
         Column(horizontalAlignment = Alignment.End) {
             val value = row.marketValue
             if (value != null) {
-                Text(calmMoney(value, row.displayCurrency), fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                row.dailyChangePercent?.let { Text(calmPercent(it), color = signColor(it), fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
+                Text(skinMoney(value, row.displayCurrency), fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                row.dailyChangePercent?.let { Text(skinPercent(it), color = signColor(it), fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
             } else {
                 Text("—", fontWeight = FontWeight.SemiBold)
                 val reason = when {
@@ -333,7 +316,7 @@ private fun SoldRow(position: PositionPerformance, onClick: () -> Unit) {
             Text(position.ticker, fontWeight = FontWeight.SemiBold)
             Text(stringResource(R.string.sold_position, position.currency), color = CalmColors.Muted, fontSize = 13.sp)
         }
-        Text(position.total?.let { calmMoney(it, position.currency, signed = true) } ?: "—", color = signColor(position.total), fontWeight = FontWeight.SemiBold)
+        Text(position.total?.let { skinMoney(it, position.currency, signed = true) } ?: "—", color = signColor(position.total), fontWeight = FontWeight.SemiBold)
     }
     HorizontalDivider(color = CalmColors.Line)
 }
@@ -393,13 +376,13 @@ private fun ReturnSheet(data: PortfolioUiState.Loaded) {
     val dividends = data.performance.fold(BigDecimal.ZERO) { s, p -> s.add(usd(p.dividends.net, p.currency)) }
     val summary = data.summary
     Text(stringResource(R.string.calm_total_return), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-    Text(calmMoney(summary.totalProfit.amount, "USD", signed = true), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = signColor(summary.totalProfit.amount), modifier = Modifier.padding(vertical = 8.dp))
-    Text(stringResource(R.string.card_invested, calmMoney(summary.invested.amount, "USD")), color = CalmColors.Muted)
+    Text(skinMoney(summary.totalProfit.amount, "USD", signed = true), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = signColor(summary.totalProfit.amount), modifier = Modifier.padding(vertical = 8.dp))
+    Text(stringResource(R.string.card_invested, skinMoney(summary.invested.amount, "USD")), color = CalmColors.Muted)
     if (!summary.totalProfit.isComplete) Text(stringResource(R.string.card_incomplete), color = CalmColors.Loss, fontSize = 13.sp)
     Spacer(Modifier.height(12.dp))
-    LegendLine(stringResource(R.string.calm_price_gain_held), calmMoney(priceGain, "USD", signed = true))
-    LegendLine(stringResource(R.string.details_sales_gain), calmMoney(sales, "USD", signed = true))
-    LegendLine(stringResource(R.string.calm_dividends_after_tax), calmMoney(dividends, "USD", signed = true))
+    LegendLine(stringResource(R.string.calm_price_gain_held), skinMoney(priceGain, "USD", signed = true))
+    LegendLine(stringResource(R.string.details_sales_gain), skinMoney(sales, "USD", signed = true))
+    LegendLine(stringResource(R.string.calm_dividends_after_tax), skinMoney(dividends, "USD", signed = true))
     Text(stringResource(R.string.details_note), color = CalmColors.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp))
 }
 
@@ -425,10 +408,10 @@ private fun PositionSheet(p: PositionPerformance) {
     val row = p.row
     if (row != null) {
         val quote = row.price?.quote
-        Text(quote?.let { calmMoney(it.price, cur) } ?: "—", fontSize = 32.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp))
+        Text(quote?.let { skinMoney(it.price, cur) } ?: "—", fontSize = 32.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp))
         row.dailyChange?.let { change ->
             Chip(
-                "${if (change.signum() >= 0) "▲" else "▼"} ${calmMoney(change.abs(), cur)} · ${row.dailyChangePercent?.let { Formats.number(it.abs(), 2, 2) } ?: "—"}% ${stringResource(R.string.calm_today)}",
+                "${if (change.signum() >= 0) "▲" else "▼"} ${skinMoney(change.abs(), cur)} · ${row.dailyChangePercent?.let { Formats.number(it.abs(), 2, 2) } ?: "—"}% ${stringResource(R.string.calm_today)}",
                 if (change.signum() >= 0) CalmColors.GainSoft else CalmColors.LossSoft,
                 if (change.signum() >= 0) CalmColors.Gain else CalmColors.Loss,
             )
@@ -436,12 +419,12 @@ private fun PositionSheet(p: PositionPerformance) {
         Spacer(Modifier.height(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Stat(stringResource(R.string.details_quantity), Formats.quantity(row.holding.quantity), Modifier.weight(1f))
-            Stat(stringResource(R.string.details_average), calmMoney(row.holding.averagePrice, cur), Modifier.weight(1f))
+            Stat(stringResource(R.string.details_average), skinMoney(row.holding.averagePrice, cur), Modifier.weight(1f))
         }
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Stat(stringResource(R.string.details_invested), calmMoney(p.invested, cur), Modifier.weight(1f))
-            Stat(stringResource(R.string.details_value), row.marketValue?.let { calmMoney(it, cur) } ?: stringResource(R.string.details_unavailable), Modifier.weight(1f))
+            Stat(stringResource(R.string.details_invested), skinMoney(p.invested, cur), Modifier.weight(1f))
+            Stat(stringResource(R.string.details_value), row.marketValue?.let { skinMoney(it, cur) } ?: stringResource(R.string.details_unavailable), Modifier.weight(1f))
         }
     } else {
         Text(stringResource(R.string.details_sold, cur), color = CalmColors.Muted, modifier = Modifier.padding(top = 12.dp))
@@ -451,7 +434,7 @@ private fun PositionSheet(p: PositionPerformance) {
     Row(Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.calm_total_return), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
         Text(
-            total?.let { calmMoney(it, cur, signed = true) + (p.totalPercent?.let { pct -> " · " + calmPercent(pct) } ?: "") } ?: stringResource(R.string.details_unavailable),
+            total?.let { skinMoney(it, cur, signed = true) + (p.totalPercent?.let { pct -> " · " + skinPercent(pct) } ?: "") } ?: stringResource(R.string.details_unavailable),
             color = signColor(total), fontWeight = FontWeight.Bold,
         )
     }
@@ -466,9 +449,9 @@ private fun PositionSheet(p: PositionPerformance) {
             positive.forEach { (v, c) -> Box(Modifier.weight(v.toFloat().coerceAtLeast(0.01f)).fillMaxSize().background(c)) }
         }
     }
-    parts.forEach { (v, c, label) -> LegendLine(stringResource(label), v?.let { calmMoney(it, cur, signed = true) } ?: stringResource(R.string.details_unavailable), c) }
+    parts.forEach { (v, c, label) -> LegendLine(stringResource(label), v?.let { skinMoney(it, cur, signed = true) } ?: stringResource(R.string.details_unavailable), c) }
     Text(
-        stringResource(R.string.dividends_line, calmMoney(p.dividends.gross, cur), calmMoney(p.dividends.tax, cur)),
+        stringResource(R.string.dividends_line, skinMoney(p.dividends.gross, cur), skinMoney(p.dividends.tax, cur)),
         color = CalmColors.Muted, fontSize = 12.sp,
     )
     if (!p.realizedComplete) Text(stringResource(R.string.details_sales_incomplete), color = CalmColors.Muted, fontSize = 12.sp)
