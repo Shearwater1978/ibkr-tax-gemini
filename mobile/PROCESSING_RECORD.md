@@ -45,4 +45,4 @@
 
 - **Erasure:** "Erase all data" in Settings (local data, backup files and manifest, keys including Block Store, settings).
 - **Restriction and objection:** backups are optional. Prices are requested automatically when the portfolio opens; there is no switch to turn that off yet.
-- **Access and portability:** data stays with the user (phone and own backup folder); a standard-format export is planned (task 7.7).
+- **Access and portability:** data stays with the user (phone and own backup folder). The app produces no tax output; tax reports come from the desktop tool (decision 2026-10-11).
