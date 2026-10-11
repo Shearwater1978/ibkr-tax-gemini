@@ -24,7 +24,7 @@
     <string name="calm_back">Back</string>
     <string name="calm_portfolio_value">Portfolio value</string>
     <string name="calm_about_value">About this number</string>
-    <string name="calm_about_value_body">The total adds every holding in US dollars, converting other currencies at NBP cross rates of %1$s. It is approximate and informational.</string>
+    <string name="calm_about_value_body">The total adds every holding in US dollars, converting other currencies at exchange rates of %1$s. It is approximate and informational.</string>
     <string name="calm_about_sources">US prices come from Finnhub with your key, or from Yahoo Finance without one; European prices always come from Yahoo Finance, about 15 minutes delayed.</string>
     <string name="calm_today">today</string>
     <string name="calm_total_return">Total return</string>
@@ -93,10 +93,11 @@
     <string name="bento_yahoo_delayed">Yahoo · 15 min</string>
     <string name="bento_reports">Reports imported</string>
     <string name="bento_fx_rates">FX rates</string>
-    <string name="bento_nbp">NBP %1$s</string>
+    <string name="bento_nbp">Rates of %1$s</string>
     <string name="bento_settings_entry">Settings: keys, recovery, prices, skin</string>
     <string name="bento_delete_entry">Delete imported data</string>
     <string name="bento_version">About · version %1$s</string>
+    <string name="year_older">Older</string>
     <string name="skin_classic_name">Classic</string>
     <string name="skin_classic_description">Every number on one screen: the full positions table, five tabs and all switches.</string>
     <string name="tab_dividends">Dividends</string>
@@ -219,7 +220,7 @@
     <string name="details_sales_incomplete">A sale closed shares bought in another currency; its gain is not included.</string>
     <string name="details_note">FIFO, commissions excluded. Informational; not a tax result.</string>
     <string name="header_approximate">Approximate, in USD</string>
-    <string name="header_rate_date">NBP rates of %1$s</string>
+    <string name="header_rate_date">exchange rates of %1$s</string>
     <string name="header_incomplete">incomplete: %1$d of %2$d positions without a price or rate</string>
     <string name="pnl_daily">Daily P&amp;L</string>
     <string name="pnl_unrealized">Unrealized P&amp;L</string>
@@ -237,8 +238,8 @@
     <string name="price_no_rate_short">no rate</string>
     <string name="view_own_currency">Own currency</string>
     <string name="view_usd">USD</string>
-    <string name="usd_view_note">Converted to USD, approximate (NBP rates of %1$s).</string>
-    <string name="usd_view_no_rates">No NBP rates yet: non-USD values are unavailable until the rates load.</string>
+    <string name="usd_view_note">Converted to USD, approximate (exchange rates of %1$s).</string>
+    <string name="usd_view_no_rates">No exchange rates yet: non-USD values are unavailable until the rates load.</string>
     <string name="price_stale_short">stale</string>
     <string name="prices_refresh">Refresh prices</string>
     <string name="prices_refreshing">Refreshing prices…</string>

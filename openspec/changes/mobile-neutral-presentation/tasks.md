@@ -1,8 +1,8 @@
 ## 1. Rate wording and year selection (PR A)
 
-- [ ] 1.1 Replace rate-source names in all strings with neutral wording ("exchange rates of <date>"), and verify no visible string mentions NBP.
-- [ ] 1.2 Add `YearChoices` (direct years and the rest) and verify with unit tests for the spec scenarios: five years, a gap, an older year chosen.
-- [ ] 1.3 Use it in Classic (chips plus an "Older" menu) and Bento (pills plus an "Older" menu); Calm keeps its year sheet. Verify on the emulator with synthetic dividends over four or more years.
+- [x] 1.1 Replace rate-source names in all strings with neutral wording ("exchange rates of <date>"), and verify no visible string mentions NBP.
+- [x] 1.2 Add `YearChoices` (direct years and the rest) and verify with unit tests for the spec scenarios: five years, a gap, an older year chosen.
+- [x] 1.3 Use it in Classic (chips plus an "Older" menu) and Bento (pills plus an "Older" menu); Calm keeps its year sheet. Verify on the emulator with synthetic dividends over four or more years.
 
 ## 2. App name and broker choice (PR B)
 

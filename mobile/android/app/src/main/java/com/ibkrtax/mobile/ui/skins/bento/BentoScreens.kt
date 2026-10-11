@@ -24,6 +24,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import com.ibkrtax.mobile.ui.common.YearChoices
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -111,7 +114,18 @@ fun BentoIncome(state: IncomeState) {
 
         Header(stringResource(R.string.calm_tab_income)) { Pill(year.toString(), active = false) {} }
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            years.reversed().forEach { y -> Pill(y.toString(), active = y == year) { year = y; month = null } }
+            val choices = YearChoices.of(years)
+            choices.direct.reversed().forEach { y -> Pill(y.toString(), active = y == year) { year = y; month = null } }
+            if (choices.older.isNotEmpty()) {
+                Box {
+                    var open by remember { mutableStateOf(false) }
+                    val olderSelected = year in choices.older
+                    Pill((if (olderSelected) year.toString() else stringResource(R.string.year_older)) + " ▾", active = olderSelected) { open = true }
+                    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                        choices.older.forEach { y -> DropdownMenuItem(text = { Text(y.toString()) }, onClick = { year = y; month = null; open = false }) }
+                    }
+                }
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Tile(Modifier.weight(1f)) {
