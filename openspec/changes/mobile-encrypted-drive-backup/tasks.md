@@ -30,14 +30,14 @@
 ## 5. Local storage
 - [ ] 5.1 Integrate SQLCipher with key from device key
 - [ ] 5.2 Include encrypted database backup in the backup set
-- [ ] 5.3 Exclude local data from OS cloud backups
+- [x] 5.3 Exclude local data from OS cloud backups _Status: Android done (allowBackup and fullBackupContent off, data extraction rules exclude every domain from cloud backup and device transfer); iOS postponed._
 - [ ] 5.4 Clear temporary files and caches on exit
 
 ## 6. Device hardening
 - [ ] 6.1 Disable screenshots on Android and hide content in app switcher on iOS _Status: Android done (FLAG_SECURE, verified on an emulator); iOS postponed._
 - [ ] 6.2 Auto-lock after timeout and on background _Status: Android done (locks on start and after 5 minutes in the background; biometric or device credential); iOS postponed._
-- [ ] 6.3 Verify no sensitive data in logs in release builds
-- [ ] 6.4 Review third-party SDKs for data collection
+- [x] 6.3 Verify no sensitive data in logs in release builds _Status: Android done; the app does not log at all, enforced by `NoLoggingTest` (design Decision 9)._
+- [x] 6.4 Review third-party SDKs for data collection _Status: Android reviewed, no analytics or crash SDKs (design Decision 9)._
 - [ ] 6.5 Integrate Play Integrity and App Attest
 
 ## 7. Data anonymization and pseudonymization
