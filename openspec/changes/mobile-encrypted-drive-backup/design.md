@@ -59,6 +59,8 @@ Format is implemented using a vetted library (Tink or CryptoKit primitives).
   and its export). This is a documented exception.
 - Pseudonymized data remains personal data under GDPR. True anonymization (no reasonable
   means of re-identification) is applied only for aggregated statistics, if any are produced.
+- The Android app keeps the classification in code (`security/DataClassification.kt`); a unit test fails when a
+  stored column is not classified or a direct identifier would be stored.
 - Keys used for pseudonymization are never included in backups in plaintext, and the
   pseudonym mapping is rebuilt from the data key or re-derived on restore.
 
