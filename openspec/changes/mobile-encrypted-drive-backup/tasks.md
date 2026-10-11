@@ -41,10 +41,10 @@
 - [ ] 6.5 Integrate Play Integrity and App Attest
 
 ## 7. Data anonymization and pseudonymization
-- [ ] 7.1 Define field classification (direct identifiers, quasi-identifiers, financial values)
-- [ ] 7.2 Implement HMAC-SHA256 pseudonymization with device-bound key
-- [ ] 7.3 Implement masking for account numbers and tax IDs in UI and notifications
-- [ ] 7.4 Ensure logs, crash reports, and analytics receive only pseudonyms or masked values
+- [x] 7.1 Define field classification (direct identifiers, quasi-identifiers, financial values) _Status: Android done; `security/DataClassification.kt` classifies every report field and stored column, and `DataClassificationTest` fails on an unclassified column or a stored direct identifier._
+- [x] 7.2 Implement HMAC-SHA256 pseudonymization with device-bound key _Status: Android done (account and report fingerprint). Key rotation is not offered; a restore re-imports reports, so pseudonyms are derived again with the new device key._
+- [x] 7.3 Implement masking for account numbers and tax IDs in UI and notifications _Status: Android done; only the last four account characters are stored for display and shown, file names are masked; names and tax IDs are not read; the app sends no notifications and offers no reveal._
+- [x] 7.4 Ensure logs, crash reports, and analytics receive only pseudonyms or masked values _Status: Android done; the app does not log (`NoLoggingTest`) and has no crash-reporting or analytics SDK (Decision 9)._
 - [ ] 7.5 Restrict full identity to tax output and its export, and document the exception
 - [ ] 7.6 Implement erasure across local DB, backup folder, and keys (destroying keys makes leftover copies unreadable)
 - [ ] 7.7 Implement export of tax output in CSV or PDF for portability
