@@ -6,9 +6,9 @@
 
 ## 2. Calm and skin choice (PR 2)
 
-- [ ] 2.1 Build the Calm skin (Home with sheets, Income, Activity) on the state holders and verify on the emulator with synthetic data against `mobile-skin-calm`.
-- [ ] 2.2 Add the skin picker with rendered previews to Settings and as the first-launch step, plus the one-time notice for existing users, and verify on the emulator: fresh install shows the picker with Calm preselected; an update keeps Classic and shows the notice; switching applies at once without a lock.
-- [ ] 2.3 Add a parity check that every `AppStates` action is reachable in each skin, and verify it passes for Classic and Calm.
+- [x] 2.1 Build the Calm skin (Home with sheets, Income, Activity) on the state holders and verify on the emulator with synthetic data against `mobile-skin-calm`.
+- [x] 2.2 Add the skin picker with drawn previews to Settings and as the first-launch step, plus the one-time notice for existing users, and verify on the emulator: fresh install shows the picker with Calm preselected; an update keeps Classic and shows the notice; switching applies at once without a lock.
+- [x] 2.3 Add a parity check: each skin declares where every feature lives, and a unit test fails if one is missing; verify it passes for Classic and Calm.
 
 ## 3. Bento (PR 3)
 

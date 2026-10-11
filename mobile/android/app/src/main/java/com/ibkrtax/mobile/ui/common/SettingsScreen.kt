@@ -48,6 +48,7 @@ import com.ibkrtax.mobile.prices.ApiKeyCheck
 import com.ibkrtax.mobile.prices.FinnhubKeyFormat
 import com.ibkrtax.mobile.prices.KeyCheckResult
 import com.ibkrtax.mobile.security.Masking
+import com.ibkrtax.mobile.ui.skins.SkinSettingsSection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -61,6 +62,8 @@ fun SettingsScreen() {
         Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.settings_privacy))
+        Spacer(Modifier.height(24.dp))
+        SkinSettingsSection()
         Spacer(Modifier.height(24.dp))
         PriceKeySettings()
         Spacer(Modifier.height(24.dp))

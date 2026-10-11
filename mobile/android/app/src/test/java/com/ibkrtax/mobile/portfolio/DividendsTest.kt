@@ -111,6 +111,32 @@ class DividendsTest {
     }
 
     @Test
+    fun allYearsAddEveryYearMonthByMonth() {
+        val events = listOf(dividend("2024-05-05", "KO", "2"), dividend("2025-05-05", "KO", "3"), dividend("2025-08-05", "KO", "1"))
+        val all = Dividends.period(events, null, rates)
+
+        assertNull(all.year)
+        assertAmount("6", all.usdNet.amount)
+        assertAmount("5", all.months[4].usdNet.amount)
+        assertAmount("1", all.months[7].usdNet.amount)
+        assertAmount("6", all.positions.single().amounts.net)
+    }
+
+    @Test
+    fun changeFromYearBeforeComparesTheSameMonthsForTheRunningYear() {
+        val events = listOf(
+            dividend("2025-03-01", "KO", "10"),
+            dividend("2025-11-01", "KO", "10"), // after today's month in 2026: left out of the comparison
+            dividend("2026-03-01", "KO", "12"),
+        )
+        val today = java.time.LocalDate.of(2026, 10, 11)
+        assertAmount("20", Dividends.changeFromYearBefore(events, 2026, rates, today)!!) // 12 vs 10
+        // A finished year compares all twelve months: 2026 (12) against 2025 (10 + 10) is −40%.
+        assertAmount("-40", Dividends.changeFromYearBefore(events, 2026, rates, java.time.LocalDate.of(2027, 1, 1))!!)
+        assertNull(Dividends.changeFromYearBefore(events, 2025, rates, today)) // nothing in 2024
+    }
+
+    @Test
     fun rowsWithoutAnIsoDateAreLeftOut() {
         val events = listOf(dividend("bad", "KO", "1"), dividend("2025-01-02", "KO", "2"))
         assertEquals(listOf(2025), Dividends.years(events))
