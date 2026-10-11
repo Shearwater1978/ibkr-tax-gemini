@@ -29,6 +29,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -179,6 +181,7 @@ internal object BentoRoute {
 private fun BentoNavigation(states: AppStates, nav: NavHostController = rememberNavController()) {
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
+    val stack by nav.currentBackStack.collectAsState()
     val withTopBar = route == BentoRoute.IMPORT || route == BentoRoute.REPORTS || route == BentoRoute.SETTINGS
     Scaffold(
         containerColor = BentoColors.Page,
@@ -214,32 +217,35 @@ private fun BentoNavigation(states: AppStates, nav: NavHostController = remember
                     BentoPayer(states.income, e.arguments?.getString("ticker").orEmpty(), e.arguments?.getString("currency").orEmpty(), onBack = { nav.popBackStack() })
                 }
                 composable(BentoRoute.ACTIVITY) { BentoActivity(states.activity, onImport = { nav.navigate(BentoRoute.IMPORT) }) }
-                composable(BentoRoute.DATA) { BentoData(
+                composable(BentoRoute.DATA) {
+                    BentoData(
                         states,
                         onImport = { nav.navigate(BentoRoute.IMPORT) },
                         onReports = { nav.navigate(BentoRoute.REPORTS) },
                         onSettings = { nav.navigate(BentoRoute.SETTINGS) },
-                    ) }
-                composable(BentoRoute.IMPORT) { ImportsScreen(states.data) }
-                composable(BentoRoute.REPORTS) { ImportsScreen(states.data, reportsOnly = true) }
-                composable(BentoRoute.SETTINGS) { SettingsScreen() }
+                    )
+                }
+                // Shared screens keep room for the tab bar, so their last item scrolls above it.
+                composable(BentoRoute.IMPORT) { AboveTabBar { ImportsScreen(states.data) } }
+                composable(BentoRoute.REPORTS) { AboveTabBar { ImportsScreen(states.data, reportsOnly = true) } }
+                composable(BentoRoute.SETTINGS) { AboveTabBar { SettingsScreen() } }
             }
-            if (!withTopBar) {
-                TabBar(
-                    current = route,
-                    onTab = { nav.tab(it) },
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
-                )
-            }
+            TabBar(
+                current = stack.tabRoute(),
+                onTab = { nav.tab(it) },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+            )
         }
     }
 }
 
 private fun NavHostController.tab(route: String) {
-    // Leave a detail screen first, so a tab always opens on its first screen; otherwise the
-    // detail would be saved with the tab and restored when the tab is tapped (e.g. Home on a position).
-    val current = currentDestination?.route
-    val owner = tabOf(current)
+    val stack = currentBackStack.value
+    val current = stack.lastOrNull()?.destination?.route
+    if (current == route) return
+    // Leave screens opened from the current tab (a position, Imported reports, ...) first, so a tab
+    // always opens on its first screen; otherwise they would be saved with the tab and restored.
+    val owner = stack.tabRoute()
     if (owner != null && owner != current) popBackStack(owner, inclusive = false)
     if (owner == route) return
     navigate(route) {
@@ -249,11 +255,14 @@ private fun NavHostController.tab(route: String) {
     }
 }
 
-/** The tab a screen belongs to; detail screens belong to the tab they open from. */
-private fun tabOf(route: String?): String? = when (route) {
-    BentoRoute.POSITION -> BentoRoute.HOME
-    BentoRoute.PAYER -> BentoRoute.INCOME
-    else -> route
+private val TABS = setOf(BentoRoute.HOME, BentoRoute.INCOME, BentoRoute.ACTIVITY, BentoRoute.DATA)
+
+/** The tab the top screen was opened from: the last tab screen on the back stack. */
+private fun List<NavBackStackEntry>.tabRoute(): String? = lastOrNull { it.destination.route in TABS }?.destination?.route
+
+@Composable
+private fun AboveTabBar(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize().padding(bottom = TAB_BAR_ROOM)) { content() }
 }
 
 @Composable
@@ -269,7 +278,7 @@ private fun TabBar(current: String?, onTab: (String) -> Unit, modifier: Modifier
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         tabs.forEach { (route, label) ->
-            val on = tabOf(current) == route
+            val on = current == route
             Text(
                 label,
                 color = if (on) BentoColors.Page else BentoColors.Muted,
