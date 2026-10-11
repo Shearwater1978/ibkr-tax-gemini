@@ -61,6 +61,7 @@ import com.ibkrtax.mobile.state.IncomeState
 import com.ibkrtax.mobile.state.PortfolioUiState
 import com.ibkrtax.mobile.storage.Operation
 import com.ibkrtax.mobile.storage.OperationFilter
+import com.ibkrtax.mobile.ui.common.LocalBrokerChooser
 import com.ibkrtax.mobile.ui.common.OperationDisplay
 import com.ibkrtax.mobile.ui.common.displayDate
 import com.ibkrtax.mobile.ui.common.labelRes
@@ -284,7 +285,11 @@ fun BentoData(states: AppStates, onImport: () -> Unit, onSettings: () -> Unit) {
         ) {
             Box(Modifier.size(56.dp).background(BentoColors.Violet, RoundedCornerShape(18.dp)), contentAlignment = Alignment.Center) { Text("+", color = Color.White, fontSize = 30.sp) }
             Text(stringResource(R.string.bento_add_reports), fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
-            Text(stringResource(R.string.bento_add_reports_hint), color = BentoColors.Muted, fontSize = 13.sp)
+            val broker = LocalBrokerChooser.current?.current
+            Text(
+                broker?.let { stringResource(R.string.bento_add_reports_hint, stringResource(it.formatRes)) } ?: stringResource(R.string.bento_add_reports_choose),
+                color = BentoColors.Muted, fontSize = 13.sp,
+            )
         }
         Spacer(Modifier.height(12.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(BentoColors.Tile).padding(horizontal = 14.dp, vertical = 4.dp)) {

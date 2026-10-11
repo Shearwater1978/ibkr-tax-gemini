@@ -65,6 +65,8 @@ fun SettingsScreen() {
         Spacer(Modifier.height(24.dp))
         SkinSettingsSection()
         Spacer(Modifier.height(24.dp))
+        BrokerSettingsSection()
+        Spacer(Modifier.height(24.dp))
         PriceKeySettings()
         Spacer(Modifier.height(24.dp))
         BackupEncryptionSettings()

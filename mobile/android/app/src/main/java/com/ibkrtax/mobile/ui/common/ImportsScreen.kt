@@ -143,7 +143,13 @@ fun ImportsScreen(state: DataState) {
         }
         Text(stringResource(R.string.imports_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
-        Text(stringResource(R.string.imports_supported_format))
+        // Reports are read in the chosen broker's format, so ask for the broker first (mobile-broker-choice).
+        val broker = LocalBrokerChooser.current?.current
+        if (broker == null) {
+            BrokerGate()
+            return@Column
+        }
+        Text(stringResource(R.string.imports_supported_format, stringResource(broker.formatRes)))
         Spacer(Modifier.height(16.dp))
         Button(onClick = { picker.launch(CSV_TYPES) }, enabled = ready && !importing) {
             Text(stringResource(if (importing) R.string.importing else R.string.action_import_report))
@@ -378,7 +384,7 @@ private fun ImportTexts() = ImportTexts(
     importedAccessLost = stringResource(R.string.import_done_access_lost),
     already = stringResource(R.string.import_already),
     notReady = stringResource(R.string.import_not_ready),
-    unsupported = stringResource(R.string.import_unsupported),
+    unsupported = stringResource(R.string.import_unsupported, LocalBrokerChooser.current?.current?.let { stringResource(it.formatRes) } ?: stringResource(R.string.broker_report_generic)),
     empty = stringResource(R.string.import_empty),
     malformed = stringResource(R.string.import_malformed),
     invalid = stringResource(R.string.import_invalid_record),

@@ -9,6 +9,8 @@ object UiPreferences {
     private const val USD_VIEW = "usd_view"
     private const val SKIN = "skin"
     private const val SKIN_NOTICE = "skin_notice_pending"
+    private const val BROKER = "broker"
+    private const val BROKER_STEP_DONE = "broker_step_done"
 
     private fun prefs(context: Context) = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
@@ -36,5 +38,19 @@ object UiPreferences {
 
     fun setSkinNoticePending(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(SKIN_NOTICE, value).apply()
+    }
+
+    /** The chosen broker's name, or null before one was chosen (mobile-broker-choice spec). */
+    fun broker(context: Context): String? = prefs(context).getString(BROKER, null)
+
+    fun setBroker(context: Context, name: String) {
+        prefs(context).edit().putString(BROKER, name).apply()
+    }
+
+    /** True once the first-launch broker question was answered or skipped. */
+    fun brokerStepDone(context: Context): Boolean = prefs(context).getBoolean(BROKER_STEP_DONE, false)
+
+    fun setBrokerStepDone(context: Context) {
+        prefs(context).edit().putBoolean(BROKER_STEP_DONE, true).apply()
     }
 }
