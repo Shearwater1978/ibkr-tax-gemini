@@ -70,6 +70,25 @@ Format is implemented using a vetted library (Tink or CryptoKit primitives).
   may keep copies; without the keys they cannot be decrypted (crypto-shredding).
 - Portability: the user can export the tax output in a standard format (CSV or PDF).
 
+## Decision 9: No logging and a reviewed set of libraries (tasks 6.3, 6.4)
+
+**Logs.** The Android app writes nothing to the system log: no `android.util.Log`, `println`, `print`, `printStackTrace` or `System.out/err` in any shipped source set (main, release, debug). `NoLoggingTest` scans the sources and fails the build if one appears. Exception messages carry only format version numbers. The Finnhub key is sent in the `X-Finnhub-Token` header, never in a URL, so an `HttpURLConnection` error message cannot contain it; network errors are caught. Release builds use a stub without the synthetic sample reports. Release builds are not minified; stripping library logging with R8 was not adopted because SQLCipher, Bouncy Castle and Play services need keep rules, and the libraries below do not log app data.
+
+**Libraries (Android, as of 2026-10-11).** No analytics, crash-reporting, advertising or attribution SDK is included.
+
+| Library | Version | Purpose | Network or data collection |
+|---|---|---|---|
+| AndroidX Compose, Activity, Navigation, Fragment, Material 3 | BOM 2024.12.01 and listed versions | UI | None |
+| AndroidX Biometric | 1.1.0 | App lock with biometrics or device credential | None; the system prompt runs on the device |
+| AndroidX DocumentFile | 1.0.1 | Access to the user-chosen backup folder (SAF) | None itself; the storage app (for example Google Drive) syncs the encrypted files |
+| AndroidX Browser | 1.8.0 | Custom Tab for the Finnhub sign-up page | Opens a page the user asked for; nothing from the app is sent |
+| AndroidX SQLite + SQLCipher for Android | 2.4.0, 4.6.1 | Encrypted local database | None |
+| Bouncy Castle (bcprov) | 1.78.1 | Argon2id for the passphrase key | None |
+| Play services Block Store (+ coroutines adapter) | 16.4.0 | End-to-end encrypted copy of the backup data key | Stored with the user's Android backup, only when end-to-end encryption is available; Google cannot read it. Play services' own usage reporting follows the user's Google settings and receives no app data |
+| Kotlin coroutines | 1.9.0 | Concurrency | None |
+
+The app's own network requests are listed in the market-prices spec: ticker symbols to Finnhub (with the user's key) and Yahoo Finance, currency codes to NBP.
+
 ## Risks
 - Loss of passphrase and recovery code means backups are unrecoverable. Mitigation: explicit onboarding and warnings.
 - Storage providers may keep deleted files in trash or version history. Mitigation: erasure destroys the keys,
