@@ -447,4 +447,8 @@
     <string name="erase_files_left">%1$d backup files could not be deleted; without the keys they cannot be read.</string>
     <string name="erase_steps_failed">Some steps failed (%1$s). Reinstall the app to remove what is left.</string>
     <string name="erase_restart">Restart app</string>
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_on_device">Reports are read and kept encrypted on this phone. The publisher runs no server and receives none of your data. There are no accounts, ads, analytics or crash reports.</string>
+    <string name="privacy_leaves">Only ticker symbols leave the phone, to get prices (Finnhub with your own key, Yahoo Finance). Backups and the automatic key copy are encrypted on this phone before they reach your storage provider or your Android backup.</string>
+    <string name="privacy_choices">Delete imports on the import screen, or erase everything below. The full privacy notice comes with the app documentation (PRIVACY.md).</string>
 </resources>

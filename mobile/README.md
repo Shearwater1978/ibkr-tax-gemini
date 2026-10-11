@@ -9,7 +9,7 @@ Native clients for the `mobile-app-core` OpenSpec change: Kotlin/Jetpack Compose
 | App ID | `com.ibkrtax.mobile` | `com.ibkrtax.mobile` |
 | Toolchain | Android Studio, JDK 17+ | Xcode 15+, XcodeGen (macOS only) |
 
-The Android app is called **Portfolio Companion**; how to use it is in the [user guide](USER_GUIDE.md).
+The Android app is called **Portfolio Companion**; how to use it is in the [user guide](USER_GUIDE.md). Data protection: [privacy notice](PRIVACY.md) and [record of processing activities](PROCESSING_RECORD.md) (drafts; publisher details still placeholders).
 
 ## Navigation contract
 

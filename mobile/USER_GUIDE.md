@@ -44,6 +44,8 @@ Switch skins in Settings → **Skin** → **Change skin**.
 
 ## Privacy and security
 
+The full privacy notice is in [PRIVACY.md](PRIVACY.md); this is the short version.
+
 - Reports are read and processed **on the device**; their contents are never sent anywhere. Data is stored in an encrypted database, and account identifiers are masked on screen.
 - Backups are **encrypted on the device** before they are written to your backup folder. Keep your passphrase and recovery code: without them the backups cannot be decrypted.
 
