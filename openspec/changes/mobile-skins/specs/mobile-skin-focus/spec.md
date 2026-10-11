@@ -5,7 +5,7 @@ Defines the Focus skin: a warm, conversational interface that explains the portf
 ## ADDED Requirements
 
 ### Requirement: Focus navigation
-Focus SHALL have two destinations, Today and Income, and a central "+" button. The button SHALL open a menu with:
+Focus SHALL have two destinations, Today and Income, and a central "+" button. Today SHALL also show a Settings button at the top. The "+" button SHALL open a menu with:
 - adding reports;
 - activity;
 - choosing own currency or USD;
@@ -31,7 +31,7 @@ Today SHALL open with the portfolio value and one generated sentence. The senten
 
 ### Requirement: Focus cards, holdings, stories and income
 Focus SHALL provide the following:
-- **Insight cards:** swipeable cards for this month's dividends, the biggest move today, price freshness (tapping it refreshes prices) and dividends of the last 12 months.
+- **Insight cards:** swipeable cards, with page dots below them that show the current card, for this month's dividends, the biggest move today, price freshness (tapping it refreshes prices) and dividends of the last 12 months.
 - **Allocation donut:** the four largest positions and "others" by weight. Tapping it opens all holdings, grouped as "Rising today" and "Falling today".
 - **Position stories:** tapping a holding opens its story in sentences: invested and current value, gains from sales, dividends after tax, then the total.
 - **Income:** year pills including "All years", a sentence with the period's net dividends and the change against the previous period, and a timeline of payments.

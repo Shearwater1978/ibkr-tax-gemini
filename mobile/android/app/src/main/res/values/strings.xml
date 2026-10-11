@@ -396,6 +396,7 @@
     <string name="focus_prices_stale">Out of date</string>
     <string name="focus_prices_refreshing">Refreshing %1$s</string>
     <string name="focus_prices_tap">Tap to refresh</string>
+    <string name="focus_card_position">Card %1$d of %2$d</string>
     <string name="focus_card_12m">LAST 12 MONTHS</string>
     <string name="focus_card_12m_body">dividends after tax</string>
     <string name="focus_own">What you own</string>

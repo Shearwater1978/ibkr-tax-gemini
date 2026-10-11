@@ -38,7 +38,7 @@ Amounts are shown in each position's own currency, or converted to US dollars wh
 | **Classic** | Everything on one screen; five tabs | Portfolio, Dividends, Operations, Imports, Settings tabs |
 | **Calm** | Light and simple | Home, Income and Activity tabs; "+" adds reports; the avatar opens Settings; "View" sorts, switches currency and shows sold positions |
 | **Bento** | Dark tiles | Home, Income, Activity and Data tabs; Data holds reports, backup and price status, Settings and deletion |
-| **Focus** | Plain sentences first | Today and Income; the "+" button opens reports, activity, currency, backup and prices, security, Settings and deletion |
+| **Focus** | Plain sentences first | Today and Income; the gear on Today opens Settings; the "+" button opens reports, activity, currency, backup and prices, security, Settings and deletion |
 
 Switch skins in Settings → **Skin** → **Change skin**.
 
