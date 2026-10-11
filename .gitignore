@@ -47,3 +47,6 @@ Thumbs.db
 
 # Synthetic mobile test fixtures are safe to commit
 !mobile/fixtures/**/*.csv
+
+# --- Local design concepts (not published) ---
+design-concepts/
