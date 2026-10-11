@@ -16,7 +16,7 @@
 
 ## 3. Report ingestion
 - [x] 3.1 Implement file import via system document picker
-- [ ] 3.2 Implement parser that runs without network access
+- [x] 3.2 Implement parser that runs without network access _Status: Android done; `OfflineProcessingTest` keeps network code out of report handling, and an import was verified on an emulator with networking off._
 - [x] 3.3 Ensure no copies of source files are kept outside the managed location
 
 ## 4. Encrypted backup
@@ -31,7 +31,7 @@
 - [ ] 5.1 Integrate SQLCipher with key from device key
 - [ ] 5.2 Include encrypted database backup in the backup set
 - [x] 5.3 Exclude local data from OS cloud backups _Status: Android done (allowBackup and fullBackupContent off, data extraction rules exclude every domain from cloud backup and device transfer); iOS postponed._
-- [ ] 5.4 Clear temporary files and caches on exit
+- [x] 5.4 Clear temporary files and caches on exit _Status: Android done; the app writes no plaintext files, and the cache folder is emptied at start and when the app goes to the background._
 
 ## 6. Device hardening
 - [ ] 6.1 Disable screenshots on Android and hide content in app switcher on iOS _Status: Android done (FLAG_SECURE, verified on an emulator); iOS postponed._

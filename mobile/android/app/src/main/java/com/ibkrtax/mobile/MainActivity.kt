@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.ibkrtax.mobile.security.TempFiles
 import com.ibkrtax.mobile.security.AppLockPolicy
 import com.ibkrtax.mobile.ui.common.LockScreen
 import com.ibkrtax.mobile.ui.common.LockState
@@ -34,6 +35,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         // No screenshots, screen recording, or app-switcher preview of financial data.
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        TempFiles.clear(cacheDir)
 
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) lockState = LockState.Unlocked
         backgroundedAt = savedInstanceState?.getLong(KEY_BACKGROUNDED_AT, 0L)?.takeIf { it > 0 }?.let(Instant::ofEpochMilli)
@@ -63,6 +65,8 @@ class MainActivity : FragmentActivity() {
         super.onStop()
         // Rotation recreates the activity without leaving the app; it must not start the timer.
         if (!isChangingConfigurations && lockState == LockState.Unlocked) backgroundedAt = Instant.now()
+        // Leaving the app ends the processing session: nothing may stay in the cache folder (task 5.4).
+        if (!isChangingConfigurations) TempFiles.clear(cacheDir)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
