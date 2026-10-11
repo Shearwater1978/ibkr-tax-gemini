@@ -1,4 +1,4 @@
-package com.ibkrtax.mobile.ui
+package com.ibkrtax.mobile.ui.skins.classic
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -25,14 +26,26 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.navigation.AppDestination
-import com.ibkrtax.mobile.ui.screens.DividendsScreen
-import com.ibkrtax.mobile.ui.screens.ImportsScreen
-import com.ibkrtax.mobile.ui.screens.OperationsScreen
-import com.ibkrtax.mobile.ui.screens.PortfolioScreen
-import com.ibkrtax.mobile.ui.screens.SettingsScreen
+import com.ibkrtax.mobile.state.AppStates
+import com.ibkrtax.mobile.ui.common.ImportsScreen
+import com.ibkrtax.mobile.ui.common.SettingsScreen
+import com.ibkrtax.mobile.ui.skins.Skin
+import com.ibkrtax.mobile.ui.skins.SkinId
+
+/** Today's UI: five tabs, the positions table and full detail (mobile-skins spec, Classic). */
+object ClassicSkin : Skin {
+    override val id = SkinId.CLASSIC
+    override val nameRes = R.string.skin_classic_name
+    override val descriptionRes = R.string.skin_classic_description
+
+    @Composable
+    override fun App(states: AppStates) {
+        MaterialTheme { ClassicApp(states) }
+    }
+}
 
 @Composable
-fun AppScaffold(navController: NavHostController = rememberNavController()) {
+fun ClassicApp(states: AppStates, navController: NavHostController = rememberNavController()) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -57,17 +70,18 @@ fun AppScaffold(navController: NavHostController = rememberNavController()) {
         ) {
             composable(AppDestination.PORTFOLIO.route) {
                 PortfolioScreen(
+                    state = states.portfolio,
                     onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) },
                     onOpenSettings = { navController.navigateToTab(AppDestination.SETTINGS) },
                 )
             }
             composable(AppDestination.DIVIDENDS.route) {
-                DividendsScreen(onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) })
+                DividendsScreen(states.income, onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) })
             }
             composable(AppDestination.OPERATIONS.route) {
-                OperationsScreen(onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) })
+                OperationsScreen(states.activity, onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) })
             }
-            composable(AppDestination.IMPORTS.route) { ImportsScreen() }
+            composable(AppDestination.IMPORTS.route) { ImportsScreen(states.data) }
             composable(AppDestination.SETTINGS.route) { SettingsScreen() }
         }
     }

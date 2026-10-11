@@ -1,4 +1,4 @@
-package com.ibkrtax.mobile.ui.screens
+package com.ibkrtax.mobile.ui.common
 
 import android.content.ActivityNotFoundException
 import android.content.Context

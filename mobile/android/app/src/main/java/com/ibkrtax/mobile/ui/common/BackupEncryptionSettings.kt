@@ -1,4 +1,4 @@
-package com.ibkrtax.mobile.ui.screens
+package com.ibkrtax.mobile.ui.common
 
 import android.content.Context
 import androidx.compose.foundation.layout.Column

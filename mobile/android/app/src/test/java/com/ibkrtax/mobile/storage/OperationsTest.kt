@@ -1,6 +1,6 @@
 package com.ibkrtax.mobile.storage
 
-import com.ibkrtax.mobile.ui.screens.OperationDisplay
+import com.ibkrtax.mobile.ui.skins.classic.OperationDisplay
 import java.math.BigDecimal
 import java.util.Locale
 import org.junit.After

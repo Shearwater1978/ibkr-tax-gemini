@@ -1,4 +1,4 @@
-package com.ibkrtax.mobile.ui.screens
+package com.ibkrtax.mobile.ui.skins.classic
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -20,25 +20,24 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
-import com.ibkrtax.mobile.appContainer
-import com.ibkrtax.mobile.fx.FxRates
-import com.ibkrtax.mobile.portfolio.CashEvent
 import com.ibkrtax.mobile.portfolio.DividendAmounts
 import com.ibkrtax.mobile.portfolio.Dividends
+import com.ibkrtax.mobile.state.DividendData
+import com.ibkrtax.mobile.state.IncomeState
 import com.ibkrtax.mobile.portfolio.UsdSum
 import com.ibkrtax.mobile.ui.BarChart
 import com.ibkrtax.mobile.ui.BarGroup
@@ -48,29 +47,15 @@ import java.time.Month
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-
-private data class DividendData(val events: List<CashEvent>, val rates: FxRates?)
 
 // One colour per compared year, oldest first (amber, blue, purple), readable in light and dark themes.
 private val YEAR_COLORS = listOf(Color(0xFFF9A825), Color(0xFF29B6F6), Color(0xFF9575CD))
 
 /** Received dividends per month, year and position (mobile-dividends spec). */
 @Composable
-fun DividendsScreen(onImportReport: () -> Unit) {
-    val context = LocalContext.current
-    val data by produceState<DividendData?>(null) {
-        value = withContext(Dispatchers.IO) {
-            val container = context.appContainer
-            // Rates come from the main page's NBP refresh; fetch once only if nothing is cached yet.
-            val rates = container.fx.rates() ?: run {
-                container.fx.refresh()
-                container.fx.rates()
-            }
-            DividendData(container.dividendEvents.all(), rates)
-        }
-    }
+fun DividendsScreen(state: IncomeState, onImportReport: () -> Unit) {
+    val data by state.data.collectAsState()
+    LaunchedEffect(Unit) { state.reload() }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
         Text(

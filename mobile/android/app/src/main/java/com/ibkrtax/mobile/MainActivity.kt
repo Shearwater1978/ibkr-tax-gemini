@@ -16,9 +16,10 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.ibkrtax.mobile.security.AppLockPolicy
-import com.ibkrtax.mobile.ui.AppScaffold
-import com.ibkrtax.mobile.ui.screens.LockScreen
-import com.ibkrtax.mobile.ui.screens.LockState
+import com.ibkrtax.mobile.ui.common.LockScreen
+import com.ibkrtax.mobile.ui.common.LockState
+import com.ibkrtax.mobile.ui.common.UiPreferences
+import com.ibkrtax.mobile.ui.skins.SkinCatalog
 import java.time.Instant
 
 /** FragmentActivity because BiometricPrompt needs one. */
@@ -39,11 +40,10 @@ class MainActivity : FragmentActivity() {
         backgroundedAt = savedInstanceState?.getLong(KEY_BACKGROUNDED_AT, 0L)?.takeIf { it > 0 }?.let(Instant::ofEpochMilli)
 
         setContent {
-            MaterialTheme {
-                when (val state = lockState) {
-                    LockState.Unlocked -> AppScaffold()
-                    else -> LockScreen(state, onUnlock = ::authenticate, onContinueWithoutLock = { unlock() })
-                }
+            // Lock and screenshot protection stay outside the skins (mobile-skins spec).
+            when (val state = lockState) {
+                LockState.Unlocked -> SkinCatalog.resolve(UiPreferences.skin(this)).App(appContainer.states)
+                else -> MaterialTheme { LockScreen(state, onUnlock = ::authenticate, onContinueWithoutLock = { unlock() }) }
             }
         }
     }
