@@ -123,6 +123,7 @@ fun ClassicApp(states: AppStates, navController: NavHostController = rememberNav
                     state = states.portfolio,
                     onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) },
                     onOpenSettings = { navController.navigateToTab(AppDestination.SETTINGS) },
+                    onOpenDividends = { navController.navigateToTab(AppDestination.DIVIDENDS) },
                 )
             }
             composable(AppDestination.DIVIDENDS.route) {

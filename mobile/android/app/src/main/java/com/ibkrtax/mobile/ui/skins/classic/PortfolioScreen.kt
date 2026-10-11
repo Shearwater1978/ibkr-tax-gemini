@@ -63,7 +63,7 @@ import com.ibkrtax.mobile.ui.Formats
 import java.math.BigDecimal
 
 @Composable
-fun PortfolioScreen(state: PortfolioState, onImportReport: () -> Unit, onOpenSettings: () -> Unit = {}) {
+fun PortfolioScreen(state: PortfolioState, onImportReport: () -> Unit, onOpenSettings: () -> Unit = {}, onOpenDividends: () -> Unit = {}) {
     val ui by state.ui.collectAsState()
     val progress by state.progress.collectAsState()
     // Show cached data at once, then refresh when the page opens or the user asks.
@@ -76,7 +76,7 @@ fun PortfolioScreen(state: PortfolioState, onImportReport: () -> Unit, onOpenSet
         is PortfolioUiState.Incomplete -> Centered {
             Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center)
         }
-        is PortfolioUiState.Loaded -> Positions(current, progress, onRefresh = state::refresh, onOpenSettings = onOpenSettings)
+        is PortfolioUiState.Loaded -> Positions(current, progress, onRefresh = state::refresh, onOpenSettings = onOpenSettings, onOpenDividends = onOpenDividends)
     }
 }
 
@@ -111,7 +111,7 @@ private fun signColor(value: BigDecimal?): Color =
     }
 
 @Composable
-private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
+private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?, onRefresh: () -> Unit, onOpenSettings: () -> Unit, onOpenDividends: () -> Unit) {
     var sort by remember { mutableStateOf(SortOrder()) }
     var mode by rememberSaveable { mutableStateOf(PnlMode.DAILY) }
     val context = LocalContext.current
@@ -124,7 +124,7 @@ private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?
     details?.let { PositionDetailsSheet(it, onDismiss = { details = null }) }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-        item { Header(state, progress, onRefresh, onOpenSettings) }
+        item { Header(state, progress, onRefresh, onOpenSettings, onOpenDividends) }
         TopMoversRanking.rank(state.rows)?.let { movers ->
             item { TopMoversSection(movers, onOpen = { row -> details = state.performance.firstOrNull { it.row?.holding === row.holding } }) }
         }
@@ -190,12 +190,12 @@ private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?
 }
 
 @Composable
-private fun Header(state: PortfolioUiState.Loaded, progress: RefreshProgress?, onRefresh: () -> Unit, onOpenSettings: () -> Unit) {
+private fun Header(state: PortfolioUiState.Loaded, progress: RefreshProgress?, onRefresh: () -> Unit, onOpenSettings: () -> Unit, onOpenDividends: () -> Unit) {
     val totals = state.totals
     Column(modifier = Modifier.padding(top = 16.dp)) {
         Text(stringResource(R.string.portfolio_title), style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
-        SummaryCards(state.summary, totals)
+        SummaryCards(state.summary, totals, onOpenDividends)
         val notes = buildList {
             add(stringResource(R.string.header_approximate))
             totals.rateDate?.let { add(stringResource(R.string.header_rate_date, it)) }
@@ -208,7 +208,7 @@ private fun Header(state: PortfolioUiState.Loaded, progress: RefreshProgress?, o
 
 /** Value, total profit, today and 12-month dividends, in approximate USD (mobile-position-performance spec). */
 @Composable
-private fun SummaryCards(summary: PortfolioSummary, totals: UsdTotals) {
+private fun SummaryCards(summary: PortfolioSummary, totals: UsdTotals, onOpenDividends: () -> Unit) {
     val incomplete = stringResource(R.string.card_incomplete)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -238,19 +238,28 @@ private fun SummaryCards(summary: PortfolioSummary, totals: UsdTotals) {
                 modifier = Modifier.weight(1f),
             )
             SummaryCard(
-                title = stringResource(R.string.card_dividends),
+                title = stringResource(R.string.card_dividends) + " ›",
                 value = Formats.money(summary.dividends12Months.amount, "USD"),
                 detail = stringResource(R.string.card_dividends_net),
                 incomplete = incomplete.takeUnless { summary.dividends12Months.isComplete },
                 modifier = Modifier.weight(1f),
+                onClick = onOpenDividends,
             )
         }
     }
 }
 
 @Composable
-private fun SummaryCard(title: String, value: String, detail: String?, incomplete: String?, modifier: Modifier, color: Color = Color.Unspecified) {
-    Card(modifier = modifier) {
+private fun SummaryCard(
+    title: String,
+    value: String,
+    detail: String?,
+    incomplete: String?,
+    modifier: Modifier,
+    color: Color = Color.Unspecified,
+    onClick: (() -> Unit)? = null,
+) {
+    val content: @Composable () -> Unit = {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(title, style = MaterialTheme.typography.labelMedium)
             Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
@@ -259,6 +268,7 @@ private fun SummaryCard(title: String, value: String, detail: String?, incomplet
             incomplete?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
         }
     }
+    if (onClick != null) Card(onClick = onClick, modifier = modifier) { content() } else Card(modifier = modifier) { content() }
 }
 
 /** Today's top gainers and losers in their own currency (mobile-top-movers spec); three each until expanded. */
