@@ -291,7 +291,7 @@ private fun HoldingItem(row: PositionRow, usd: Boolean, valueUsd: BigDecimal?, t
 
 /** Full-screen position detail with the return as steps (mobile-skin-bento). */
 @Composable
-fun BentoPosition(state: PortfolioState, key: String, onBack: () -> Unit) {
+fun BentoPosition(state: PortfolioState, key: String, onBack: () -> Unit, onDividends: (ticker: String, currency: String) -> Unit) {
     val ui by state.ui.collectAsState()
     val data = ui as? PortfolioUiState.Loaded ?: return
     val (ticker, currency, isin) = key.split("|").let { Triple(it[0], it.getOrElse(1) { "" }, it.getOrElse(2) { "" }) }
@@ -358,8 +358,10 @@ fun BentoPosition(state: PortfolioState, key: String, onBack: () -> Unit) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Small(stringResource(R.string.bento_dividends_gross), skinMoney(p.dividends.gross, cur), Modifier.weight(1f))
-                Small(stringResource(R.string.bento_tax_withheld), skinMoney(p.dividends.tax.abs(), cur), Modifier.weight(1f))
+                // Both tiles open the dividend history in Income (mobile-payer-history).
+                val history = if (p.dividends.gross.signum() != 0 || p.dividends.tax.signum() != 0) ({ onDividends(p.ticker, cur) }) else null
+                Small(stringResource(R.string.bento_dividends_gross), skinMoney(p.dividends.gross, cur), Modifier.weight(1f), history)
+                Small(stringResource(R.string.bento_tax_withheld), skinMoney(p.dividends.tax.abs(), cur), Modifier.weight(1f), history)
             }
             if (!p.realizedComplete) Text(stringResource(R.string.details_sales_incomplete), color = BentoColors.Muted, fontSize = 12.sp)
             Text(stringResource(R.string.details_note), color = BentoColors.Muted, fontSize = 12.sp)
@@ -369,9 +371,9 @@ fun BentoPosition(state: PortfolioState, key: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun Small(label: String, value: String, modifier: Modifier) {
-    Tile(modifier) {
+private fun Small(label: String, value: String, modifier: Modifier, onClick: (() -> Unit)? = null) {
+    Tile(modifier, onClick = onClick) {
         TileLabel(label)
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp))
+        Text(value + if (onClick != null) " ›" else "", fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(top = 4.dp))
     }
 }
