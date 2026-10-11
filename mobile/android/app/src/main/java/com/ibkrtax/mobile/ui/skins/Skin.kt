@@ -6,9 +6,10 @@ import com.ibkrtax.mobile.state.AppStates
 import com.ibkrtax.mobile.ui.skins.bento.BentoSkin
 import com.ibkrtax.mobile.ui.skins.calm.CalmSkin
 import com.ibkrtax.mobile.ui.skins.classic.ClassicSkin
+import com.ibkrtax.mobile.ui.skins.focus.FocusSkin
 
 /** Stored by name; never rename an entry, or users of it fall back to Classic. */
-enum class SkinId { CLASSIC, CALM, BENTO }
+enum class SkinId { CLASSIC, CALM, BENTO, FOCUS }
 
 /** Everything every skin must reach, directly or behind taps (mobile-skins "Keep feature parity"). */
 enum class Feature {
@@ -49,7 +50,7 @@ interface Skin {
 }
 
 object SkinCatalog {
-    val skins: List<Skin> = listOf(ClassicSkin, CalmSkin, BentoSkin)
+    val skins: List<Skin> = listOf(ClassicSkin, CalmSkin, BentoSkin, FocusSkin)
 
     val default: Skin = ClassicSkin
 

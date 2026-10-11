@@ -176,4 +176,19 @@ class DividendsTest {
         assertAmount("3", Dividends.history(events, "SHEL", "EUR").total.gross)
         assertEquals(1, Dividends.history(events, "SHEL", "EUR").lines.size)
     }
+
+    @Test
+    fun paymentsOfAPeriodNewestFirstWithTaxOnTheSameDay() {
+        val events = listOf(
+            dividend("2024-12-02", "KO", "4"),
+            dividend("2025-05-15", "AAPL", "1.00"), tax("2025-05-15", "AAPL", "-0.15"),
+            dividend("2025-05-15", "KO", "2"),
+            dividend("2025-06-03", "SHEL", "3", "EUR"),
+        )
+        val y2025 = Dividends.payments(events, 2025)
+        assertEquals(listOf("SHEL", "AAPL", "KO"), y2025.map { it.ticker })
+        assertAmount("0.85", y2025[1].amounts.net)
+        assertEquals(YearMonth.of(2025, 6), y2025.first().month)
+        assertEquals(4, Dividends.payments(events, null).size)
+    }
 }
