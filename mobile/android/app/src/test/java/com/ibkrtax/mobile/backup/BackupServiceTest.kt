@@ -192,4 +192,33 @@ class BackupServiceTest {
         assertTrue(reports.pendingBackups().isEmpty())
         assertNotNull(folder.files[BackupService.MANIFEST_FILE])
     }
+
+    @Test
+    fun eraseAllRemovesRecordsEveryBackupFileAndTheManifestButNothingElse() {
+        val service = service()
+        service.importReport(report)
+        service.syncManifest()
+        folder.files["0123456789abcdef0123456789abcdef.bin"] = ByteArray(8) // orphan from an earlier deletion
+        folder.files["holiday.jpg"] = ByteArray(8) // not ours
+
+        val result = service.eraseAll()
+
+        assertEquals(FolderErasure(removedRecords = 11, filesDeleted = 3, folderReachable = true), result)
+        assertEquals(listOf("holiday.jpg"), folder.files.keys.toList())
+        assertTrue(reports.status.isEmpty())
+        assertFalse(pendingDir.exists())
+    }
+
+    @Test
+    fun eraseAllWithoutAReachableFolderStillRemovesRecords() {
+        service().importReport(report)
+        val gone = object : BackupFolder {
+            override fun write(name: String, bytes: ByteArray) = throw FolderAccessLostException()
+            override fun read(name: String): ByteArray? = throw FolderAccessLostException()
+            override fun list(): List<String> = throw FolderAccessLostException()
+            override fun delete(name: String) = throw FolderAccessLostException()
+        }
+        assertEquals(FolderErasure(removedRecords = 11, filesDeleted = 0, folderReachable = false), service(target = gone).eraseAll())
+        assertEquals(FolderErasure(removedRecords = 11, filesDeleted = 0, folderReachable = false), service(target = null).eraseAll())
+    }
 }

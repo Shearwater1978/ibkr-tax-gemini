@@ -433,4 +433,18 @@
     </plurals>
     <string name="restore_already">%1$d already on this phone.</string>
     <string name="restore_unreadable">%1$d backup files could not be read.</string>
+    <string name="erase_title">Erase all data</string>
+    <string name="erase_body">Deletes everything this app stores: imported reports and their records, every backup file in your backup folder, the backup keys (also the automatic copy), your price key and all settings. Without the keys, any backup copy left in the storage provider trash cannot be read. This cannot be undone.</string>
+    <string name="erase_action">Erase all data…</string>
+    <string name="erase_confirm_title">Erase all data?</string>
+    <string name="erase_confirm_body">Type %1$s to confirm. The app restarts empty afterwards.</string>
+    <string name="erase_confirm_word">ERASE</string>
+    <string name="erase_confirm_button">Erase</string>
+    <string name="erase_running">Erasing…</string>
+    <string name="erase_done_title">All data erased</string>
+    <string name="erase_done_body">Deleted %1$d records and %2$d backup files. The backup keys are destroyed.</string>
+    <string name="erase_folder_unreachable">The backup folder could not be reached, so its files were not deleted; without the keys they cannot be read.</string>
+    <string name="erase_files_left">%1$d backup files could not be deleted; without the keys they cannot be read.</string>
+    <string name="erase_steps_failed">Some steps failed (%1$s). Reinstall the app to remove what is left.</string>
+    <string name="erase_restart">Restart app</string>
 </resources>

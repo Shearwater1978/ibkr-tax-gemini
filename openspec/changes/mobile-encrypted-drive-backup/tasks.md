@@ -46,6 +46,6 @@
 - [x] 7.3 Implement masking for account numbers and tax IDs in UI and notifications _Status: Android done; only the last four account characters are stored for display and shown, file names are masked; names and tax IDs are not read; the app sends no notifications and offers no reveal._
 - [x] 7.4 Ensure logs, crash reports, and analytics receive only pseudonyms or masked values _Status: Android done; the app does not log (`NoLoggingTest`) and has no crash-reporting or analytics SDK (Decision 9)._
 - [ ] 7.5 Restrict full identity to tax output and its export, and document the exception
-- [ ] 7.6 Implement erasure across local DB, backup folder, and keys (destroying keys makes leftover copies unreadable)
+- [x] 7.6 Implement erasure across local DB, backup folder, and keys (destroying keys makes leftover copies unreadable) _Status: Android done ("Erase all data" in Settings, verified on an emulator). No retention period applies, so nothing is deleted automatically._
 - [ ] 7.7 Implement export of tax output in CSV or PDF for portability
 - [ ] 7.8 Write privacy notice and record processing activities (Art. 30 GDPR)

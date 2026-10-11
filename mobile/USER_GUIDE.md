@@ -63,3 +63,4 @@ Open the list of imported reports (Imports tab, the import screen, Bento's "Repo
 
 - **Delete this import** removes records that only that report contains, plus its encrypted backup file. Overlapping reports stay complete.
 - **Delete all imported data** asks for your backup passphrase and removes all reports and their backup files. Backup keys stay unchanged.
+- **Erase all data** (at the end of Settings) removes everything: reports and records, every backup file and the key manifest in the backup folder, the backup keys (also the automatic copy), your price key and all settings. You confirm by typing ERASE, so it works even if you forgot your passphrase. Without the keys, a copy left in your storage provider's trash cannot be read. The app then restarts as if newly installed.
