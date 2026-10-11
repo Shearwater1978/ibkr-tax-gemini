@@ -9,9 +9,15 @@ Native clients for the `mobile-app-core` OpenSpec change: Kotlin/Jetpack Compose
 | App ID | `com.ibkrtax.mobile` | `com.ibkrtax.mobile` |
 | Toolchain | Android Studio, JDK 17+ | Xcode 15+, XcodeGen (macOS only) |
 
+The Android app is called **Portfolio Companion**; how to use it is in the [user guide](USER_GUIDE.md).
+
 ## Navigation contract
 
-Both clients expose the same bottom-tab navigation. Route IDs and order are checked by unit tests on each platform (`AppDestinationTest.kt`, `AppDestinationTests.swift`).
+The Android app comes in four skins (`mobile-skins` OpenSpec change). They share the state holders in `state/` and the screens in `ui/common` (import, imported reports, Settings), so data and numbers are identical; only layout and navigation differ. Each skin declares where every `Feature` lives, and `SkinCatalogTest` fails if one is missing.
+
+### Classic (both platforms)
+
+Classic is the original UI and the only navigation on iOS. Both clients expose the same bottom-tab navigation. Route IDs and order are checked by unit tests on each platform (`AppDestinationTest.kt`, `AppDestinationTests.swift`).
 
 | Order | Route | Tab | Purpose |
 |---|---|---|---|
@@ -22,6 +28,18 @@ Both clients expose the same bottom-tab navigation. Route IDs and order are chec
 | 5 | `settings` | Settings | Backup, price key, and app version |
 
 When you change a destination, change it on both platforms and in this table. While iOS work is paused, Android leads: tabs marked "Android only for now" are added to iOS when it resumes.
+
+### Calm, Bento and Focus (Android)
+
+Routes are private to each skin package (`ui/skins/<skin>`); details open as sheets or as routes. When you change a skin's navigation, update its row here and its `features` map.
+
+| Skin | Tabs (start first) | Other routes | Details |
+|---|---|---|---|
+| Calm | `home`, `income`, `activity` (bottom bar) | `import` ("+" on Home), `settings` (avatar) | Position, total return, value info and payer history open as sheets |
+| Bento | `home`, `income`, `activity`, `data` (floating bar, shown on every screen) | `position/{key}`, `payer/{ticker}/{currency}`, `import`, `reports`, `settings` | A tab tap leaves any opened screen first, so each tab opens on its first screen |
+| Focus | `today`, `income` (bar with a central "+") | `holdings`, `story/{key}`, `activity`, `import`, `reports`, `settings`; the "+" menu opens them | Payer history opens as a sheet; tab taps behave as in Bento |
+
+Position keys are `ticker|currency|isin` for held and `ticker|currency|sold` for sold positions.
 
 ## Android
 

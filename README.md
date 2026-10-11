@@ -210,5 +210,9 @@ browser session.
 * The Web API connector, the TWS/Gateway connector, and CSV import are
   independent. A failure in one does not block either of the others.
 
+## 📱 Mobile app (Android)
+
+**Portfolio Companion** (`mobile/android`) is an informational portfolio viewer for the phone: it imports IBKR Activity Flex Query CSV reports on the device and shows holdings, returns, dividends and activity in four skins. It does not calculate PIT-38. See the [user guide](mobile/USER_GUIDE.md) and the [developer notes](mobile/README.md).
+
 ## ⚠️ Disclaimer
 Educational purpose only. Not financial advice.

@@ -32,7 +32,7 @@
 
 - [ ] 5.1 Run import, backup, portfolio, and price acceptance cases on an Android emulator and an iOS simulator and verify matching observable behavior.
 - [ ] 5.2 Verify hardware-backed key protection, biometric auto-lock/reveal, screenshot and app-switcher protection, and integrity checks on one physical Android device and one physical iOS device, and record the results before release.
-- [ ] 5.3 Update user-facing project documentation with supported report format, informational-only scope, privacy behavior, currency limitations, price scope, and API key setup and verify it matches the approved specs.
+- [x] 5.3 Update user-facing project documentation with supported report format, informational-only scope, privacy behavior, currency limitations, price scope, and API key setup and verify it matches the approved specs.
 
 ## 6. Main page
 
