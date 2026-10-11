@@ -48,4 +48,4 @@
 - [ ] 7.5 Restrict full identity to tax output and its export, and document the exception
 - [x] 7.6 Implement erasure across local DB, backup folder, and keys (destroying keys makes leftover copies unreadable) _Status: Android done ("Erase all data" in Settings, verified on an emulator). No retention period applies, so nothing is deleted automatically._
 - [ ] 7.7 Implement export of tax output in CSV or PDF for portability
-- [ ] 7.8 Write privacy notice and record processing activities (Art. 30 GDPR)
+- [x] 7.8 Write privacy notice and record processing activities (Art. 30 GDPR) _Status: drafts in `mobile/PRIVACY.md` and `mobile/PROCESSING_RECORD.md`, short version in Settings; publisher and contact are placeholders to fill and review before any public release._

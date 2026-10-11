@@ -73,6 +73,8 @@ fun SettingsScreen() {
         Spacer(Modifier.height(24.dp))
         BackupFolderSettings()
         Spacer(Modifier.height(24.dp))
+        PrivacySection()
+        Spacer(Modifier.height(24.dp))
         EraseDataSection()
         Spacer(Modifier.height(24.dp))
         Text(
@@ -224,5 +226,16 @@ private class KeyMessages(private val valid: String, private val rejected: Strin
         KeyCheckResult.Valid -> valid
         KeyCheckResult.Rejected -> rejected
         is KeyCheckResult.Unverified -> unverified
+    }
+}
+
+/** A short version of mobile/PRIVACY.md (task 7.8). */
+@Composable
+private fun PrivacySection() {
+    Column {
+        Text(stringResource(R.string.privacy_title), style = MaterialTheme.typography.titleMedium)
+        listOf(R.string.privacy_on_device, R.string.privacy_leaves, R.string.privacy_choices).forEach {
+            Text(stringResource(it), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 6.dp))
+        }
     }
 }
