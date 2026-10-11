@@ -44,7 +44,9 @@ The system MUST support the PIT-38 form version represented by the provided scre
 
 The implementation SHOULD model the form version explicitly because PIT-38 fields and legal rules may change between tax years.
 
-## Source Data
+## Requirements
+
+**Source Data**
 
 ### Requirement: Broker transaction import
 
@@ -162,7 +164,7 @@ The system MUST NOT use the latest form version implicitly when generating a dec
 - **THEN** the system loads the corresponding form version and tax configuration
 - **AND** calculates the return using the rules configured for that tax year
 
-## Currency Conversion
+**Currency Conversion**
 
 ### Requirement: Deterministic exchange-rate conversion
 
@@ -195,7 +197,7 @@ The conversion method MUST be configurable and MUST be applied consistently to i
 - **AND** the system MUST NOT invent or silently reuse an unrelated rate
 - **AND** the form cannot be finalized until the issue is resolved or explicitly overridden
 
-## Transaction Classification
+**Transaction Classification**
 
 ### Requirement: Classification of securities income
 
@@ -262,7 +264,7 @@ The system MUST preserve the distinction between:
 - **AND** records the commission as a separate cost
 - **AND** includes the commission in the cost calculation only if classified as eligible
 
-## Section C — Income or Loss Under Article 30b
+**Section C — Income or Loss Under Article 30b**
 
 ### Requirement: Populate section C
 
@@ -310,7 +312,7 @@ The system SHOULD expose the following field mappings for the form version shown
 - **THEN** the system MUST allow the transaction data to be classified as “other revenue” if legally applicable
 - **AND** MUST display a warning requiring taxpayer verification
 
-## Section D — Tax Calculation Under Article 30b
+**Section D — Tax Calculation Under Article 30b**
 
 ### Requirement: Calculate section D
 
@@ -351,7 +353,7 @@ The system SHOULD expose the following field mappings for the form version shown
 - **AND** stores the rate used in the calculation
 - **AND** does not hard-code a rate without a tax-year configuration
 
-## Section E — Income and Costs Under Article 30b(1a)
+**Section E — Income and Costs Under Article 30b(1a)**
 
 ### Requirement: Support separate Article 30b(1a) calculations
 
@@ -375,7 +377,7 @@ The system SHOULD expose the following field mappings for the form version shown
 - **THEN** fields 34–38 remain empty or zero according to the electronic-form rules
 - **AND** the system does not duplicate section C values in section E
 
-## Section F — Lump-Sum Tax Under Article 30b(1a)
+**Section F — Lump-Sum Tax Under Article 30b(1a)**
 
 ### Requirement: Calculate section F
 
@@ -398,7 +400,7 @@ The system SHOULD expose the following field mappings:
 - **AND** applied only within the applicable limitation
 - **AND** the applied amount is shown separately from the unused amount
 
-## Section G — Tax Payable or Overpayment
+**Section G — Tax Payable or Overpayment**
 
 ### Requirement: Calculate section G
 
@@ -436,7 +438,7 @@ The system MUST ensure that fields 49 and 50 are mutually exclusive.
 - **THEN** the system writes zero for that field
 - **AND** retains the original intermediate value in the calculation audit log
 
-## Dividend Tax Calculation
+**Dividend Tax Calculation**
 
 ### Requirement: Classify dividends separately
 
@@ -474,7 +476,7 @@ The system MUST calculate dividend-related values using:
 - **THEN** the system marks the foreign-tax amount as uncertain
 - **AND** prevents finalization unless the user explicitly confirms or corrects the amount
 
-## Tax Paid Abroad
+**Tax Paid Abroad**
 
 ### Requirement: Track foreign tax
 
@@ -502,7 +504,7 @@ The system MUST NOT use foreign tax to reduce tax beyond the applicable legal li
 - **AND** the unused amount is displayed as requiring separate treatment
 - **AND** the system does not silently discard the difference
 
-## Section I — Income Reported Under Article 45(3c)
+**Section I — Income Reported Under Article 45(3c)**
 
 ### Requirement: Support section I
 
@@ -515,7 +517,7 @@ The system SHOULD map the value to field 63.
 - **WHEN** no income falls under the applicable Article 45(3c) category
 - **THEN** field 63 remains empty or zero according to the form version
 
-## Section J — 1.5% Public Benefit Organisation
+**Section J — 1.5% Public Benefit Organisation**
 
 ### Requirement: Validate 1.5% allocation
 
@@ -553,7 +555,7 @@ The system SHOULD expose:
 - **THEN** the system rejects the value
 - **AND** displays the maximum allowed amount
 
-## Section K — Additional Information
+**Section K — Additional Information**
 
 ### Requirement: Support additional information
 
@@ -582,7 +584,7 @@ The system SHOULD expose:
 - **AND** records the previous value, new value, user, timestamp, and reason
 - **AND** optionally adds a note to field 68
 
-## Section L — Attachments
+**Section L — Attachments**
 
 ### Requirement: Track attachments
 
@@ -604,7 +606,7 @@ The system MUST calculate the expected number of attachments from the configured
 - **THEN** the system displays a warning
 - **AND** requires explicit confirmation before finalization
 
-## Section M — Refund Bank Account
+**Section M — Refund Bank Account**
 
 ### Requirement: Validate refund account
 
@@ -645,7 +647,7 @@ The system SHOULD expose:
 - **THEN** the system requires the country, currency, IBAN or local account number, and SWIFT/BIC where applicable
 - **AND** validates the required fields for that country
 
-## Section N — Karta Dużej Rodziny
+**Section N — Karta Dużej Rodziny**
 
 ### Requirement: Support KDR declaration
 
@@ -661,7 +663,7 @@ The system MUST NOT select this field automatically unless the taxpayer profile 
 - **THEN** the checkbox remains unselected
 - **AND** the system displays no automatic assumption
 
-## Section O — Signature
+**Section O — Signature**
 
 ### Requirement: Prepare signature data
 
@@ -685,7 +687,7 @@ The system MUST distinguish between:
 - **THEN** the export is marked incomplete
 - **AND** the system prevents the return from being represented as ready for submission
 
-## Field Mapping
+**Field Mapping**
 
 ### Requirement: Stable internal field identifiers
 
@@ -727,7 +729,7 @@ The implementation MUST NOT rely only on screen coordinates or OCR positions to 
 - **THEN** the internal field identifiers remain stable
 - **AND** only the form-version mapping requires modification
 
-## Validation
+**Validation**
 
 ### Requirement: Validate before export
 
@@ -764,7 +766,7 @@ The system MUST produce errors separately from warnings.
 - **AND** marks the document as requiring review
 - **AND** includes the warning in the audit report
 
-## Rounding and Numeric Precision
+**Rounding and Numeric Precision**
 
 ### Requirement: Preserve calculation precision
 
@@ -788,7 +790,7 @@ All monetary fields in the generated form MUST be represented in PLN with złoty
 - **AND** applies the configured rounding rule at the final required stage
 - **AND** records the rounding operation
 
-## Auditability
+**Auditability**
 
 ### Requirement: Calculation audit trail
 
@@ -813,7 +815,7 @@ The audit record MUST contain:
 - **THEN** the system shows how the value was derived
 - **AND** lists the source broker records and intermediate calculations
 
-## Privacy and Security
+**Privacy and Security**
 
 ### Requirement: Protect financial data
 
@@ -835,7 +837,7 @@ It MUST:
 - **THEN** sensitive values are masked
 - **AND** the log contains enough metadata to diagnose the issue without exposing financial data
 
-## Export
+**Export**
 
 ### Requirement: Generate a completed PIT-38 draft
 
@@ -869,7 +871,7 @@ The generated form MUST be clearly marked as:
 - **THEN** the system does not generate a final completed return
 - **AND** provides a structured error report
 
-## Reconciliation
+**Reconciliation**
 
 ### Requirement: Reconcile imported data with broker documents
 
@@ -898,9 +900,13 @@ The system SHOULD identify:
 - **AND** identifies the transactions causing the difference where possible
 - **AND** prevents silent finalization
 
-## Example End-to-End Scenario
+**Example End-to-End Scenario**
 
-### Scenario: Investor with Polish and foreign shares
+### Requirement: End-to-end draft preparation
+
+The system SHALL prepare a complete PIT-38 draft with an audit report from imported broker statements, as in the following example.
+
+#### Scenario: Investor with Polish and foreign shares
 
 - **GIVEN** an investor has:
   - Polish and foreign share sales;
