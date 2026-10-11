@@ -58,7 +58,7 @@ object ClassicSkin : Skin {
         Feature.OWN_CURRENCY_AND_USD to "Portfolio: Own currency / USD switch",
         Feature.TOP_MOVERS to "Portfolio: Today's top movers",
         Feature.DIVIDENDS_BY_YEAR_AND_MONTH to "Dividends tab",
-        Feature.PAYER_HISTORY to "Dividends: tap a position (sheet)",
+        Feature.PAYER_HISTORY to "Dividends: tap a position; position details: Dividend history",
         Feature.ACTIVITY_SEARCH_AND_FILTERS to "Operations tab",
         Feature.REPORT_IMPORT to "Imports tab",
         Feature.BACKUP_KEYS_AND_LOCATION to "Settings tab",
@@ -124,6 +124,7 @@ fun ClassicApp(states: AppStates, navController: NavHostController = rememberNav
                     onImportReport = { navController.navigateToTab(AppDestination.IMPORTS) },
                     onOpenSettings = { navController.navigateToTab(AppDestination.SETTINGS) },
                     onOpenDividends = { navController.navigateToTab(AppDestination.DIVIDENDS) },
+                    income = states.income,
                 )
             }
             composable(AppDestination.DIVIDENDS.route) {

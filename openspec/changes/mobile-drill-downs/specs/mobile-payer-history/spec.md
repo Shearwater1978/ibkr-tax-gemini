@@ -20,11 +20,15 @@ Tapping an instrument in the per-position income list of any skin SHALL open its
 - **THEN** each currency's history opens from its own line in the income list
 
 ### Requirement: Open a company's dividend history from its position
-In Bento, the gross-dividend and withholding-tax tiles of a position detail SHALL open that instrument's dividend history on the Income tab when the position has dividends, so that Back returns to Income. Without dividends the tiles SHALL NOT be tappable.
+Every skin SHALL open an instrument's dividend history from its position detail when the position has dividends. In Bento, the gross-dividend and withholding-tax tiles open it on the Income tab, so that Back returns to Income. Calm and Classic show a "Dividend history" link in the position sheet that replaces the sheet with the history; Focus shows the link in the position story and opens the history as a sheet. Positions without dividends SHALL NOT offer the link.
 
 #### Scenario: From the position detail
 - **WHEN** the user opens Apple from Home and taps "Dividends gross"
 - **THEN** the Income tab is active and shows Apple's dividend history
+
+#### Scenario: From a position sheet in Calm
+- **WHEN** the user opens Apple from Home in Calm and taps "Dividend history"
+- **THEN** Apple's dividend history replaces the position sheet
 
 ### Requirement: Open income from the 12-month dividend total
 Where a skin's portfolio screen shows the dividends of the last 12 months (Classic's summary card, Bento's dividends tile, Focus's "Last 12 months" card), tapping it SHALL open that skin's income screen.

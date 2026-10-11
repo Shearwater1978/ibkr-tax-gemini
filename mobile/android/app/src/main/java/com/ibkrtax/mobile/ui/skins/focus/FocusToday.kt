@@ -55,6 +55,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.fx.UsdConverter
 import com.ibkrtax.mobile.portfolio.Dividends
@@ -347,7 +349,7 @@ private fun HoldingRow(ticker: String, detail: String, onClick: () -> Unit = {},
 
 /** A position told in sentences (mobile-skin-focus "Position stories"). */
 @Composable
-fun FocusStory(state: PortfolioState, key: String, onBack: () -> Unit) {
+fun FocusStory(state: PortfolioState, income: IncomeState, key: String, onBack: () -> Unit) {
     val ui by state.ui.collectAsState()
     val data = ui as? PortfolioUiState.Loaded ?: return
     val (ticker, currency, isin) = key.split("|").let { Triple(it[0], it.getOrElse(1) { "" }, it.getOrElse(2) { "" }) }
@@ -383,7 +385,22 @@ fun FocusStory(state: PortfolioState, key: String, onBack: () -> Unit) {
                 }
             }
         }
-        StoryCard { Text(story[1].annotated(), fontSize = 16.sp, lineHeight = 24.sp) }
+        var history by remember { mutableStateOf(false) }
+        StoryCard {
+            Text(story[1].annotated(), fontSize = 16.sp, lineHeight = 24.sp)
+            if (p.dividends.gross.signum() != 0 || p.dividends.tax.signum() != 0) {
+                Text(
+                    stringResource(R.string.payer_history_title) + " ›",
+                    color = FocusColors.Deep, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 8.dp).clip(RoundedCornerShape(8.dp)).clickable { history = true }.padding(vertical = 6.dp),
+                )
+            }
+        }
+        if (history) {
+            val dividends by income.data.collectAsState()
+            LaunchedEffect(Unit) { income.reload() }
+            FocusPayerSheet(dividends?.events.orEmpty(), p.ticker, currency, onDismiss = { history = false })
+        }
         Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(22.dp)).background(FocusColors.Deep).padding(18.dp)) {
             Text(stringResource(R.string.focus_story_total), color = FocusColors.DeepMuted, fontSize = 14.sp)
             val total = p.total

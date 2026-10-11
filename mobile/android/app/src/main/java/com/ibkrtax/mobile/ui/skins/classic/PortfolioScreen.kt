@@ -57,13 +57,20 @@ import com.ibkrtax.mobile.prices.PriceSource
 import com.ibkrtax.mobile.prices.RefreshProgress
 import com.ibkrtax.mobile.prices.RefreshOutcome
 import com.ibkrtax.mobile.state.PortfolioState
+import com.ibkrtax.mobile.state.IncomeState
 import com.ibkrtax.mobile.state.PortfolioUiState
 import com.ibkrtax.mobile.ui.common.UiPreferences
 import com.ibkrtax.mobile.ui.Formats
 import java.math.BigDecimal
 
 @Composable
-fun PortfolioScreen(state: PortfolioState, onImportReport: () -> Unit, onOpenSettings: () -> Unit = {}, onOpenDividends: () -> Unit = {}) {
+fun PortfolioScreen(
+    state: PortfolioState,
+    onImportReport: () -> Unit,
+    onOpenSettings: () -> Unit = {},
+    onOpenDividends: () -> Unit = {},
+    income: IncomeState? = null,
+) {
     val ui by state.ui.collectAsState()
     val progress by state.progress.collectAsState()
     // Show cached data at once, then refresh when the page opens or the user asks.
@@ -76,7 +83,7 @@ fun PortfolioScreen(state: PortfolioState, onImportReport: () -> Unit, onOpenSet
         is PortfolioUiState.Incomplete -> Centered {
             Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center)
         }
-        is PortfolioUiState.Loaded -> Positions(current, progress, onRefresh = state::refresh, onOpenSettings = onOpenSettings, onOpenDividends = onOpenDividends)
+        is PortfolioUiState.Loaded -> Positions(current, progress, onRefresh = state::refresh, onOpenSettings = onOpenSettings, onOpenDividends = onOpenDividends, income = income)
     }
 }
 
@@ -111,7 +118,14 @@ private fun signColor(value: BigDecimal?): Color =
     }
 
 @Composable
-private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?, onRefresh: () -> Unit, onOpenSettings: () -> Unit, onOpenDividends: () -> Unit) {
+private fun Positions(
+    state: PortfolioUiState.Loaded,
+    progress: RefreshProgress?,
+    onRefresh: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenDividends: () -> Unit,
+    income: IncomeState?,
+) {
     var sort by remember { mutableStateOf(SortOrder()) }
     var mode by rememberSaveable { mutableStateOf(PnlMode.DAILY) }
     val context = LocalContext.current
@@ -121,7 +135,12 @@ private fun Positions(state: PortfolioUiState.Loaded, progress: RefreshProgress?
     var details by remember { mutableStateOf<PositionPerformance?>(null) }
     val sold = state.performance.filter { it.isSold }
 
-    details?.let { PositionDetailsSheet(it, onDismiss = { details = null }) }
+    // The dividend history replaces the details sheet (mobile-payer-history).
+    var history by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val dividends = income?.data?.collectAsState()?.value
+    LaunchedEffect(income) { income?.reload() }
+    details?.let { p -> PositionDetailsSheet(p, onDismiss = { details = null }, onHistory = { details = null; history = p.ticker to p.currency }) }
+    history?.let { (t, c) -> PayerHistorySheet(dividends?.events.orEmpty(), t, c, onDismiss = { history = null }) }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
         item { Header(state, progress, onRefresh, onOpenSettings, onOpenDividends) }
