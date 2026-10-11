@@ -9,7 +9,7 @@ The main page SHALL offer a switch between "Own currency" (the default) and "USD
 
 #### Scenario: USD mode
 - **WHEN** the user selects "USD"
-- **THEN** every position's values are shown in USD with an approximate label and the NBP rate date, and positions already in USD are unchanged
+- **THEN** every position's values are shown in USD with an approximate label and the rate date, and positions already in USD are unchanged
 
 #### Scenario: Back to own currency
 - **WHEN** the user selects "Own currency"

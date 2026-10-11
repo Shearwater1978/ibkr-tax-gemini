@@ -16,6 +16,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import com.ibkrtax.mobile.ui.common.YearChoices
+import androidx.compose.runtime.remember
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -92,7 +96,22 @@ private fun DividendContent(data: DividendData) {
     val locale = Locale.getDefault()
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-        years.forEach { y -> FilterChip(selected = y == selected, onClick = { selected = y }, label = { Text(y.toString()) }) }
+        val choices = YearChoices.of(years)
+        choices.direct.forEach { y -> FilterChip(selected = y == selected, onClick = { selected = y }, label = { Text(y.toString()) }) }
+        if (choices.older.isNotEmpty()) {
+            Box {
+                var open by remember { mutableStateOf(false) }
+                val olderSelected = selected in choices.older
+                FilterChip(
+                    selected = olderSelected,
+                    onClick = { open = true },
+                    label = { Text((if (olderSelected) selected.toString() else stringResource(R.string.year_older)) + " ▾") },
+                )
+                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                    choices.older.forEach { y -> DropdownMenuItem(text = { Text(y.toString()) }, onClick = { selected = y; open = false }) }
+                }
+            }
+        }
     }
 
     // Year totals in USD.

@@ -24,7 +24,7 @@ Amounts SHALL be added up only within the same currency. Totals per month and pe
 
 #### Scenario: Dividends in two currencies
 - **WHEN** the selected year has dividends in USD and in EUR
-- **THEN** the app lists the USD and EUR totals separately and shows one approximate USD total with the NBP rate date
+- **THEN** the app lists the USD and EUR totals separately and shows one approximate USD total with the rate date
 
 #### Scenario: No rate for a currency
 - **WHEN** no NBP rate exists for a dividend currency
