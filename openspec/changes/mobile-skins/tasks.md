@@ -12,7 +12,7 @@
 
 ## 3. Bento (PR 3)
 
-- [ ] 3.1 Build the Bento skin (tiles, holdings with weight, position detail, Income comparison, Data screen) and verify on the emulator against `mobile-skin-bento`, including that the last list row scrolls above the tab bar.
+- [x] 3.1 Build the Bento skin (tiles, holdings with weight, position detail, Income comparison, Data screen) and verify on the emulator against `mobile-skin-bento`, including that the last list row scrolls above the tab bar.
 
 ## 4. Focus (PR 4)
 

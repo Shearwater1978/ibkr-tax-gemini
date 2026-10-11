@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ibkrtax.mobile.R
+import com.ibkrtax.mobile.ui.common.skinMoney
 import com.ibkrtax.mobile.state.ActivityState
 import com.ibkrtax.mobile.storage.Operation
 import com.ibkrtax.mobile.storage.OperationFilter
@@ -125,7 +126,7 @@ private fun ActivityRow(op: Operation) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(OperationDisplay.amount(op), fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = if (op.eventType == "DIVIDEND") CalmColors.Gain else CalmColors.Ink)
-            if (op.fee.signum() != 0) Text(stringResource(R.string.operations_commission, calmMoney(op.fee.abs(), op.currency)), color = CalmColors.Muted, fontSize = 12.sp)
+            if (op.fee.signum() != 0) Text(stringResource(R.string.operations_commission, skinMoney(op.fee.abs(), op.currency)), color = CalmColors.Muted, fontSize = 12.sp)
         }
     }
     HorizontalDivider(color = CalmColors.Line)

@@ -3,11 +3,12 @@ package com.ibkrtax.mobile.ui.skins
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ibkrtax.mobile.state.AppStates
+import com.ibkrtax.mobile.ui.skins.bento.BentoSkin
 import com.ibkrtax.mobile.ui.skins.calm.CalmSkin
 import com.ibkrtax.mobile.ui.skins.classic.ClassicSkin
 
 /** Stored by name; never rename an entry, or users of it fall back to Classic. */
-enum class SkinId { CLASSIC, CALM }
+enum class SkinId { CLASSIC, CALM, BENTO }
 
 /** Everything every skin must reach, directly or behind taps (mobile-skins "Keep feature parity"). */
 enum class Feature {
@@ -47,7 +48,7 @@ interface Skin {
 }
 
 object SkinCatalog {
-    val skins: List<Skin> = listOf(ClassicSkin, CalmSkin)
+    val skins: List<Skin> = listOf(ClassicSkin, CalmSkin, BentoSkin)
 
     val default: Skin = ClassicSkin
 
