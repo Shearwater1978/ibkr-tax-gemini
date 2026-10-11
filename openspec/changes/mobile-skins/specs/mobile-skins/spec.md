@@ -55,7 +55,7 @@ Every skin SHALL give access, directly or behind taps, to:
 - deleting imports;
 - the app version.
 
-Data-related wording that the specs require SHALL appear in every skin. This covers approximate USD labels, NBP rate dates, price freshness, incomplete markers, and "informational" notes on profit figures.
+Data-related wording that the specs require SHALL appear in every skin. This covers approximate USD labels, exchange-rate dates, price freshness, incomplete markers, and "informational" notes on profit figures.
 
 #### Scenario: Feature reachable in every skin
 - **WHEN** a feature from the list is checked in each skin

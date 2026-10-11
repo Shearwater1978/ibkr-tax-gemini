@@ -13,7 +13,7 @@ Calm SHALL use three bottom tabs: Home, Income and Activity. Report import SHALL
 
 ### Requirement: Calm home
 Home SHALL show:
-- the portfolio value in USD, with an information button explaining the NBP conversion and price sources;
+- the portfolio value in USD, with an information button explaining the currency conversion and price sources;
 - today's change as a coloured chip;
 - a "Total return" line that opens a breakdown sheet with price gain, gains from sales and net dividends;
 - the holdings as one row per position, with name, shares, listing exchange, value and today's change.
