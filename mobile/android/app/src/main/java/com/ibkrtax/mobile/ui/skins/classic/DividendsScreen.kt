@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.portfolio.DividendAmounts
+import com.ibkrtax.mobile.portfolio.CashEvent
 import com.ibkrtax.mobile.portfolio.Dividends
 import com.ibkrtax.mobile.state.DividendData
 import com.ibkrtax.mobile.state.IncomeState
@@ -190,19 +191,24 @@ private fun DividendContent(data: DividendData) {
         )
     }
 
-    payer?.let { (ticker, currency) ->
-        ModalBottomSheet(onDismissRequest = { payer = null }) {
-            val history = Dividends.history(data.events, ticker, currency)
-            Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-                Text("$ticker · " + stringResource(R.string.payer_history_title), style = MaterialTheme.typography.titleLarge)
-                Text(
-                    stringResource(R.string.payer_history_subtitle, currency, pluralStringResource(R.plurals.payer_history_count, history.lines.size, history.lines.size)),
-                    style = muted,
-                )
-                SectionTitle(stringResource(R.string.payer_history_totals))
-                AmountsLine(currency, history.total, currency)
-                history.lines.forEach { line -> AmountsLine(line.date, line.amounts, currency) }
-            }
+    payer?.let { (ticker, currency) -> PayerHistorySheet(data.events, ticker, currency, onDismiss = { payer = null }) }
+}
+
+/** One company's dividend history over all years (mobile-payer-history). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun PayerHistorySheet(events: List<CashEvent>, ticker: String, currency: String, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        val history = Dividends.history(events, ticker, currency)
+        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
+            Text("$ticker · " + stringResource(R.string.payer_history_title), style = MaterialTheme.typography.titleLarge)
+            Text(
+                stringResource(R.string.payer_history_subtitle, currency, pluralStringResource(R.plurals.payer_history_count, history.lines.size, history.lines.size)),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            SectionTitle(stringResource(R.string.payer_history_totals))
+            AmountsLine(currency, history.total, currency)
+            history.lines.forEach { line -> AmountsLine(line.date, line.amounts, currency) }
         }
     }
 }

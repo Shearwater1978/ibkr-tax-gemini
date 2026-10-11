@@ -11,6 +11,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,7 +26,7 @@ import java.math.BigDecimal
 /** Per-position breakdown in the position's own currency (mobile-position-performance spec). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PositionDetailsSheet(position: PositionPerformance, onDismiss: () -> Unit) {
+fun PositionDetailsSheet(position: PositionPerformance, onDismiss: () -> Unit, onHistory: () -> Unit = {}) {
     val currency = position.currency
     val unavailable = stringResource(R.string.details_unavailable)
     fun money(value: BigDecimal?) = value?.let { Formats.money(it, currency) } ?: unavailable
@@ -58,6 +59,9 @@ fun PositionDetailsSheet(position: PositionPerformance, onDismiss: () -> Unit) {
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (position.dividends.gross.signum() != 0 || position.dividends.tax.signum() != 0) {
+                TextButton(onClick = onHistory) { Text(stringResource(R.string.payer_history_title) + " ›") }
+            }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             val total = position.total
             val percent = position.totalPercent?.let { " (" + Formats.signedPercent(it) + ")" }.orEmpty()

@@ -203,9 +203,9 @@ private fun IncomeContent(data: DividendData) {
 
 /** A payer's bookings over all years, newest first, with totals (mobile-payer-history). */
 @Composable
-private fun PayerHistorySheet(history: PayerHistory) {
+internal fun PayerHistorySheet(history: PayerHistory, modifier: Modifier = Modifier.padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
     val cur = history.currency
-    Column(Modifier.padding(horizontal = 22.dp).padding(bottom = 30.dp).verticalScroll(rememberScrollState())) {
+    Column(modifier.verticalScroll(rememberScrollState())) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TickerTile(history.ticker)
             Column(Modifier.padding(start = 12.dp)) {

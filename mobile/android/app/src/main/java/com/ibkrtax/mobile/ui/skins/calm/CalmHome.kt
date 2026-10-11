@@ -1,5 +1,7 @@
 package com.ibkrtax.mobile.ui.skins.calm
 
+import com.ibkrtax.mobile.state.IncomeState
+import com.ibkrtax.mobile.portfolio.Dividends
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -79,6 +81,7 @@ private sealed interface CalmSheet {
     data object Info : CalmSheet
     data object Return : CalmSheet
     data class Position(val key: String) : CalmSheet
+    data class History(val ticker: String, val currency: String) : CalmSheet
 }
 
 internal fun signColor(value: BigDecimal?): Color = when (value?.signum()) {
@@ -100,7 +103,7 @@ internal fun Chip(text: String, background: Color, color: Color) {
 }
 
 @Composable
-fun CalmHome(state: PortfolioState, onImport: () -> Unit, onSettings: () -> Unit) {
+fun CalmHome(state: PortfolioState, income: IncomeState, onImport: () -> Unit, onSettings: () -> Unit) {
     val ui by state.ui.collectAsState()
     val progress by state.progress.collectAsState()
     LaunchedEffect(Unit) { state.refresh() }
@@ -115,7 +118,7 @@ fun CalmHome(state: PortfolioState, onImport: () -> Unit, onSettings: () -> Unit
             Text(stringResource(R.string.portfolio_empty_body), color = CalmColors.Muted, modifier = Modifier.padding(vertical = 10.dp))
             Button(onClick = onImport) { Text(stringResource(R.string.calm_add_reports)) }
         }
-        is PortfolioUiState.Loaded -> Loaded(current, progress?.let { "${it.done} / ${it.total}" }, state::refresh, onImport, onSettings)
+        is PortfolioUiState.Loaded -> Loaded(current, progress?.let { "${it.done} / ${it.total}" }, income, state::refresh, onImport, onSettings)
     }
 }
 
@@ -138,7 +141,9 @@ private fun TopRow(onImport: () -> Unit, onSettings: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Loaded(data: PortfolioUiState.Loaded, progress: String?, onRefresh: () -> Unit, onImport: () -> Unit, onSettings: () -> Unit) {
+private fun Loaded(data: PortfolioUiState.Loaded, progress: String?, income: IncomeState, onRefresh: () -> Unit, onImport: () -> Unit, onSettings: () -> Unit) {
+    val dividends by income.data.collectAsState()
+    LaunchedEffect(Unit) { income.reload() }
     val context = LocalContext.current
     var sort by rememberSaveable { mutableStateOf(CalmSort.VALUE) }
     var usd by remember { mutableStateOf(UiPreferences.usdView(context)) }
@@ -230,11 +235,12 @@ private fun Loaded(data: PortfolioUiState.Loaded, progress: String?, onRefresh: 
                     )
                     CalmSheet.Info -> InfoSheet(data)
                     CalmSheet.Return -> ReturnSheet(data)
+                    is CalmSheet.History -> PayerHistorySheet(Dividends.history(dividends?.events.orEmpty(), current.ticker, current.currency), Modifier)
                     is CalmSheet.Position -> {
                         val (ticker, currency, isin) = current.key.split("|")
                         val position = if (isin == "sold") data.performance.firstOrNull { it.isSold && it.ticker == ticker && it.currency == currency }
                         else data.performance.firstOrNull { it.row?.ticker == ticker && it.row.currency == currency && it.row.holding.isin == isin }
-                        position?.let { PositionSheet(it) }
+                        position?.let { p -> PositionSheet(p, onHistory = { sheet = CalmSheet.History(p.ticker, p.currency) }) }
                     }
                 }
             }
@@ -396,7 +402,7 @@ private fun LegendLine(label: String, value: String, dot: Color? = null) {
 }
 
 @Composable
-private fun PositionSheet(p: PositionPerformance) {
+private fun PositionSheet(p: PositionPerformance, onHistory: () -> Unit) {
     val cur = p.currency
     Row(verticalAlignment = Alignment.CenterVertically) {
         TickerTile(p.ticker, 48)
@@ -454,6 +460,13 @@ private fun PositionSheet(p: PositionPerformance) {
         stringResource(R.string.dividends_line, skinMoney(p.dividends.gross, cur), skinMoney(p.dividends.tax, cur)),
         color = CalmColors.Muted, fontSize = 12.sp,
     )
+    if (p.dividends.gross.signum() != 0 || p.dividends.tax.signum() != 0) {
+        Text(
+            stringResource(R.string.payer_history_title) + " ›",
+            color = CalmColors.Accent, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clickable(onClick = onHistory).padding(vertical = 8.dp),
+        )
+    }
     if (!p.realizedComplete) Text(stringResource(R.string.details_sales_incomplete), color = CalmColors.Muted, fontSize = 12.sp)
     Text(stringResource(R.string.details_note), color = CalmColors.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
 }

@@ -119,7 +119,7 @@ object FocusSkin : Skin {
         Feature.OWN_CURRENCY_AND_USD to "+ menu: Show amounts in",
         Feature.TOP_MOVERS to "Today: Biggest move card; holdings Rising / Falling today",
         Feature.DIVIDENDS_BY_YEAR_AND_MONTH to "Income: year pills and monthly timeline with tax",
-        Feature.PAYER_HISTORY to "Income: tap a payment (sheet)",
+        Feature.PAYER_HISTORY to "Income: tap a payment; story: Dividend history (sheet)",
         Feature.ACTIVITY_SEARCH_AND_FILTERS to "+ menu: Activity and operations",
         Feature.REPORT_IMPORT to "+ menu: Add reports",
         Feature.BACKUP_KEYS_AND_LOCATION to "+ menu: Security and recovery code",
@@ -208,7 +208,7 @@ private fun FocusNavigation(states: AppStates, nav: NavHostController = remember
                 )
             }
             composable(FocusRoute.HOLDINGS) { FocusHoldings(states.portfolio, usd, onOpen = { nav.navigate(FocusRoute.story(it)) }, onBack = { nav.popBackStack() }) }
-            composable(FocusRoute.STORY) { e -> FocusStory(states.portfolio, e.arguments?.getString("key").orEmpty(), onBack = { nav.popBackStack() }) }
+            composable(FocusRoute.STORY) { e -> FocusStory(states.portfolio, states.income, e.arguments?.getString("key").orEmpty(), onBack = { nav.popBackStack() }) }
             composable(FocusRoute.INCOME) { FocusIncome(states.income, onImport = { nav.navigate(FocusRoute.IMPORT) }) }
             composable(FocusRoute.ACTIVITY) { FocusActivity(states.activity, onBack = { nav.popBackStack() }, onImport = { nav.navigate(FocusRoute.IMPORT) }) }
             composable(FocusRoute.IMPORT) { ImportsScreen(states.data) }

@@ -101,7 +101,7 @@ object CalmSkin : Skin {
         Feature.OWN_CURRENCY_AND_USD to "Home: View > Amounts in",
         Feature.TOP_MOVERS to "Home: View > Sort by today",
         Feature.DIVIDENDS_BY_YEAR_AND_MONTH to "Income tab",
-        Feature.PAYER_HISTORY to "Income: tap a payer (sheet)",
+        Feature.PAYER_HISTORY to "Income: tap a payer; position sheet: Dividend history",
         Feature.ACTIVITY_SEARCH_AND_FILTERS to "Activity tab",
         Feature.REPORT_IMPORT to "Home: + button",
         Feature.BACKUP_KEYS_AND_LOCATION to "Home: avatar > Settings",
@@ -184,7 +184,7 @@ private fun CalmNavigation(states: AppStates, nav: NavHostController = rememberN
     ) { padding ->
         NavHost(nav, startDestination = CalmRoute.HOME.route, modifier = Modifier.padding(padding).fillMaxSize()) {
             composable(CalmRoute.HOME.route) {
-                CalmHome(states.portfolio, onImport = { nav.navigate(CalmRoute.IMPORT.route) }, onSettings = { nav.navigate(CalmRoute.SETTINGS.route) })
+                CalmHome(states.portfolio, states.income, onImport = { nav.navigate(CalmRoute.IMPORT.route) }, onSettings = { nav.navigate(CalmRoute.SETTINGS.route) })
             }
             composable(CalmRoute.INCOME.route) { CalmIncome(states.income, onImport = { nav.navigate(CalmRoute.IMPORT.route) }) }
             composable(CalmRoute.ACTIVITY.route) { CalmActivity(states.activity, onImport = { nav.navigate(CalmRoute.IMPORT.route) }) }

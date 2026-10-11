@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ibkrtax.mobile.R
+import com.ibkrtax.mobile.portfolio.CashEvent
 import com.ibkrtax.mobile.portfolio.Dividends
 import com.ibkrtax.mobile.state.IncomeState
 import com.ibkrtax.mobile.ui.common.YearChoices
@@ -132,33 +133,37 @@ fun FocusIncome(state: IncomeState, onImport: () -> Unit) {
         item { Spacer(Modifier.height(24.dp)) }
     }
 
-    payer?.let { (ticker, currency) ->
-        val events = current?.events.orEmpty()
-        ModalBottomSheet(onDismissRequest = { payer = null }, containerColor = FocusColors.Page) {
-            val history = Dividends.history(events, ticker, currency)
-            Column(Modifier.padding(horizontal = 22.dp).padding(bottom = 30.dp).verticalScroll(rememberScrollState())) {
-                Text("$ticker · " + stringResource(R.string.payer_history_title), fontFamily = Serif, fontSize = 22.sp)
-                Text(
-                    stringResource(R.string.payer_history_subtitle, currency, pluralStringResource(R.plurals.payer_history_count, history.lines.size, history.lines.size)),
-                    color = FocusColors.Muted, fontSize = 13.sp,
-                )
-                Text(stringResource(R.string.calm_net, skinMoney(history.total.net, currency)), fontFamily = Serif, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp))
-                Text(stringResource(R.string.dividends_line, skinMoney(history.total.gross, currency), skinMoney(history.total.tax, currency)), color = FocusColors.Muted, modifier = Modifier.padding(bottom = 8.dp))
-                history.lines.forEach { line ->
-                    val a = line.amounts
-                    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(line.date, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                if (a.gross.signum() == 0) stringResource(R.string.payer_history_tax_only, skinMoney(a.tax, currency))
-                                else stringResource(R.string.dividends_line, skinMoney(a.gross, currency), skinMoney(a.tax, currency)),
-                                color = FocusColors.Muted, fontSize = 12.sp,
-                            )
-                        }
-                        Text(skinMoney(a.net, currency), fontWeight = FontWeight.SemiBold)
+    payer?.let { (ticker, currency) -> FocusPayerSheet(current?.events.orEmpty(), ticker, currency, onDismiss = { payer = null }) }
+}
+
+/** One company's dividend history over all years (mobile-payer-history). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun FocusPayerSheet(events: List<CashEvent>, ticker: String, currency: String, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = FocusColors.Page) {
+        val history = Dividends.history(events, ticker, currency)
+        Column(Modifier.padding(horizontal = 22.dp).padding(bottom = 30.dp).verticalScroll(rememberScrollState())) {
+            Text("$ticker · " + stringResource(R.string.payer_history_title), fontFamily = Serif, fontSize = 22.sp)
+            Text(
+                stringResource(R.string.payer_history_subtitle, currency, pluralStringResource(R.plurals.payer_history_count, history.lines.size, history.lines.size)),
+                color = FocusColors.Muted, fontSize = 13.sp,
+            )
+            Text(stringResource(R.string.calm_net, skinMoney(history.total.net, currency)), fontFamily = Serif, fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp))
+            Text(stringResource(R.string.dividends_line, skinMoney(history.total.gross, currency), skinMoney(history.total.tax, currency)), color = FocusColors.Muted, modifier = Modifier.padding(bottom = 8.dp))
+            history.lines.forEach { line ->
+                val a = line.amounts
+                Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(line.date, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (a.gross.signum() == 0) stringResource(R.string.payer_history_tax_only, skinMoney(a.tax, currency))
+                            else stringResource(R.string.dividends_line, skinMoney(a.gross, currency), skinMoney(a.tax, currency)),
+                            color = FocusColors.Muted, fontSize = 12.sp,
+                        )
                     }
-                    HorizontalDivider(color = FocusColors.Line)
+                    Text(skinMoney(a.net, currency), fontWeight = FontWeight.SemiBold)
                 }
+                HorizontalDivider(color = FocusColors.Line)
             }
         }
     }

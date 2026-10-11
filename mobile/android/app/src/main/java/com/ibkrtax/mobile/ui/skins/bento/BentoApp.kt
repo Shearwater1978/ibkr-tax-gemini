@@ -124,7 +124,7 @@ object BentoSkin : Skin {
         Feature.OWN_CURRENCY_AND_USD to "Home: USD / Own currency pill",
         Feature.TOP_MOVERS to "Home: Best and Worst today tiles; sort by today",
         Feature.DIVIDENDS_BY_YEAR_AND_MONTH to "Income tab",
-        Feature.PAYER_HISTORY to "Income: tap a payer",
+        Feature.PAYER_HISTORY to "Income: tap a payer; position: dividend tiles",
         Feature.ACTIVITY_SEARCH_AND_FILTERS to "Activity tab",
         Feature.REPORT_IMPORT to "Data tab: Add reports",
         Feature.BACKUP_KEYS_AND_LOCATION to "Data tab: Settings",
