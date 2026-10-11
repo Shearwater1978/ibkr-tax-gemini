@@ -218,10 +218,25 @@ private fun BentoNavigation(states: AppStates, nav: NavHostController = remember
     }
 }
 
-private fun NavHostController.tab(route: String) = navigate(route) {
-    popUpTo(graph.findStartDestination().id) { saveState = true }
-    launchSingleTop = true
-    restoreState = true
+private fun NavHostController.tab(route: String) {
+    // Leave a detail screen first, so a tab always opens on its first screen; otherwise the
+    // detail would be saved with the tab and restored when the tab is tapped (e.g. Home on a position).
+    val current = currentDestination?.route
+    val owner = tabOf(current)
+    if (owner != null && owner != current) popBackStack(owner, inclusive = false)
+    if (owner == route) return
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+/** The tab a screen belongs to; detail screens belong to the tab they open from. */
+private fun tabOf(route: String?): String? = when (route) {
+    BentoRoute.POSITION -> BentoRoute.HOME
+    BentoRoute.PAYER -> BentoRoute.INCOME
+    else -> route
 }
 
 @Composable
@@ -237,7 +252,7 @@ private fun TabBar(current: String?, onTab: (String) -> Unit, modifier: Modifier
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         tabs.forEach { (route, label) ->
-            val on = current == route || (route == BentoRoute.HOME && current == BentoRoute.POSITION) || (route == BentoRoute.INCOME && current == BentoRoute.PAYER)
+            val on = tabOf(current) == route
             Text(
                 label,
                 color = if (on) BentoColors.Page else BentoColors.Muted,
