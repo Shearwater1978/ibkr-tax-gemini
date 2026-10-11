@@ -25,3 +25,10 @@ In Bento, the gross-dividend and withholding-tax tiles of a position detail SHAL
 #### Scenario: From the position detail
 - **WHEN** the user opens Apple from Home and taps "Dividends gross"
 - **THEN** the Income tab is active and shows Apple's dividend history
+
+### Requirement: Open income from the 12-month dividend total
+Where a skin's portfolio screen shows the dividends of the last 12 months (Classic's summary card, Bento's dividends tile, Focus's "Last 12 months" card), tapping it SHALL open that skin's income screen.
+
+#### Scenario: Classic summary card
+- **WHEN** the user taps "Dividends, 12 months" on Classic's Portfolio tab
+- **THEN** the Dividends tab opens
