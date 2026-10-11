@@ -1,6 +1,7 @@
 package com.ibkrtax.mobile.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,12 +35,13 @@ data class BarGroup(val label: String, val bars: List<ChartBar>, val valueLabel:
  * empty bars; the shared scale is the largest value in the chart.
  */
 @Composable
-fun BarChart(groups: List<BarGroup>, modifier: Modifier = Modifier, height: Dp = 140.dp) {
+fun BarChart(groups: List<BarGroup>, modifier: Modifier = Modifier, height: Dp = 140.dp, onGroupClick: ((Int) -> Unit)? = null) {
     val max = groups.flatMap { it.bars }.maxOfOrNull { it.value }?.takeIf { it > 0 } ?: 1.0
     val small = MaterialTheme.typography.labelSmall
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        groups.forEach { group ->
-            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+        groups.forEachIndexed { index, group ->
+            val click = onGroupClick?.let { Modifier.clickable { it(index) } } ?: Modifier
+            Column(modifier = Modifier.weight(1f).then(click), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(group.valueLabel.orEmpty(), style = small, maxLines = 1, overflow = TextOverflow.Clip, textAlign = TextAlign.Center)
                 Row(modifier = Modifier.height(height).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
                     group.bars.forEach { bar ->

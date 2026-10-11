@@ -35,7 +35,8 @@ data class MonthDividends(val month: Int, val byCurrency: Map<String, DividendAm
 data class PositionDividends(val ticker: String, val currency: String, val amounts: DividendAmounts, val usdNet: BigDecimal?)
 
 data class YearDividends(
-    val year: Int,
+    /** Null for all years together. */
+    val year: Int?,
     /** Always twelve entries, January first. */
     val months: List<MonthDividends>,
     val byCurrency: Map<String, DividendAmounts>,
@@ -67,8 +68,11 @@ object Dividends {
         return if (months.isEmpty()) null else months.min() to months.max()
     }
 
-    fun year(events: List<CashEvent>, year: Int, rates: FxRates?): YearDividends {
-        val inYear = events.filter { it.month?.year == year }
+    fun year(events: List<CashEvent>, year: Int, rates: FxRates?): YearDividends = period(events, year, rates)
+
+    /** Like [year]; a null [year] adds every year together (months then sum across years). */
+    fun period(events: List<CashEvent>, year: Int?, rates: FxRates?): YearDividends {
+        val inYear = events.filter { it.month != null && (year == null || it.month?.year == year) }
         val byCurrency = sumByCurrency(inYear)
         val months = (1..12).map { month ->
             val amounts = sumByCurrency(inYear.filter { it.month?.monthValue == month })
@@ -88,6 +92,20 @@ object Dividends {
             positions = positions,
             rateDate = rates?.effectiveDate?.takeIf { byCurrency.keys.any { it != USD && rates.toUsd(BigDecimal.ONE, it) != null } },
         )
+    }
+
+    /**
+     * Net USD change of [year] against the year before, in percent; for the year that is still
+     * running ([today]'s year) only the months up to [today]'s month are compared. Null when the
+     * year before has no net dividends.
+     */
+    fun changeFromYearBefore(events: List<CashEvent>, year: Int, rates: FxRates?, today: java.time.LocalDate): BigDecimal? {
+        val lastMonth = if (year == today.year) today.monthValue else 12
+        fun net(y: Int) = year(events, y, rates).months.filter { it.month <= lastMonth }
+            .fold(BigDecimal.ZERO) { sum, m -> sum.add(m.usdNet.amount, PY) }
+        val before = net(year - 1)
+        if (before.signum() <= 0) return null
+        return net(year).subtract(before, PY).divide(before, PY).multiply(BigDecimal(100), PY)
     }
 
     /** Net USD per month (twelve entries) for each of up to [count] most recent years, oldest year first. */

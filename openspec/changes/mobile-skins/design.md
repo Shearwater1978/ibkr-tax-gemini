@@ -51,8 +51,10 @@ interface Skin {
 - Switching is a state change at the root (`skin` as Compose state), so the new skin draws at once with the same holders. No activity restart and no new lock.
 
 ### Previews
-- The picker shows small rendered previews: the skin's own home composable at reduced scale, fed by a fixed synthetic state. This avoids screenshots in resources, and previews never show the user's data.
-- **Alternative considered:** static PNG previews. Not chosen: they go stale when a skin changes.
+- Each skin draws a small thumbnail of its own layout (`Skin.Preview`) from shapes in its own colours: no data at all, so previews can never show the user's portfolio, and no images in resources.
+- **Alternatives considered:**
+  - the skin's real home screen at reduced scale, fed by synthetic state. Not chosen: it is heavier to lay out at thumbnail size and gains little at that scale;
+  - static PNG previews. Not chosen: they go stale when a skin changes.
 
 ### Fonts and colours
 - Focus uses `FontFamily.Serif`, the system serif, for headlines. No font files are bundled.
@@ -65,7 +67,7 @@ interface Skin {
 
 ## Risks / Trade-offs
 
-- [Four UIs to maintain] → Shared state holders and `ui/common` keep each skin to layout code. A parity checklist test (every `AppStates` action reachable) runs per skin.
+- [Four UIs to maintain] → Shared state holders and `ui/common` keep each skin to layout code. Each skin declares where every `Feature` lives, and a unit test fails if a skin leaves one out; the declarations are reviewed with each skin PR.
 - [Refactor regressions in Classic] → PR 1 changes data plumbing only. Emulator checks compare Classic screens before and after, using the same synthetic data.
 - [Bento's floating bar hides content] → Bottom content padding equals the bar height plus margin, which the Bento spec requires.
 - [Large PRs] → Split as described below. Each skin PR stays under about 1,500 lines by reusing `ui/common`.

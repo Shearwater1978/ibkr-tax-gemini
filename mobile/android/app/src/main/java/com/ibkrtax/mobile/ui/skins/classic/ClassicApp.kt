@@ -30,17 +30,66 @@ import com.ibkrtax.mobile.state.AppStates
 import com.ibkrtax.mobile.ui.common.ImportsScreen
 import com.ibkrtax.mobile.ui.common.SettingsScreen
 import com.ibkrtax.mobile.ui.skins.Skin
+import com.ibkrtax.mobile.ui.skins.Feature
 import com.ibkrtax.mobile.ui.skins.SkinId
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /** Today's UI: five tabs, the positions table and full detail (mobile-skins spec, Classic). */
 object ClassicSkin : Skin {
     override val id = SkinId.CLASSIC
     override val nameRes = R.string.skin_classic_name
     override val descriptionRes = R.string.skin_classic_description
+    override val features = mapOf(
+        Feature.PORTFOLIO_VALUE_AND_TODAY to "Portfolio: summary cards",
+        Feature.POSITION_DETAILS to "Portfolio: tap a row",
+        Feature.SOLD_POSITIONS to "Portfolio: Show sold positions",
+        Feature.OWN_CURRENCY_AND_USD to "Portfolio: Own currency / USD switch",
+        Feature.TOP_MOVERS to "Portfolio: Today's top movers",
+        Feature.DIVIDENDS_BY_YEAR_AND_MONTH to "Dividends tab",
+        Feature.ACTIVITY_SEARCH_AND_FILTERS to "Operations tab",
+        Feature.REPORT_IMPORT to "Imports tab",
+        Feature.BACKUP_KEYS_AND_LOCATION to "Settings tab",
+        Feature.PRICE_KEY to "Settings tab",
+        Feature.DELETE_IMPORTS to "Imports tab",
+        Feature.APP_VERSION to "Settings tab",
+        Feature.SKIN_SETTING to "Settings tab",
+    )
 
     @Composable
     override fun App(states: AppStates) {
         MaterialTheme { ClassicApp(states) }
+    }
+
+    /** A grey table: cards on top, then rows of five columns. */
+    @Composable
+    override fun Preview(modifier: Modifier) {
+        val line = MaterialTheme.colorScheme.outlineVariant
+        Column(modifier.clip(RoundedCornerShape(10.dp)).background(Color.White).padding(5.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                repeat(2) { Box(Modifier.weight(1f).height(14.dp).background(line, RoundedCornerShape(3.dp))) }
+            }
+            repeat(9) {
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    repeat(5) { Box(Modifier.weight(1f).height(4.dp).background(line)) }
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+                repeat(5) { Box(Modifier.size(5.dp).background(line, RoundedCornerShape(3.dp))) }
+            }
+        }
     }
 }
 

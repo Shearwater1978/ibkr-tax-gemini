@@ -8,6 +8,7 @@ object UiPreferences {
     private const val SHOW_SOLD = "show_sold_positions"
     private const val USD_VIEW = "usd_view"
     private const val SKIN = "skin"
+    private const val SKIN_NOTICE = "skin_notice_pending"
 
     private fun prefs(context: Context) = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
@@ -28,5 +29,12 @@ object UiPreferences {
 
     fun setSkin(context: Context, name: String) {
         prefs(context).edit().putString(SKIN, name).apply()
+    }
+
+    /** True after an update to the first version with skins, until the user saw the notice. */
+    fun skinNoticePending(context: Context): Boolean = prefs(context).getBoolean(SKIN_NOTICE, false)
+
+    fun setSkinNoticePending(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(SKIN_NOTICE, value).apply()
     }
 }
