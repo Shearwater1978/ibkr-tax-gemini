@@ -36,8 +36,8 @@ import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 
 /** Supported brokers (mobile-broker-choice spec). Stored by name; never rename an entry. */
-enum class BrokerId(val nameRes: Int, val formatRes: Int) {
-    INTERACTIVE_BROKERS(R.string.broker_ibkr_name, R.string.broker_ibkr_format),
+enum class BrokerId(val nameRes: Int, val formatRes: Int, val reportStepsRes: Int) {
+    INTERACTIVE_BROKERS(R.string.broker_ibkr_name, R.string.broker_ibkr_format, R.array.ibkr_report_steps),
     ;
 
     companion object {
