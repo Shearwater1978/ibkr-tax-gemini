@@ -127,7 +127,7 @@ object BentoSkin : Skin {
         Feature.REPORT_IMPORT to "Data tab: Add reports",
         Feature.BACKUP_KEYS_AND_LOCATION to "Data tab: Settings",
         Feature.PRICE_KEY to "Data tab: Settings",
-        Feature.DELETE_IMPORTS to "Data tab: Add reports (import screen)",
+        Feature.DELETE_IMPORTS to "Data tab: Reports imported or Delete imported data",
         Feature.APP_VERSION to "Data tab: Settings",
         Feature.SKIN_SETTING to "Data tab: Settings",
     )
@@ -165,6 +165,7 @@ internal object BentoRoute {
     const val ACTIVITY = "activity"
     const val DATA = "data"
     const val IMPORT = "import"
+    const val REPORTS = "reports"
     const val SETTINGS = "settings"
     const val POSITION = "position/{key}"
     const val PAYER = "payer/{ticker}/{currency}"
@@ -178,13 +179,23 @@ internal object BentoRoute {
 private fun BentoNavigation(states: AppStates, nav: NavHostController = rememberNavController()) {
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route
-    val withTopBar = route == BentoRoute.IMPORT || route == BentoRoute.SETTINGS
+    val withTopBar = route == BentoRoute.IMPORT || route == BentoRoute.REPORTS || route == BentoRoute.SETTINGS
     Scaffold(
         containerColor = BentoColors.Page,
         topBar = {
             if (withTopBar) {
                 TopAppBar(
-                    title = { Text(stringResource(if (route == BentoRoute.IMPORT) R.string.calm_add_reports else R.string.settings_title)) },
+                    title = {
+                        Text(
+                            stringResource(
+                                when (route) {
+                                    BentoRoute.IMPORT -> R.string.calm_add_reports
+                                    BentoRoute.REPORTS -> R.string.imports_history_title
+                                    else -> R.string.settings_title
+                                },
+                            ),
+                        )
+                    },
                     navigationIcon = {
                         @Suppress("DEPRECATION")
                         IconButton(onClick = { nav.popBackStack() }) { Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.calm_back)) }
@@ -203,8 +214,14 @@ private fun BentoNavigation(states: AppStates, nav: NavHostController = remember
                     BentoPayer(states.income, e.arguments?.getString("ticker").orEmpty(), e.arguments?.getString("currency").orEmpty(), onBack = { nav.popBackStack() })
                 }
                 composable(BentoRoute.ACTIVITY) { BentoActivity(states.activity, onImport = { nav.navigate(BentoRoute.IMPORT) }) }
-                composable(BentoRoute.DATA) { BentoData(states, onImport = { nav.navigate(BentoRoute.IMPORT) }, onSettings = { nav.navigate(BentoRoute.SETTINGS) }) }
+                composable(BentoRoute.DATA) { BentoData(
+                        states,
+                        onImport = { nav.navigate(BentoRoute.IMPORT) },
+                        onReports = { nav.navigate(BentoRoute.REPORTS) },
+                        onSettings = { nav.navigate(BentoRoute.SETTINGS) },
+                    ) }
                 composable(BentoRoute.IMPORT) { ImportsScreen(states.data) }
+                composable(BentoRoute.REPORTS) { ImportsScreen(states.data, reportsOnly = true) }
                 composable(BentoRoute.SETTINGS) { SettingsScreen() }
             }
             if (!withTopBar) {
