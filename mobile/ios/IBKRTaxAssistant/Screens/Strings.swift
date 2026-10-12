@@ -316,6 +316,48 @@ enum Strings {
     static let skinClassicName = "Classic"
     static let skinClassicDescription = "Every number on one screen: the full positions table, five tabs and all switches."
 
+    static let skinCalmName = "Calm"
+    static let skinCalmDescription = "Light and simple: your total, today's change and your holdings. Details open in sheets."
+    static let calmTabHome = "Home"
+    static let calmTabIncome = "Income"
+    static let calmTabActivity = "Activity"
+    static let calmAddReports = "Add reports"
+    static let calmPortfolioValue = "Portfolio value"
+    static let calmAboutValue = "About this number"
+    static func calmAboutValueBody(_ date: String) -> String {
+        "The total adds every holding in US dollars, converting other currencies at exchange rates of \(date). It is approximate and informational."
+    }
+    static let calmAboutSources = "US prices come from Finnhub with your key, or from Yahoo Finance without one; European prices always come from Yahoo Finance, about 15 minutes delayed."
+    static let calmToday = "today"
+    static let calmTotalReturn = "Total return"
+    static let calmInclSalesDividends = "incl. sales & dividends"
+    static let calmPricesUpdated = "Prices updated"
+    static let calmHoldings = "Holdings"
+    static let calmView = "View"
+    static let calmSold = "Sold"
+    static func calmShares(_ quantity: String) -> String { "\(quantity) shares" }
+    static let calmSortBy = "Sort by"
+    static let calmSortValue = "Value"
+    static let calmSortToday = "Today"
+    static let calmSortName = "A–Z"
+    static let calmAmountsIn = "Amounts in"
+    static let calmShowSold = "Show sold positions"
+    static let calmPriceGainHeld = "Price gain on what you hold"
+    static let calmDividendsAfterTax = "Dividends after tax"
+    static let calmAllYears = "All years"
+    static let calmDividendsThisYear = "Dividends received this year"
+    static func calmDividendsIn(_ year: Int) -> String { "Dividends received in \(year)" }
+    static let calmDividendsAll = "All dividends received"
+    static func calmAfterTax(_ tax: String) -> String { "after \(tax) withholding tax" }
+    static func calmVsYear(_ change: String, _ year: Int) -> String { "\(change) vs \(year)" }
+    static func calmNet(_ amount: String) -> String { "\(amount) net" }
+    static let calmNetShort = "net"
+    static let calmTopPayers = "Top payers"
+    static let calmVsLastYear = "vs last year"
+    static let calmSearch = "Search ticker"
+    static let calmAll = "All"
+    static func payerHistoryTaxOnly(_ amount: String) -> String { "withholding tax correction \(amount)" }
+
     static let brokerIbkrName = "Interactive Brokers"
     static let brokerIbkrFormat = "IBKR Activity Statement (CSV, English)"
     static let brokerQuestion = "Which broker are your reports from?"

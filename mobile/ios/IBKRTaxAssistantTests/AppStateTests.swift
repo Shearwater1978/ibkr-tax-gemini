@@ -9,7 +9,7 @@ final class AppStateTests: XCTestCase {
 
     override func setUpWithError() throws {
         base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        container = AppContainer(directory: try SecureFiles.directory(base: base))
+        container = AppContainer(directory: try SecureFiles.directory(base: base), deviceKeyTag: Self.testKeyTag)
     }
 
     override func tearDownWithError() throws {

@@ -10,20 +10,23 @@ final class AppContainer {
 
     /// The secure folder; nil means the app's own (tests pass a temporary one).
     private let directory: URL?
+    /// The Secure Enclave key wrapping this container's secrets; tests use their own, so they can never touch the app's.
+    private let deviceKeyTag: String
     private let lock = NSLock()
     private var opened: EncryptedDatabase?
     private var pseudonymizerValue: Pseudonymizer?
     private let finnhubLimiter = RateLimiter.forFinnhubFreeTier()
 
-    init(directory: URL? = nil) {
+    init(directory: URL? = nil, deviceKeyTag: String = DeviceKeys.databaseWrapTag) {
         self.directory = directory
+        self.deviceKeyTag = deviceKeyTag
     }
 
     func database() throws -> EncryptedDatabase {
         lock.lock()
         defer { lock.unlock() }
         if let opened { return opened }
-        let database = try EncryptedDatabase.open(directory: directory)
+        let database = try EncryptedDatabase.open(directory: directory, deviceKeyTag: deviceKeyTag)
         opened = database
         return database
     }
@@ -32,7 +35,7 @@ final class AppContainer {
         lock.lock()
         let cached = pseudonymizerValue
         lock.unlock()
-        let pseudonymizer = try cached ?? Pseudonymizer.onDevice(directory: directory)
+        let pseudonymizer = try cached ?? Pseudonymizer.onDevice(directory: directory, deviceKeyTag: deviceKeyTag)
         lock.lock()
         pseudonymizerValue = pseudonymizer
         lock.unlock()
@@ -64,7 +67,7 @@ final class AppContainer {
     private func secureDirectory() throws -> URL { try directory ?? SecureFiles.directory() }
 
     func backupKeys() throws -> BackupKeys {
-        BackupKeys(files: LocalKeyFiles(directory: try secureDirectory(), wrapper: DeviceKeyWrapper(tag: DeviceKeys.databaseWrapTag)))
+        BackupKeys(files: LocalKeyFiles(directory: try secureDirectory(), wrapper: DeviceKeyWrapper(tag: deviceKeyTag)))
     }
 
     func backupLocation() throws -> BackupLocationStore { BackupLocationStore(database: try database()) }
@@ -93,7 +96,7 @@ final class AppContainer {
                     if let domain = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: domain) }
                 }
             },
-            deleteDeviceKeys: { try DeviceKeys.delete(tag: DeviceKeys.databaseWrapTag) }
+            deleteDeviceKeys: { try DeviceKeys.delete(tag: self.deviceKeyTag) }
         )
     }
 

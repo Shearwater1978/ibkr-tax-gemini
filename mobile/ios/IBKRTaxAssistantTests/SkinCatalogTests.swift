@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import IBKRTaxAssistant
 
@@ -30,5 +31,14 @@ final class SkinCatalogTests: XCTestCase {
         XCTAssertEqual(BrokerId.resolve("INTERACTIVE_BROKERS"), .interactiveBrokers)
         XCTAssertNil(BrokerId.resolve(nil)) // not chosen yet
         XCTAssertNil(BrokerId.resolve("DEGIRO")) // not supported (yet)
+    }
+
+    func testTickerTilesGetTheSameColourAsOnAndroid() {
+        // Java "AAPL".hashCode() is 2001436; 2001436 mod 9 = 7, the purple tile.
+        XCTAssertEqual(tickerColor("AAPL"), Color(hex: 0x7C3AED))
+        Formats.locale = Locale(identifier: "en_US")
+        defer { Formats.locale = .current }
+        XCTAssertEqual(skinMoney(ExactDecimal("-1234.5")!, "USD"), "−$1,234.50")
+        XCTAssertEqual(skinMoney(ExactDecimal("12")!, "PLN", signed: true), "+12.00 PLN")
     }
 }

@@ -42,12 +42,12 @@ struct Skin {
 }
 
 enum SkinCatalog {
-    /// Calm, Bento and Focus join as they are ported from Android.
-    static let skins: [Skin] = [classicSkin]
+    /// Bento and Focus join as they are ported from Android.
+    static let skins: [Skin] = [classicSkin, calmSkin]
 
     static let `default` = classicSkin
 
-    /// Preselected in the first-launch picker (Android: Calm, once it exists here).
+    /// Preselected in the first-launch picker.
     static var firstLaunch: Skin { skins.first { $0.id == .calm } ?? `default` }
 
     /// The skin for a stored name; missing or unknown names (e.g. after a downgrade) give Classic.

@@ -22,10 +22,10 @@ struct Pseudonymizer {
     let keyProvider: () throws -> Data
 
     /// The app's pseudonymizer: its key is created once and stored only wrapped by the device key.
-    static func onDevice(directory: URL? = nil) throws -> Pseudonymizer {
+    static func onDevice(directory: URL? = nil, deviceKeyTag: String = DeviceKeys.databaseWrapTag) throws -> Pseudonymizer {
         let keys = WrappedKeyProvider(
             file: try (directory ?? SecureFiles.directory()).appendingPathComponent(keyFileName),
-            wrapper: DeviceKeyWrapper(tag: DeviceKeys.databaseWrapTag)
+            wrapper: DeviceKeyWrapper(tag: deviceKeyTag)
         )
         return Pseudonymizer(keyProvider: keys.getOrCreate)
     }

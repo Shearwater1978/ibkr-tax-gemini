@@ -30,9 +30,9 @@ final class EncryptedDatabase {
     private let lock = NSRecursiveLock()
 
     /// Opens (or creates) the app database in `SecureFiles`, with its device-wrapped key.
-    static func open(directory: URL? = nil, name: String = name) throws -> EncryptedDatabase {
+    static func open(directory: URL? = nil, name: String = name, deviceKeyTag: String = DeviceKeys.databaseWrapTag) throws -> EncryptedDatabase {
         let directory = try directory ?? SecureFiles.directory()
-        let keys = WrappedKeyProvider(file: directory.appendingPathComponent(keyFileName(for: name)), wrapper: DeviceKeyWrapper(tag: DeviceKeys.databaseWrapTag))
+        let keys = WrappedKeyProvider(file: directory.appendingPathComponent(keyFileName(for: name)), wrapper: DeviceKeyWrapper(tag: deviceKeyTag))
         return try EncryptedDatabase(file: directory.appendingPathComponent(name), key: keys.getOrCreate())
     }
 
