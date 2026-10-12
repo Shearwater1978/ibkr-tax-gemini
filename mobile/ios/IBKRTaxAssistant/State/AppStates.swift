@@ -67,8 +67,23 @@ enum PortfolioUiState: Equatable {
     case storageUnavailable
     case incomplete(ticker: String, date: String)
 
-    /// `prices` is nil while a refresh is running.
-    case loaded(rows: [PositionRow], totals: UsdTotals, rates: FxRates?, hasEuropean: Bool, prices: RefreshOutcome?, priceSource: PriceSource)
+    case loaded(LoadedPortfolio)
+}
+
+struct LoadedPortfolio: Equatable {
+    var rows: [PositionRow]
+    var totals: UsdTotals
+    /// Held positions (same order as `rows`) followed by fully sold ones.
+    var performance: [PositionPerformance]
+    var summary: PortfolioSummary
+    var rates: FxRates?
+    /// Some held positions are European listings, which are always priced from Yahoo Finance.
+    var hasEuropean: Bool
+    /// Nil while a refresh is running.
+    var prices: RefreshOutcome?
+    var priceSource: PriceSource
+    /// Dividend and tax rows, for the payer history.
+    var dividends: [CashEvent]
 }
 
 /**
@@ -109,7 +124,7 @@ final class PortfolioState: ObservableObject {
     func reload() {
         task?.cancel()
         var prices: RefreshOutcome?
-        if case .loaded(_, _, _, _, let current, _) = ui { prices = current }
+        if case .loaded(let current) = ui { prices = current.prices }
         task = Task {
             let state = await load(prices)
             if !Task.isCancelled { ui = state }
@@ -127,14 +142,24 @@ final class PortfolioState: ObservableObject {
             switch try container.portfolio().holdings() {
             case .incomplete(let ticker, let date):
                 return .incomplete(ticker: ticker, date: date)
-            case .success(let holdings, _):
+            case .success(let holdings, let realized):
                 let exchanges = try container.portfolio().listingExchanges()
                 let service = try container.prices()
                 let rows = MainPage.rows(holdings, prices: try service.prices(holdings, lastRefresh: prices, exchanges: exchanges), exchanges: exchanges)
                 let rates = try container.fx().rates()
-                let hasEuropean = rows.contains { PriceScope.symbol($0.holding, exchange: $0.listingExchange).map(Markets.isEuropean) ?? false }
-                return .loaded(rows: rows, totals: MainPage.usdTotals(rows, rates: rates), rates: rates, hasEuropean: hasEuropean,
-                               prices: prices, priceSource: try service.source())
+                let dividends = try container.dividendEvents().all()
+                let performance = Performance.positions(rows, realized: realized, dividends: dividends)
+                return .loaded(LoadedPortfolio(
+                    rows: rows,
+                    totals: MainPage.usdTotals(rows, rates: rates),
+                    performance: performance,
+                    summary: Performance.summary(performance, dividends: dividends, rates: rates, today: .today()),
+                    rates: rates,
+                    hasEuropean: rows.contains { PriceScope.symbol($0.holding, exchange: $0.listingExchange).map(Markets.isEuropean) ?? false },
+                    prices: prices,
+                    priceSource: try service.source(),
+                    dividends: dividends
+                ))
             }
         } catch {
             return .storageUnavailable
