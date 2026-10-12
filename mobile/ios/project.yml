@@ -20,9 +20,17 @@ targets:
     platform: iOS
     sources:
       - IBKRTaxAssistant
+      # Synthetic sample reports for the debug-only "Load synthetic sample reports" action.
+      - path: ../fixtures
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: SQLCipher
     settings:
+      configs:
+        # Release builds never package the samples.
+        Release:
+          EXCLUDED_SOURCE_FILE_NAMES: fixtures
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ibkrtax.mobile
         GENERATE_INFOPLIST_FILE: YES

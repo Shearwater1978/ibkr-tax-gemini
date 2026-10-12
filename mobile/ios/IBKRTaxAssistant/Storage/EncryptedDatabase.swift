@@ -26,6 +26,9 @@ final class EncryptedDatabase {
 
     private var handle: OpaquePointer?
 
+    /// Held for every statement and for a whole transaction, so statements from other tasks cannot run inside it.
+    private let lock = NSRecursiveLock()
+
     /// Opens (or creates) the app database in `SecureFiles`, with its device-wrapped key.
     static func open(directory: URL? = nil, name: String = name) throws -> EncryptedDatabase {
         let directory = try directory ?? SecureFiles.directory()
@@ -90,6 +93,8 @@ final class EncryptedDatabase {
 
     /// Runs `body` in a transaction; any error rolls everything back.
     func transaction<T>(_ body: () throws -> T) throws -> T {
+        lock.lock()
+        defer { lock.unlock() }
         try execute("BEGIN IMMEDIATE")
         do {
             let result = try body()
@@ -102,6 +107,8 @@ final class EncryptedDatabase {
     }
 
     private func run(_ sql: String, _ arguments: [SQLValue?]) throws -> [[SQLValue?]] {
+        lock.lock()
+        defer { lock.unlock() }
         var statement: OpaquePointer?
         let prepared = sqlite3_prepare_v2(handle, sql, -1, &statement, nil)
         guard prepared == SQLITE_OK else { throw error(prepared) }
