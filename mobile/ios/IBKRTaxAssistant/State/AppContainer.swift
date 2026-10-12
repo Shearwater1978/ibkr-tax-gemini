@@ -69,6 +69,43 @@ final class AppContainer {
 
     func backupLocation() throws -> BackupLocationStore { BackupLocationStore(database: try database()) }
 
+    func restore() throws -> RestoreService { RestoreService(reports: try importer()) }
+
+    /**
+     * Erase all data (task 7.6). Afterwards the container starts over as on a fresh install: the next
+     * access creates a new database and new device keys. iOS apps cannot relaunch themselves.
+     */
+    func eraser() -> DataEraser {
+        DataEraser(
+            eraseFolder: { try self.backup().eraseAll() },
+            eraseBackupKeys: { try self.backupKeys().erase() },
+            deleteLocalData: {
+                let secure = try self.secureDirectory()
+                self.forget()
+                try EncryptedDatabase.delete(directory: secure)
+                for name in [Pseudonymizer.keyFileName, "pending-backups"] {
+                    let url = secure.appendingPathComponent(name)
+                    if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+                }
+                // App-wide folders and switch states (USD view, sold positions); a test container leaves them alone.
+                if self.directory == nil {
+                    TempFiles.clear()
+                    if let domain = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: domain) }
+                }
+            },
+            deleteDeviceKeys: { try DeviceKeys.delete(tag: DeviceKeys.databaseWrapTag) }
+        )
+    }
+
+    /// Closes the database and drops cached services, so nothing from before an erasure stays in use.
+    private func forget() {
+        lock.lock()
+        defer { lock.unlock() }
+        opened?.close()
+        opened = nil
+        pseudonymizerValue = nil
+    }
+
     /// Import with encrypted backup; encrypted copies wait for upload in the protected folder.
     func backup() throws -> BackupService {
         let keys = try backupKeys()

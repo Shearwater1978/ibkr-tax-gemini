@@ -24,7 +24,7 @@
 - [x] 4.2 Implement writing to the backup folder with retries _Status: Android done; pending backups are retried automatically while the app runs (30 s, doubling up to 15 min, stopping on lost folder access), plus on opening Imports and "Retry backup". No background job when the app is closed._ _iOS: BackupService and BackupRetry ported with the same backoff._
 - [x] 4.3 Implement read-back verification (size and SHA-256) _iOS: done._
 - [x] 4.4 Delete original only after verification succeeds _iOS: done._
-- [x] 4.5 Implement restore flow on new device _Status: Android done (import screen, Block Store key or passphrase/recovery code, verified on an emulator with a wiped app); iOS postponed._
+- [x] 4.5 Implement restore flow on new device _Status: Android done (import screen, Block Store key or passphrase/recovery code, verified on an emulator with a wiped app); iOS postponed. iOS done: pick the folder, passphrase or recovery code (no Block Store equivalent), restores Android backups too; tested back up → erase → restore._
 - [ ] 4.6 Implement backup deletion in the backup folder
 
 ## 5. Local storage
@@ -46,6 +46,6 @@
 - [x] 7.3 Implement masking for account numbers and tax IDs in UI and notifications _Status: Android done; only the last four account characters are stored for display and shown, file names are masked; names and tax IDs are not read; the app sends no notifications and offers no reveal._
 - [x] 7.4 Ensure logs, crash reports, and analytics receive only pseudonyms or masked values _Status: Android done; the app does not log (`NoLoggingTest`) and has no crash-reporting or analytics SDK (Decision 9)._
 - [x] 7.5 Restrict full identity to tax output and its export, and document the exception _Status: no tax output on mobile (decision 2026-10-11), so the app never reads or keeps the full identity; spec requirement "No tax output in the mobile app"._
-- [x] 7.6 Implement erasure across local DB, backup folder, and keys (destroying keys makes leftover copies unreadable) _Status: Android done ("Erase all data" in Settings, verified on an emulator). No retention period applies, so nothing is deleted automatically._
+- [x] 7.6 Implement erasure across local DB, backup folder, and keys (destroying keys makes leftover copies unreadable) _Status: Android done ("Erase all data" in Settings, verified on an emulator). No retention period applies, so nothing is deleted automatically. iOS done: same order as Android; the app resets in place instead of restarting (iOS apps cannot relaunch themselves)._
 - [x] 7.7 Implement export of tax output in CSV or PDF for portability _Status: not in the mobile app (decision 2026-10-11); tax output stays in the desktop tool._
 - [x] 7.8 Write privacy notice and record processing activities (Art. 30 GDPR) _Status: drafts in `mobile/PRIVACY.md` and `mobile/PROCESSING_RECORD.md`, short version in Settings; publisher and contact are placeholders to fill and review before any public release._

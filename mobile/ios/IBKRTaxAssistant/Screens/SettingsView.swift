@@ -18,6 +18,7 @@ struct SettingsView: View {
             }
             BackupEncryptionSection(data: data)
             BackupFolderSection(data: data)
+            EraseDataSection(data: data)
             Section {
                 Text("Version \(version)").font(.footnote).foregroundStyle(.secondary)
             }

@@ -20,6 +20,10 @@ struct ImportsView: View {
 
     var body: some View {
         List {
+            // A new phone without keys or reports can restore its backups first.
+            if data.keyStatus == .notSetUp && data.history?.isEmpty == true {
+                RestoreSection(data: data)
+            }
             Section {
                 Text(Strings.importsSupportedFormat)
                 Button(importing ? Strings.importing : Strings.actionImportReport) { picking = true }
