@@ -82,6 +82,12 @@ final class EncryptedDatabase {
         try run(sql, arguments)
     }
 
+    /// Row id of the last successful INSERT on this connection.
+    var lastInsertRowId: Int64 { sqlite3_last_insert_rowid(handle) }
+
+    /// Rows changed by the last INSERT, UPDATE or DELETE (0 when INSERT OR IGNORE skipped a row).
+    var changes: Int { Int(sqlite3_changes(handle)) }
+
     /// Runs `body` in a transaction; any error rolls everything back.
     func transaction<T>(_ body: () throws -> T) throws -> T {
         try execute("BEGIN IMMEDIATE")

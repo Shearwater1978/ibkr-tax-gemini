@@ -9,8 +9,8 @@
 ## 2. Report import
 
 - [ ] 2.1 Implement on-device validation and parsing for IBKR Activity Flex Query CSV in both clients and verify synthetic fixtures cover supported rows, normalization, and malformed input. _Status: Android done (parity with the Python parser). iOS parser and import plan done: same records and source keys as Python for both valid fixtures, same rejections; storing records follows._
-- [x] 2.2 Add atomic import and duplicate detection and verify unsupported, corrupted, and duplicate reports create no partial derived records.
-- [x] 2.3 Store derived records only in encrypted local storage, pseudonymize direct identifiers, and verify logs and diagnostics contain no raw identifiers or report contents.
+- [x] 2.2 Add atomic import and duplicate detection and verify unsupported, corrupted, and duplicate reports create no partial derived records. _iOS: ReportImporter ported with the Android tests (rollback, duplicates, overlapping reports, deletion)._
+- [x] 2.3 Store derived records only in encrypted local storage, pseudonymize direct identifiers, and verify logs and diagnostics contain no raw identifiers or report contents. _iOS: records stored in SQLCipher with a keyed fingerprint, account pseudonym and last-four mask only._
 - [ ] 2.4 Back up encrypted reports to the user-chosen backup folder, verify the written file's size and SHA-256 before removing app-managed source copies, and verify offline or failed uploads retain protected data with a visible pending state. _Status: Android done: encrypted backup written to the chosen folder and verified by reading back; offline or lost access keeps the import and a pending backup. iOS postponed._
 
 ## 3. Portfolio overview

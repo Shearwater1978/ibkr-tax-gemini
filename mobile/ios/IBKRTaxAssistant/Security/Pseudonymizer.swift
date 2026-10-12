@@ -21,6 +21,17 @@ enum IdentifierKind: String {
 struct Pseudonymizer {
     let keyProvider: () throws -> Data
 
+    /// The app's pseudonymizer: its key is created once and stored only wrapped by the device key.
+    static func onDevice(directory: URL? = nil) throws -> Pseudonymizer {
+        let keys = WrappedKeyProvider(
+            file: try (directory ?? SecureFiles.directory()).appendingPathComponent(keyFileName),
+            wrapper: DeviceKeyWrapper(tag: DeviceKeys.databaseWrapTag)
+        )
+        return Pseudonymizer(keyProvider: keys.getOrCreate)
+    }
+
+    static let keyFileName = "pseudonym.key"
+
     func pseudonym(_ kind: IdentifierKind, _ identifier: String) throws -> String {
         let input = "\(kind.rawValue):\(identifier.trimmingCharacters(in: .whitespacesAndNewlines))"
         let mac = HMAC<SHA256>.authenticationCode(for: Data(input.utf8), using: SymmetricKey(data: try keyProvider()))
