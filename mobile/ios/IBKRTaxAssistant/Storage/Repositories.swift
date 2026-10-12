@@ -23,7 +23,7 @@ enum OperationFilter: CaseIterable {
 }
 
 /// One imported transaction as listed to the user: no account, report or file reference.
-struct Operation: Equatable {
+struct OperationRecord: Equatable {
     var id: Int64
     var date: String
     var eventType: String
@@ -44,7 +44,7 @@ struct OperationsRepository {
     }
 
     /// No `filters` means all types; `tickerQuery` matches anywhere in the ticker, ignoring case.
-    func page(filters: Set<OperationFilter>, tickerQuery: String, limit: Int, offset: Int) throws -> [Operation] {
+    func page(filters: Set<OperationFilter>, tickerQuery: String, limit: Int, offset: Int) throws -> [OperationRecord] {
         var conditions: [String] = []
         var arguments: [SQLValue?] = []
         if !filters.isEmpty {
@@ -75,7 +75,7 @@ struct OperationsRepository {
         ).compactMap { row in
             guard case .integer(let id)? = row[0], case .text(let date)? = row[1], case .text(let type)? = row[2],
                   case .text(let ticker)? = row[3], case .text(let currency)? = row[6] else { return nil }
-            return Operation(id: id, date: date, eventType: type, ticker: ticker, quantity: decimal(row[4]), price: decimal(row[5]),
+            return OperationRecord(id: id, date: date, eventType: type, ticker: ticker, quantity: decimal(row[4]), price: decimal(row[5]),
                              currency: currency, amount: decimal(row[7]), fee: decimal(row[8]))
         }
     }
