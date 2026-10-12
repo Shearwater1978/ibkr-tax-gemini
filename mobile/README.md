@@ -22,8 +22,8 @@ Classic is the original UI and, for now, the only navigation on iOS; the other s
 | Order | Route | Tab | Purpose |
 |---|---|---|---|
 | 1 (start) | `portfolio` | Portfolio | Holdings; empty state with an action that opens Imports |
-| 2 | `dividends` | Dividends | Received dividends per month, year and position (iOS: empty state for now) |
-| 3 | `operations` | Operations | Imported transactions with ticker search and type filters (iOS: empty state for now) |
+| 2 | `dividends` | Dividends | Received dividends per month, year and position |
+| 3 | `operations` | Operations | Imported transactions with ticker search and type filters |
 | 4 | `imports` | Imports | Report import and status; disabled until encrypted storage exists |
 | 5 | `settings` | Settings | Backup, price key, and app version |
 

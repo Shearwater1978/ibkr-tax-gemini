@@ -97,8 +97,39 @@ enum Strings {
     static func pricesProgressFinnhub(_ done: Int, _ total: Int) -> String { "\(done) of \(total) prices requested from Finnhub." }
     static let pricesProgressShown = "Until the refresh finishes, the prices shown are from the last one."
 
+    static let yearOlder = "Older"
+    static let dividendsTitle = "Dividends"
     static let dividendsEmpty = "No dividends found. Reports with a Dividends section add them here."
+    static let dividendsGross = "Gross"
+    static let dividendsTax = "Withholding tax"
+    static let dividendsNet = "Net"
+    static func dividendsByMonth(_ year: Int) -> String { "Net per month, \(year) (USD)" }
+    static let dividendsByCurrency = "Per currency"
+    static let dividendsCompare = "Net per month by year (USD)"
+    static func dividendsByPosition(_ year: Int) -> String { "Per position, \(year)" }
+    static func dividendsIncomplete(_ currencies: String) -> String { "incomplete: no rate for \(currencies)" }
+    static func dividendsCoverage(_ first: String, _ last: String) -> String { "Imported dividend data from \(first) to \(last)." }
+
+    static let operationsTitle = "Operations"
+    static let operationsSearch = "Ticker"
+    static let operationsFilterBuys = "Buys"
+    static let operationsFilterSells = "Sells"
+    static let operationsFilterDividends = "Dividends"
+    static let operationsFilterTaxes = "Withholding tax"
+    static let operationsFilterOther = "Corporate actions"
+    static let operationsNoMatch = "No operations match the search and filters."
+    static let operationsClearAll = "Clear search and filters"
     static let operationsEmpty = "No operations yet. Add reports from your broker to see buys, sells, dividends and corporate actions here."
+    static func operationsCommission(_ amount: String) -> String { "commission \(amount)" }
+    static let operationBuy = "Buy"
+    static let operationSell = "Sell"
+    static let operationDividend = "Dividend"
+    static let operationTax = "Withholding tax"
+    static let operationTransfer = "Transfer"
+    static let operationSplit = "Split"
+    static let operationStockDividend = "Stock dividend"
+    static let operationMerger = "Merger"
+    static let operationSpinoff = "Spin-off"
 
     static let importsTitle = "Report imports"
     static let importsSupportedFormat = "Supported format: IBKR Activity Statement (CSV, English)."
