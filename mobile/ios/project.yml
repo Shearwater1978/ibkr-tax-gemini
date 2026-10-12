@@ -37,6 +37,10 @@ targets:
     platform: iOS
     sources:
       - IBKRTaxAssistantTests
+      # Shared synthetic fixtures, copied as a "fixtures" folder into the test bundle.
+      - path: ../fixtures
+        type: folder
+        buildPhase: resources
     # Xcode 27's XCTest requires iOS 17; the app itself still targets iOS 16.
     deploymentTarget: "17.0"
     dependencies:
