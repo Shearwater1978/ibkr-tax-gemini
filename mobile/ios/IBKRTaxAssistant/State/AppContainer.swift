@@ -45,6 +45,8 @@ final class AppContainer {
 
     func operations() throws -> OperationsRepository { OperationsRepository(database: try database()) }
 
+    func dividendEvents() throws -> DividendEvents { DividendEvents(database: try database()) }
+
     func priceStore() throws -> PriceStore { PriceStore(database: try database()) }
 
     func fxStore() throws -> FxStore { FxStore(database: try database()) }

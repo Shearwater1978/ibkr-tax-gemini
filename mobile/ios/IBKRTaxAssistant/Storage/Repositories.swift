@@ -132,3 +132,20 @@ struct PortfolioRepository {
             }
     }
 }
+
+/// Read-only access to imported dividend and withholding-tax rows for the Dividends tab. Port of the Android `DividendEvents`.
+struct DividendEvents {
+    let database: EncryptedDatabase
+
+    func all() throws -> [CashEvent] {
+        try database.query(
+            "SELECT date, event_type, ticker, currency, amount FROM transactions WHERE event_type IN (?, ?) ORDER BY date",
+            [.text(Dividends.dividend), .text(Dividends.tax)]
+        ).compactMap { row in
+            guard case .text(let date)? = row[0], case .text(let type)? = row[1], case .text(let ticker)? = row[2], case .text(let currency)? = row[3] else { return nil }
+            var amount = ExactDecimal.zero
+            if case .text(let text)? = row[4], let value = ExactDecimal(text) { amount = value }
+            return CashEvent(date: date, eventType: type, ticker: ticker, currency: currency, amount: amount)
+        }
+    }
+}

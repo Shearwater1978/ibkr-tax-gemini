@@ -108,6 +108,21 @@ struct ExactDecimal: Hashable, CustomStringConvertible {
         subtracting(other, precision: Int.max).signum
     }
 
+    /// `setScale(scale, HALF_EVEN)`: exactly `scale` decimal places, e.g. 2 for cents.
+    func withScale(_ scale: Int) -> ExactDecimal {
+        let target = -scale
+        if exponent >= target { return ExactDecimal(negative: negative, digits: digits + Array(repeating: 0, count: exponent - target), exponent: target) }
+        let keep = digits.count - (target - exponent)
+        if keep < 0 { return ExactDecimal(negative: false, digits: [0], exponent: target) }
+        let kept = keep == 0 ? [0] : Array(digits[..<keep])
+        let dropped = digits[keep...]
+        var magnitude = kept
+        let first = dropped.first!
+        let restZero = dropped.dropFirst().allSatisfy { $0 == 0 }
+        if first > 5 || (first == 5 && (!restZero || kept.last! % 2 == 1)) { magnitude = Natural.add(kept, [1]) }
+        return ExactDecimal(negative: negative, digits: magnitude, exponent: target)
+    }
+
     /// Rounds half-even to `precision` significant digits; shorter values are unchanged.
     func rounded(_ precision: Int) -> ExactDecimal {
         guard digits.count > precision else { return self }
