@@ -4,6 +4,11 @@ options:
   bundleIdPrefix: com.ibkrtax
   deploymentTarget:
     iOS: "16.0"
+packages:
+  # SQLCipher's official Swift package: a prebuilt xcframework pinned by version and checksum.
+  SQLCipher:
+    url: https://github.com/sqlcipher/SQLCipher.swift
+    exactVersion: 4.19.0
 settings:
   base:
     SWIFT_VERSION: "5.0"
@@ -15,6 +20,8 @@ targets:
     platform: iOS
     sources:
       - IBKRTaxAssistant
+    dependencies:
+      - package: SQLCipher
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ibkrtax.mobile

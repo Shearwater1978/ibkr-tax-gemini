@@ -7,7 +7,7 @@ Native clients for the `mobile-app-core` OpenSpec change: Kotlin/Jetpack Compose
 | Path | `mobile/android` | `mobile/ios` |
 | Minimum OS | Android 10 (API 29) | iOS 16 |
 | App ID | `com.ibkrtax.mobile` | `com.ibkrtax.mobile` |
-| Toolchain | Android Studio, JDK 17+ | Xcode 27+, XcodeGen (macOS only) |
+| Toolchain | Android Studio, JDK 17+ | Xcode 27+, XcodeGen (macOS only); SQLCipher via Swift Package Manager |
 
 Both apps are called **Portfolio Companion**; how to use it is in the [user guide](USER_GUIDE.md). Data protection: [privacy notice](PRIVACY.md) and [record of processing activities](PROCESSING_RECORD.md) (drafts; publisher details still placeholders).
 

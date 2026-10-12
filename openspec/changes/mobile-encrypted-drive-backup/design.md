@@ -90,6 +90,14 @@ Format is implemented using a vetted library (Tink or CryptoKit primitives).
 | Play services Block Store (+ coroutines adapter) | 16.4.0 | End-to-end encrypted copy of the backup data key | Stored with the user's Android backup, only when end-to-end encryption is available; Google cannot read it. Play services' own usage reporting follows the user's Google settings and receives no app data |
 | Kotlin coroutines | 1.9.0 | Concurrency | None |
 
+**Libraries (iOS, as of 2026-10-12).** Apple frameworks only (SwiftUI, Security, CryptoKit), plus:
+
+| Library | Version | Purpose | Network or data collection |
+|---|---|---|---|
+| SQLCipher (official Swift package, prebuilt xcframework pinned by checksum) | 4.19.0 | Encrypted local database | None; its own error logging is switched off (`PRAGMA cipher_log_level = NONE`) |
+
+The iOS device key is a Secure Enclave P-256 key; it wraps the database key and the pseudonym key with ECIES (AES-GCM), because the Secure Enclave holds no AES or HMAC keys.
+
 The app's own network requests are listed in the market-prices spec: ticker symbols to Finnhub (with the user's key) and Yahoo Finance, currency codes to NBP.
 
 ## Risks

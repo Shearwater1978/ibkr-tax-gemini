@@ -6,7 +6,7 @@
 - [ ] 1.5 Implement the iOS equivalent (document picker with security-scoped bookmarks)
 
 ## 2. Key management
-- [ ] 2.1 Implement device key in Keystore / Secure Enclave _Status: Android done (Keystore, StrongBox when available); iOS postponed._
+- [ ] 2.1 Implement device key in Keystore / Secure Enclave _Status: Android done (Keystore, StrongBox when available). iOS done (Secure Enclave P-256 key, this device only, wraps the database and pseudonym keys); verified on the simulator, physical-device check pending (mobile-app-core 5.2)._
 - [x] 2.2 Implement passphrase-derived KEK using Argon2id
 - [x] 2.3 Implement recovery code generation and display-once flow
 - [x] 2.4 Implement DK wrapping and unwrapping
@@ -28,9 +28,9 @@
 - [ ] 4.6 Implement backup deletion in the backup folder
 
 ## 5. Local storage
-- [ ] 5.1 Integrate SQLCipher with key from device key
+- [ ] 5.1 Integrate SQLCipher with key from device key _Status: Android done; iOS done (SQLCipher 4.19.0, raw 256-bit key wrapped by the Secure Enclave key, refuses to open without SQLCipher)._
 - [ ] 5.2 Include encrypted database backup in the backup set
-- [x] 5.3 Exclude local data from OS cloud backups _Status: Android done (allowBackup and fullBackupContent off, data extraction rules exclude every domain from cloud backup and device transfer); iOS postponed._
+- [x] 5.3 Exclude local data from OS cloud backups _Status: Android done (allowBackup and fullBackupContent off, data extraction rules exclude every domain from cloud backup and device transfer). iOS done: database and wrapped keys live in a folder excluded from backup, with complete file protection (not observable on the simulator)._
 - [x] 5.4 Clear temporary files and caches on exit _Status: Android done; the app writes no plaintext files, and the cache folder is emptied at start and when the app goes to the background._
 
 ## 6. Device hardening
@@ -41,8 +41,8 @@
 - [ ] 6.5 Integrate Play Integrity and App Attest
 
 ## 7. Data anonymization and pseudonymization
-- [x] 7.1 Define field classification (direct identifiers, quasi-identifiers, financial values) _Status: Android done; `security/DataClassification.kt` classifies every report field and stored column, and `DataClassificationTest` fails on an unclassified column or a stored direct identifier._
-- [x] 7.2 Implement HMAC-SHA256 pseudonymization with device-bound key _Status: Android done (account and report fingerprint). Key rotation is not offered; a restore re-imports reports, so pseudonyms are derived again with the new device key._
+- [x] 7.1 Define field classification (direct identifiers, quasi-identifiers, financial values) _Status: Android done; `security/DataClassification.kt` classifies every report field and stored column, and `DataClassificationTest` fails on an unclassified column or a stored direct identifier. iOS has the same classification, checked against its live schema by `DataClassificationTests`._
+- [x] 7.2 Implement HMAC-SHA256 pseudonymization with device-bound key _Status: Android done (account and report fingerprint); iOS pseudonymizer done with the same input format, used once import is ported. Key rotation is not offered; a restore re-imports reports, so pseudonyms are derived again with the new device key._
 - [x] 7.3 Implement masking for account numbers and tax IDs in UI and notifications _Status: Android done; only the last four account characters are stored for display and shown, file names are masked; names and tax IDs are not read; the app sends no notifications and offers no reveal._
 - [x] 7.4 Ensure logs, crash reports, and analytics receive only pseudonyms or masked values _Status: Android done; the app does not log (`NoLoggingTest`) and has no crash-reporting or analytics SDK (Decision 9)._
 - [x] 7.5 Restrict full identity to tax output and its export, and document the exception _Status: no tax output on mobile (decision 2026-10-11), so the app never reads or keeps the full identity; spec requirement "No tax output in the mobile app"._
