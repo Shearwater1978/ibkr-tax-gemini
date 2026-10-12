@@ -17,6 +17,8 @@ struct ImportsView: View {
     @State private var progress: String?
     @State private var fileResults: [String] = []
     @State private var passphrase = ""
+    @State private var stepsOpen = false
+    @AppStorage(UiPreferenceKey.broker) private var broker: String?
 
     var body: some View {
         List {
@@ -24,8 +26,13 @@ struct ImportsView: View {
             if data.keyStatus == .notSetUp && data.history?.isEmpty == true {
                 RestoreSection(data: data)
             }
+            // Reports are read in the chosen broker's format, so ask for the broker first (mobile-broker-choice).
+            if let broker = BrokerId.resolve(broker) {
             Section {
-                Text(Strings.importsSupportedFormat)
+                Text(Strings.importsSupportedFormat(broker.format))
+                DisclosureGroup(Strings.reportHelpShow, isExpanded: $stepsOpen) {
+                    ForEach(Array(broker.reportSteps.enumerated()), id: \.offset) { Text("\($0.offset + 1). \($0.element)").font(.footnote) }
+                }
                 Button(importing ? Strings.importing : Strings.actionImportReport) { picking = true }
                     .disabled(!data.importReady || importing)
                 if !data.importReady {
@@ -48,6 +55,9 @@ struct ImportsView: View {
                 }
             } header: {
                 Text(Strings.importsTitle)
+            }
+            } else {
+                BrokerGate()
             }
             if SampleReports.available {
                 Section(Strings.debugSamplesTitle) {

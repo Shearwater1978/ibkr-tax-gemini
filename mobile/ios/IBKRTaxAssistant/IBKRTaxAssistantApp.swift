@@ -15,7 +15,7 @@ struct IBKRTaxAssistantApp: App {
             ZStack {
                 // Lock and privacy cover stay outside the screens, as on Android (mobile-skins spec).
                 if lock.state == .unlocked {
-                    AppTabView()
+                    SkinRoot()
                 } else {
                     LockScreen(
                         state: lock.state,

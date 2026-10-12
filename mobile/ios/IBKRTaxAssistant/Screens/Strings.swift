@@ -132,7 +132,8 @@ enum Strings {
     static let operationSpinoff = "Spin-off"
 
     static let importsTitle = "Report imports"
-    static let importsSupportedFormat = "Supported format: IBKR Activity Statement (CSV, English)."
+    static func importsSupportedFormat(_ format: String) -> String { "Supported format: \(format)." }
+    static let reportHelpShow = "How to get this report"
     static let importsUnavailableKeys = "Import needs working backups first. In Settings: 1. set up backup encryption, 2. choose a backup folder."
     static let importsUnavailableFolder = "Backup encryption is set up. Choose a backup folder in Settings to enable import."
     static let importMultipleHint = "You can select several reports at once; each is imported on its own."
@@ -299,6 +300,41 @@ enum Strings {
     static let privacyOnDevice = "Reports are read and kept encrypted on this phone. The publisher runs no server and receives none of your data. There are no accounts, ads, analytics or crash reports."
     static let privacyLeaves = "Only ticker symbols leave the phone, to get prices (Finnhub with your own key, Yahoo Finance). Backups are encrypted on this phone before they reach your storage provider."
     static let privacyChoices = "Delete imports on the import screen, or erase everything below. The full privacy notice comes with the app documentation (PRIVACY.md)."
+
+    static let continueAction = "Continue"
+    static let skinPickerTitle = "Choose how the app looks"
+    static let skinPickerBody = "Each look shows the same data and numbers; they differ in layout and detail."
+    static let skinPickerLater = "You can change this any time in Settings."
+    static let skinSettingsTitle = "Skin"
+    static func settingsCurrent(_ name: String) -> String { "Current: \(name)" }
+    static let skinSettingsChange = "Change skin"
+    static let skinApply = "Use this skin"
+    static let skinNoticeTitle = "New: choose how the app looks"
+    static let skinNoticeBody = "The app now comes in several skins. You are using Classic, which is unchanged. Calm is simpler: one total, today's change and your holdings."
+    static let skinNoticeShow = "Show skins"
+    static let skinNoticeLater = "Later"
+    static let skinClassicName = "Classic"
+    static let skinClassicDescription = "Every number on one screen: the full positions table, five tabs and all switches."
+
+    static let brokerIbkrName = "Interactive Brokers"
+    static let brokerIbkrFormat = "IBKR Activity Statement (CSV, English)"
+    static let brokerQuestion = "Which broker are your reports from?"
+    static let brokerQuestionBody = "The app reads the report format of your broker and uses its terms. More brokers will follow."
+    static let brokerMoreLater = "Only supported brokers are listed."
+    static let brokerLater = "Choose later"
+    static let brokerSettingsTitle = "Broker"
+    static let brokerNotChosen = "Not chosen"
+    static let brokerChange = "Change broker"
+    static let brokerUse = "Use this broker"
+    static let ibkrReportSteps = [
+        "Sign in to the Interactive Brokers portal (the website, on a computer or in your phone browser).",
+        "Open Performance & Reports, then Statements.",
+        "Next to Activity Statement (under Default Statements), run it.",
+        "Period: Annual for a past year, or Custom Date Range for this year so far.",
+        "Format: CSV. Language: English. Then Run and download the file.",
+        "Repeat for every year since you opened the account. Save the files on this iPhone (for example in Files or iCloud Drive) and import them here together. Overlapping periods are fine: records already imported are skipped.",
+        "The files contain your account number, so keep them private. The app stores it only masked.",
+    ]
 
     static let settingsTitle = "Settings"
     static let settingsPrivacy = "Reports are processed on this device. Account identifiers are masked."
