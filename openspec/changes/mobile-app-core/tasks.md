@@ -38,9 +38,9 @@
 
 - [x] 6.1 Read the listing exchange from the report's Financial Instrument Information and verify it with synthetic fixtures.
 - [x] 6.2 Derive the daily change from the provider's previous close, cache it with the quote, and verify it with mocked responses.
-- [x] 6.3 Retrieve and cache NBP table A rates and compute PLN cross rates to USD, and verify requests send only currency codes and the offline and missing-rate states.
-- [x] 6.4 Build the compact positions table with default alphabetical order, column sorting, and the daily/unrealized P&L switch, and verify it with synthetic holdings.
-- [x] 6.5 Add the header with the approximate USD total, daily P&L amount and percentage, rate date, and incomplete marking, and verify mixed-currency synthetic cases.
+- [x] 6.3 Retrieve and cache NBP table A rates and compute PLN cross rates to USD, and verify requests send only currency codes and the offline and missing-rate states. _iOS: NBP client, cross rates and encrypted rate cache ported with the Android tests._
+- [x] 6.4 Build the compact positions table with default alphabetical order, column sorting, and the daily/unrealized P&L switch, and verify it with synthetic holdings. _iOS: rows, sorting and the USD view ported; the table UI follows._
+- [x] 6.5 Add the header with the approximate USD total, daily P&L amount and percentage, rate date, and incomplete marking, and verify mixed-currency synthetic cases. _iOS: USD totals ported; the header UI follows._
 
 ## 7. Report management
 
