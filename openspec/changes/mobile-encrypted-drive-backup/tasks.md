@@ -3,7 +3,7 @@
 - [x] 1.2 Warn when the chosen folder is local-only
 - [x] 1.3 Detect lost folder access and ask the user to choose the folder again without losing local data
 - [x] 1.4 Keep old backups when the user changes the folder, unless deletion is requested
-- [ ] 1.5 Implement the iOS equivalent (document picker with security-scoped bookmarks)
+- [ ] 1.5 Implement the iOS equivalent (document picker with security-scoped bookmarks) _Status: iOS folder access done (bookmark kept in the encrypted database, security-scoped and coordinated reads and writes, app subfolder, lost access detected); the picker and Settings screens follow._
 
 ## 2. Key management
 - [ ] 2.1 Implement device key in Keystore / Secure Enclave _Status: Android done (Keystore, StrongBox when available). iOS done (Secure Enclave P-256 key, this device only, wraps the database and pseudonym keys); verified on the simulator, physical-device check pending (mobile-app-core 5.2)._
@@ -20,10 +20,10 @@
 - [x] 3.3 Ensure no copies of source files are kept outside the managed location
 
 ## 4. Encrypted backup
-- [x] 4.1 Implement encrypted file format with versioned header
-- [x] 4.2 Implement writing to the backup folder with retries _Status: Android done; pending backups are retried automatically while the app runs (30 s, doubling up to 15 min, stopping on lost folder access), plus on opening Imports and "Retry backup". No background job when the app is closed._
-- [x] 4.3 Implement read-back verification (size and SHA-256)
-- [x] 4.4 Delete original only after verification succeeds
+- [x] 4.1 Implement encrypted file format with versioned header _iOS: same `IBKB` v1 format; decrypts `mobile/fixtures/keys/valid_basic_v1.bin` built with pyca/cryptography._
+- [x] 4.2 Implement writing to the backup folder with retries _Status: Android done; pending backups are retried automatically while the app runs (30 s, doubling up to 15 min, stopping on lost folder access), plus on opening Imports and "Retry backup". No background job when the app is closed._ _iOS: BackupService and BackupRetry ported with the same backoff._
+- [x] 4.3 Implement read-back verification (size and SHA-256) _iOS: done._
+- [x] 4.4 Delete original only after verification succeeds _iOS: done._
 - [x] 4.5 Implement restore flow on new device _Status: Android done (import screen, Block Store key or passphrase/recovery code, verified on an emulator with a wiped app); iOS postponed._
 - [ ] 4.6 Implement backup deletion in the backup folder
 
