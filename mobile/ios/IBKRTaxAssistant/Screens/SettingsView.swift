@@ -1,7 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Settings, ported from the Android `SettingsScreen` (skins and broker choice follow with the skins).
+/// Settings, ported from the Android `SettingsScreen`; every skin shows the same sections.
 struct SettingsView: View {
     @ObservedObject var data: DataState
 
@@ -16,6 +16,7 @@ struct SettingsView: View {
             } header: {
                 Text(Strings.settingsTitle)
             }
+            SkinAndBrokerSettingsSection()
             PriceKeySection()
             BackupEncryptionSection(data: data)
             BackupFolderSection(data: data)
