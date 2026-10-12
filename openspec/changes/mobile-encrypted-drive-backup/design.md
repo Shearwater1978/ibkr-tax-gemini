@@ -97,6 +97,7 @@ Format is implemented using a vetted library (Tink or CryptoKit primitives).
 | Library | Version | Purpose | Network or data collection |
 |---|---|---|---|
 | SQLCipher (official Swift package, prebuilt xcframework pinned by checksum) | 4.19.0 | Encrypted local database | None; its own error logging is switched off (`PRAGMA cipher_log_level = NONE`) |
+| swift-sodium (libsodium by its author; prebuilt xcframework, exact version) | 0.9.1 | Argon2id for the passphrase key (only `crypto_pwhash` is used) | None |
 
 The iOS device key is a Secure Enclave P-256 key; it wraps the database key and the pseudonym key with ECIES (AES-GCM), because the Secure Enclave holds no AES or HMAC keys.
 
