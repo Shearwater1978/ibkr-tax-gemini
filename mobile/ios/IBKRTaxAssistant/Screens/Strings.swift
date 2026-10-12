@@ -279,6 +279,27 @@ enum Strings {
     static func eraseFilesLeft(_ count: Int) -> String { "\(count) backup files could not be deleted; without the keys they cannot be read." }
     static func eraseStepsFailed(_ steps: String) -> String { "Some steps failed (\(steps)). Reinstall the app to remove what is left." }
 
+    static let settingsPricesTitle = "Market prices"
+    static let settingsPricesBody = "Prices for US listings come from Finnhub, using your own free personal API key. Prices for listings on the main European exchanges always come from Yahoo Finance, because Finnhub's free plan has none; they are delayed by about 15 to 20 minutes. The key is stored encrypted on this phone and sent only to Finnhub, together with ticker symbols. Without a key, prices come from Yahoo Finance's public pages: no key is needed, but that source is unofficial and may be delayed, limited or stop working at any time. Only ticker symbols are sent there."
+    static let keyGuideTitle = "How to get a free key"
+    static let keyGuideStep1 = "1. Tap Get key from Finnhub. Finnhub opens in a browser view; create a free account or sign in. This app never sees your Finnhub password."
+    static let keyGuideStep2 = "2. On Finnhub, copy your API key."
+    static let keyGuideStep3 = "3. Close the browser view and tap Paste below. The key is checked with one test request."
+    static let keyGuideOpen = "Get key from Finnhub"
+    static let keyChecking = "Checking…"
+    static let keyCheckValid = "Key works. Prices will refresh on the Portfolio page."
+    static let keyCheckRejected = "Finnhub rejected this key. Check that you copied the whole key and try again."
+    static let keyCheckUnverified = "Key saved, but it could not be checked right now (offline or busy). It will be used on the next refresh."
+    static let settingsApiKeyLabel = "Finnhub API key"
+    static let settingsApiKeySave = "Save key"
+    static func settingsApiKeySaved(_ masked: String) -> String { "Key saved: \(masked)" }
+    static let settingsApiKeyRemove = "Remove key"
+
+    static let privacyTitle = "Privacy"
+    static let privacyOnDevice = "Reports are read and kept encrypted on this phone. The publisher runs no server and receives none of your data. There are no accounts, ads, analytics or crash reports."
+    static let privacyLeaves = "Only ticker symbols leave the phone, to get prices (Finnhub with your own key, Yahoo Finance). Backups are encrypted on this phone before they reach your storage provider."
+    static let privacyChoices = "Delete imports on the import screen, or erase everything below. The full privacy notice comes with the app documentation (PRIVACY.md)."
+
     static let settingsTitle = "Settings"
     static let settingsPrivacy = "Reports are processed on this device. Account identifiers are masked."
 }
