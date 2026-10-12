@@ -1,7 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Settings, ported from the Android `SettingsScreen`: backup encryption and backup location so far.
+/// Settings, ported from the Android `SettingsScreen` (skins and broker choice follow with the skins).
 struct SettingsView: View {
     @ObservedObject var data: DataState
 
@@ -16,8 +16,10 @@ struct SettingsView: View {
             } header: {
                 Text(Strings.settingsTitle)
             }
+            PriceKeySection()
             BackupEncryptionSection(data: data)
             BackupFolderSection(data: data)
+            PrivacySection()
             EraseDataSection(data: data)
             Section {
                 Text("Version \(version)").font(.footnote).foregroundStyle(.secondary)
