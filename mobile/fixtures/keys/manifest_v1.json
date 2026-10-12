@@ -1,0 +1,23 @@
+{
+  "_comment": "Synthetic v1 key manifest; never real keys. passphrase, recoveryCode and dataKey are the made-up inputs.",
+  "passphrase": "correct horse battery",
+  "recoveryCode": "K7QM2HXPABCDEFGHJKMNPQRSTV",
+  "dataKey": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+  "manifest": {
+    "version": 1,
+    "passphrase": {
+      "kdf": "argon2id",
+      "memoryKiB": 65536,
+      "iterations": 3,
+      "parallelism": 1,
+      "salt": "EREREREREREREREREREREQ==",
+      "wrappedKey": "MzMzMzMzMzMzMzMzQByc2Q4yLGslkQSuaQjw2fcQULOA72gWBllddPN7/VtUFQs3H7IhFObr+p/Ln50P"
+    },
+    "recovery": {
+      "kdf": "hkdf-sha256",
+      "salt": "IiIiIiIiIiIiIiIiIiIiIg==",
+      "wrappedKey": "REREREREREREREREEFXWbUOh2yPA2lknBeu9mkmVeOkjdHRASLbuHbIUcBudFEfYAdbZm3w+EX+LHnzM"
+    },
+    "keyCheck": "0e0NkO+U8vn1AmAzXXHprQ=="
+  }
+}

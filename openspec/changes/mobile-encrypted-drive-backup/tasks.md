@@ -7,12 +7,12 @@
 
 ## 2. Key management
 - [ ] 2.1 Implement device key in Keystore / Secure Enclave _Status: Android done (Keystore, StrongBox when available). iOS done (Secure Enclave P-256 key, this device only, wraps the database and pseudonym keys); verified on the simulator, physical-device check pending (mobile-app-core 5.2)._
-- [x] 2.2 Implement passphrase-derived KEK using Argon2id
-- [x] 2.3 Implement recovery code generation and display-once flow
-- [x] 2.4 Implement DK wrapping and unwrapping
-- [x] 2.5 Implement passphrase change with re-wrap
-- [x] 2.6 Store DK in Android Block Store when end-to-end encryption is available and use it to restore on a new device; fall back to passphrase or recovery code _Status: Android done; used by the restore flow (4.5)._
-- [x] 2.7 Let the user replace the recovery code after entering the passphrase
+- [x] 2.2 Implement passphrase-derived KEK using Argon2id _iOS: Argon2id through libsodium (swift-sodium), same parameters and manifest as Android; checked against `mobile/fixtures/keys/manifest_v1.json`._
+- [x] 2.3 Implement recovery code generation and display-once flow _iOS: generation and confirm-before-store done; the display screen follows._
+- [x] 2.4 Implement DK wrapping and unwrapping _iOS: same AES-256-GCM wraps and key check as Android._
+- [x] 2.5 Implement passphrase change with re-wrap _iOS: done._
+- [x] 2.6 Store DK in Android Block Store when end-to-end encryption is available and use it to restore on a new device; fall back to passphrase or recovery code _Status: Android done; used by the restore flow (4.5)._ _iOS: no Block Store equivalent yet (iCloud Keychain would be the candidate); a new iPhone restores with the passphrase or recovery code._
+- [x] 2.7 Let the user replace the recovery code after entering the passphrase _iOS: done (keys); the Settings screens follow._
 
 ## 3. Report ingestion
 - [x] 3.1 Implement file import via system document picker
