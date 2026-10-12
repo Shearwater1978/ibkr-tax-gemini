@@ -37,7 +37,7 @@ struct AppTabView: View {
         case .imports:
             ImportsView(data: data)
         case .settings:
-            SettingsView()
+            SettingsView(data: data)
         }
     }
 }
