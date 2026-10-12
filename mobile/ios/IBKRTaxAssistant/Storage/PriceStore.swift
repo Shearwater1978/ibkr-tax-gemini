@@ -57,10 +57,16 @@ struct PriceStore: ApiKeyStore, QuoteCache {
         }
     }
 
-    /// ISO 8601 in UTC with milliseconds, like the Android cache's `Instant` text.
-    private static func text(_ date: Date) -> String { formatter.string(from: date) }
+    private static func text(_ date: Date) -> String { StoredTime.text(date) }
 
-    private static func date(_ text: String) -> Date? { formatter.date(from: text) }
+    private static func date(_ text: String) -> Date? { StoredTime.date(text) }
+}
+
+/// Timestamps as stored text: ISO 8601 in UTC with milliseconds, like the Android `Instant` text.
+enum StoredTime {
+    static func text(_ date: Date) -> String { formatter.string(from: date) }
+
+    static func date(_ text: String) -> Date? { formatter.date(from: text) }
 
     private static let formatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()

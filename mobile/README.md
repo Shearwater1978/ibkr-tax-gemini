@@ -88,7 +88,7 @@ Position keys are `ticker|currency|isin` for held and `ticker|currency|sold` for
 
    The `.xcodeproj` and `build/` are generated and git-ignored; edit `project.yml` instead. The app targets iOS 16; the test target needs iOS 17 because Xcode 27's XCTest does.
 
-4. The app starts locked and asks for Face ID or the passcode (any passcode works on the simulator). To test Face ID from the command line:
+4. The app starts locked and asks for Face ID, or for the passcode when Face ID is not enrolled. On the simulator, enrol Face ID once and send a match whenever the prompt appears:
 
    ```sh
    xcrun simctl spawn "iPhone 17" notifyutil -s com.apple.BiometricKit.enrollmentChanged 1
