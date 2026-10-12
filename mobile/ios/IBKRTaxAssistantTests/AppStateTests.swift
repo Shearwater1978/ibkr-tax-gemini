@@ -24,9 +24,13 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(results.map(\.name), SampleReports.names)
         XCTAssertEqual(results.map { $0.result.map { if case .imported = $0 { return true } else { return false } } }, [true, true])
 
-        guard case .loaded(let rows, let totals, let rates, _, _, _) = PortfolioState.loadPortfolio(container, prices: .updated) else {
+        guard case .loaded(let loaded) = PortfolioState.loadPortfolio(container, prices: .updated) else {
             return XCTFail("portfolio not loaded")
         }
+        let (rows, totals, rates) = (loaded.rows, loaded.totals, loaded.rates)
+        // MSFT was sold in the samples: it follows the held positions, and the AAPL dividend is counted.
+        XCTAssertEqual(loaded.performance.map(\.ticker), ["AAPL", "SAP", "MSFT"])
+        XCTAssertEqual(loaded.performance[0].dividends.gross.compare(ExactDecimal("3.60")!), 0)
         XCTAssertEqual(rows.map(\.ticker), ["AAPL", "SAP"])
         // The sample price is from 2024, so it is never shown as current.
         XCTAssertEqual(rows[0].price?.freshness, .stale)

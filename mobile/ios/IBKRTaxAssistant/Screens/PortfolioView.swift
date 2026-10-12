@@ -1,9 +1,9 @@
 import SwiftUI
 
 /**
- * Classic Portfolio tab, ported from the Android `PortfolioScreen`: approximate USD header, P&L
- * and currency switches, sortable positions table and price status. The summary cards, top movers,
- * position details and sold positions follow with the performance port.
+ * Classic Portfolio tab, ported from the Android `PortfolioScreen`: summary cards, price status,
+ * top movers, P&L and currency switches, sortable positions table, sold positions, and the
+ * position details and payer history sheets.
  */
 struct PortfolioView: View {
     @ObservedObject var state: PortfolioState
@@ -24,9 +24,8 @@ struct PortfolioView: View {
             Text(Strings.storageUnavailable).multilineTextAlignment(.center).padding(24)
         case .incomplete(let ticker, let date):
             Text(Strings.portfolioIncomplete(ticker, date)).multilineTextAlignment(.center).padding(24)
-        case .loaded(let rows, let totals, let rates, let hasEuropean, let prices, let source):
-            Positions(rows: rows, totals: totals, rates: rates, hasEuropean: hasEuropean, prices: prices, source: source,
-                      progress: state.progress, onRefresh: state.refresh)
+        case .loaded(let loaded):
+            Positions(state: loaded, progress: state.progress, onRefresh: state.refresh)
         }
     }
 }
@@ -36,38 +35,46 @@ private extension PositionRow {
     var identity: String { "\(ticker)-\(holding.isin)-\(currency)" }
 }
 
-private let gain = Color(red: 0x2E / 255, green: 0x7D / 255, blue: 0x32 / 255)
-private let loss = Color(red: 0xC6 / 255, green: 0x28 / 255, blue: 0x28 / 255)
+/// What a sheet shows: one position's breakdown, or one payer's dividend history.
+private enum SheetTarget: Identifiable {
+    case details(PositionPerformance)
+    case history(ticker: String, currency: String)
 
-private func signColor(_ value: ExactDecimal?) -> Color {
-    switch value?.signum ?? 0 {
-    case 1: return gain
-    case -1: return loss
-    default: return .primary
+    var id: String {
+        switch self {
+        case .details(let p): return "details-\(p.ticker)-\(p.currency)-\(p.row?.holding.isin ?? "sold")"
+        case .history(let ticker, let currency): return "history-\(ticker)-\(currency)"
+        }
     }
 }
 
 private struct Positions: View {
-    let rows: [PositionRow]
-    let totals: UsdTotals
-    let rates: FxRates?
-    let hasEuropean: Bool
-    let prices: RefreshOutcome?
-    let source: PriceSource
+    let state: LoadedPortfolio
     let progress: RefreshProgress?
     let onRefresh: () -> Void
 
     @State private var sort = SortOrder()
     @State private var mode = PnlMode.daily
+    @State private var sheet: SheetTarget?
     // Not sensitive: only which view is shown.
     @AppStorage("usd_view") private var usdView = false
+    @AppStorage("show_sold_positions") private var showSold = false
 
     var body: some View {
-        let shown = MainPage.sorted(usdView ? MainPage.inUsd(rows, rates: rates) : rows, order: sort, mode: mode)
+        let shown = MainPage.sorted(usdView ? MainPage.inUsd(state.rows, rates: state.rates) : state.rows, order: sort, mode: mode)
+        let sold = state.performance.filter(\.isSold)
         List {
             Section {
-                Header(totals: totals, rowCount: rows.count)
-                PriceStatus(prices: prices, source: source, hasEuropean: hasEuropean, progress: progress, onRefresh: onRefresh)
+                SummaryCards(summary: state.summary, totals: state.totals)
+                Text(notes).font(.footnote).foregroundStyle(.secondary)
+                PriceStatus(prices: state.prices, source: state.priceSource, hasEuropean: state.hasEuropean, progress: progress, onRefresh: onRefresh)
+            } header: {
+                Text(Strings.portfolioTitle)
+            }
+            if let movers = TopMoversRanking.rank(state.rows) {
+                TopMoversSection(movers: movers, onOpen: open)
+            }
+            Section {
                 Picker("", selection: $mode) {
                     Text(Strings.pnlDaily).tag(PnlMode.daily)
                     Text(Strings.pnlUnrealized).tag(PnlMode.unrealized)
@@ -79,49 +86,158 @@ private struct Positions: View {
                 }
                 .pickerStyle(.segmented)
                 if usdView {
-                    Text(rates.map { Strings.usdViewNote($0.effectiveDate) } ?? Strings.usdViewNoRates).font(.footnote).foregroundStyle(.secondary)
+                    Text(state.rates.map { Strings.usdViewNote($0.effectiveDate) } ?? Strings.usdViewNoRates).font(.footnote).foregroundStyle(.secondary)
                 }
-            } header: {
-                Text(Strings.portfolioTitle)
-            }
-            Section {
                 ColumnHeaders(sort: $sort)
                 if shown.isEmpty { Text(Strings.portfolioNoHoldings) }
-                ForEach(shown, id: \.identity) { row in PositionLine(row: row, mode: mode) }
+                ForEach(shown, id: \.identity) { row in
+                    PositionLine(row: row, mode: mode).contentShape(Rectangle()).onTapGesture { open(row) }
+                }
+            }
+            if !sold.isEmpty {
+                Section {
+                    Toggle(Strings.showSoldPositions(sold.count), isOn: $showSold)
+                    if showSold {
+                        ForEach(sold, id: \.soldIdentity) { position in
+                            SoldLine(position: position).contentShape(Rectangle()).onTapGesture { sheet = .details(position) }
+                        }
+                    }
+                }
             }
         }
         .listStyle(.plain)
         .refreshable { onRefresh() }
-    }
-}
-
-private struct Header: View {
-    let totals: UsdTotals
-    let rowCount: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading) {
-                    Text(Strings.cardValue).font(.caption)
-                    Text(Formats.money(totals.marketValue, "USD")).font(.title3.bold())
-                }
-                Spacer()
-                VStack(alignment: .trailing) {
-                    Text(Strings.cardToday).font(.caption)
-                    Text(Formats.signedMoney(totals.dailyPnl, "USD")).font(.title3.bold()).foregroundStyle(signColor(totals.dailyPnl))
-                    if let percent = totals.dailyPnlPercent { Text(Formats.signedPercent(percent)).font(.footnote).foregroundStyle(signColor(percent)) }
-                }
+        .sheet(item: $sheet) { target in
+            switch target {
+            case .details(let position):
+                PositionDetailsSheet(position: position, onHistory: { sheet = .history(ticker: position.ticker, currency: position.currency) })
+            case .history(let ticker, let currency):
+                PayerHistorySheet(events: state.dividends, ticker: ticker, currency: currency)
             }
-            Text(notes).font(.footnote).foregroundStyle(.secondary)
         }
+    }
+
+    /// Rows in the USD view are converted copies; the holding identifies the position.
+    private func open(_ row: PositionRow) {
+        if let position = state.performance.first(where: { $0.row?.holding == row.holding }) { sheet = .details(position) }
     }
 
     private var notes: String {
         var parts = [Strings.headerApproximate]
-        if let date = totals.rateDate { parts.append(Strings.headerRateDate(date)) }
-        if !totals.isComplete { parts.append(Strings.headerIncomplete(totals.missingValues, rowCount)) }
+        if let date = state.totals.rateDate { parts.append(Strings.headerRateDate(date)) }
+        if !state.totals.isComplete { parts.append(Strings.headerIncomplete(state.totals.missingValues, state.rows.count)) }
         return parts.joined(separator: " · ")
+    }
+}
+
+private extension PositionPerformance {
+    var soldIdentity: String { "\(ticker)-\(currency)" }
+}
+
+/// Value, total profit, today and 12-month dividends, in approximate USD (mobile-position-performance spec).
+private struct SummaryCards: View {
+    let summary: PortfolioSummary
+    let totals: UsdTotals
+
+    var body: some View {
+        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+            GridRow {
+                Card(title: Strings.cardValue, value: Formats.money(summary.value.amount, "USD"),
+                     detail: Strings.cardInvested(Formats.money(summary.invested.amount, "USD")), incomplete: !summary.value.isComplete)
+                Card(title: Strings.cardProfit, value: Formats.signedMoney(summary.totalProfit.amount, "USD"),
+                     detail: summary.totalProfitPercent.map(Formats.signedPercent), incomplete: !summary.totalProfit.isComplete,
+                     color: signColor(summary.totalProfit.amount))
+            }
+            GridRow {
+                Card(title: Strings.cardToday, value: Formats.signedMoney(totals.dailyPnl, "USD"),
+                     detail: totals.dailyPnlPercent.map(Formats.signedPercent), incomplete: totals.missingDailyPnl > 0, color: signColor(totals.dailyPnl))
+                Card(title: Strings.cardDividends, value: Formats.money(summary.dividends12Months.amount, "USD"),
+                     detail: Strings.cardDividendsNet, incomplete: !summary.dividends12Months.isComplete)
+            }
+        }
+    }
+
+    private struct Card: View {
+        let title: String
+        let value: String
+        let detail: String?
+        let incomplete: Bool
+        var color: Color = .primary
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.caption)
+                Text(value).font(.headline).foregroundStyle(color).lineLimit(1).minimumScaleFactor(0.7)
+                if let detail { Text(detail).font(.caption).foregroundStyle(color == .primary ? .secondary : color) }
+                // Its own line, so it is clear the headline value is incomplete, not the detail.
+                if incomplete { Text(Strings.cardIncomplete).font(.caption).foregroundStyle(.red) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+}
+
+/// Today's top gainers and losers in their own currency (mobile-top-movers spec); three each until expanded.
+private struct TopMoversSection: View {
+    let movers: TopMovers
+    let onOpen: (PositionRow) -> Void
+    @State private var expanded = false
+
+    var body: some View {
+        let shown = expanded ? TopMoversRanking.maxPerList : 3
+        Section {
+            list(Strings.moversGainers, Array(movers.gainers.prefix(shown)), empty: Strings.moversNoGainers)
+            list(Strings.moversLosers, Array(movers.losers.prefix(shown)), empty: Strings.moversNoLosers)
+            if movers.gainers.count > 3 || movers.losers.count > 3 {
+                Button(expanded ? Strings.moversShowLess : Strings.moversShowMore) { expanded.toggle() }
+            }
+        } header: {
+            HStack {
+                Text(Strings.moversTitle)
+                Spacer()
+                switch movers.freshness {
+                case .live: EmptyView()
+                case .delayed: Text(Strings.moversDelayed)
+                case .latestClose: Text(Strings.moversLatestClose)
+                case .stale: Text(Strings.moversStale).foregroundStyle(lossColor)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func list(_ title: String, _ rows: [PositionRow], empty: String) -> some View {
+        Text(title).font(.caption).foregroundStyle(.secondary)
+        if rows.isEmpty { Text(empty).font(.footnote).foregroundStyle(.secondary) }
+        ForEach(rows, id: \.identity) { row in
+            HStack {
+                Text(row.ticker).bold()
+                Spacer()
+                Text(row.marketValue.map { Formats.money($0, row.currency) } ?? "—").font(.footnote).foregroundStyle(.secondary)
+                Text([row.dailyChangePercent.map(Formats.signedPercent), row.dailyPnl.map { "(" + Formats.signedNumber($0) + ")" }].compactMap { $0 }.joined(separator: " "))
+                    .foregroundStyle(signColor(row.dailyChangePercent))
+            }
+            .monospacedDigit()
+            .contentShape(Rectangle())
+            .onTapGesture { onOpen(row) }
+        }
+    }
+}
+
+private struct SoldLine: View {
+    let position: PositionPerformance
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(position.ticker).bold()
+                Text(Strings.soldPosition(position.currency)).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(position.total.map { Formats.signedMoney($0, position.currency) } ?? "—").foregroundStyle(signColor(position.total)).monospacedDigit()
+        }
     }
 }
 
@@ -206,7 +322,7 @@ private struct PositionLine: View {
                 if let price = row.price {
                     Text(Formats.number(price.quote.price, 2, 4))
                     if let label = freshnessLabel(price.freshness) {
-                        Text(label).font(.caption).foregroundStyle(price.freshness == .stale ? loss : .secondary)
+                        Text(label).font(.caption).foregroundStyle(price.freshness == .stale ? lossColor : .secondary)
                     }
                 } else {
                     Text("—")

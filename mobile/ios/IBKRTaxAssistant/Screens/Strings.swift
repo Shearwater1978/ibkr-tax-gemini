@@ -23,6 +23,45 @@ enum Strings {
 
     static let cardValue = "Value"
     static let cardToday = "Today"
+    static func cardInvested(_ amount: String) -> String { "invested \(amount)" }
+    static let cardProfit = "Total profit"
+    static let cardDividends = "Dividends, 12 months"
+    static let cardDividendsNet = "net of withholding tax"
+    static let cardIncomplete = "incomplete"
+
+    static let moversTitle = "Today's top movers"
+    static let moversGainers = "Top gainers"
+    static let moversLosers = "Top losers"
+    static let moversNoGainers = "Nothing rose today."
+    static let moversNoLosers = "Nothing fell today."
+    static let moversDelayed = "delayed prices"
+    static let moversLatestClose = "latest close"
+    static let moversStale = "stale prices"
+    static let moversShowMore = "Show more"
+    static let moversShowLess = "Show less"
+
+    static func showSoldPositions(_ count: Int) -> String { "Show sold positions (\(count))" }
+    static func soldPosition(_ currency: String) -> String { "sold · \(currency)" }
+    static func detailsHeld(_ currency: String) -> String { "Held position, in \(currency)" }
+    static func detailsSold(_ currency: String) -> String { "Fully sold, in \(currency)" }
+    static let detailsQuantity = "Quantity"
+    static let detailsAverage = "Average price"
+    static let detailsInvested = "Invested"
+    static let detailsValue = "Value"
+    static let detailsPriceGain = "Price gain"
+    static let detailsSalesGain = "Gain from sales"
+    static let detailsDividends = "Dividends, net"
+    static let detailsTotal = "Total"
+    static let detailsUnavailable = "unavailable"
+    static let detailsSalesIncomplete = "A sale closed shares bought in another currency; its gain is not included."
+    static let detailsNote = "FIFO, commissions excluded. Informational; not a tax result."
+    static func dividendsLine(_ gross: String, _ tax: String) -> String { "gross \(gross) · withholding tax \(tax)" }
+    static let payerHistoryTitle = "Dividend history"
+    static func payerHistorySubtitle(_ currency: String, _ count: Int) -> String {
+        "\(currency) · all years · \(count) \(count == 1 ? "booking" : "bookings")"
+    }
+    static let payerHistoryTotals = "Totals"
+
     static let headerApproximate = "Approximate, in USD"
     static func headerRateDate(_ date: String) -> String { "exchange rates of \(date)" }
     static func headerIncomplete(_ missing: Int, _ total: Int) -> String { "incomplete: \(missing) of \(total) positions without a price or rate" }
