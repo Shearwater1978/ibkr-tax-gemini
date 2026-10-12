@@ -65,6 +65,13 @@ struct ExactDecimal: Hashable, CustomStringConvertible {
 
     var negated: ExactDecimal { ExactDecimal(negative: !negative, digits: digits, exponent: exponent) }
 
+    /// `BigDecimal.movePointLeft(n)`: value × 10^-n, with a scale of at least zero.
+    func movedPointLeft(_ n: Int) -> ExactDecimal {
+        let shifted = exponent - n
+        if shifted <= 0 { return ExactDecimal(negative: negative, digits: digits, exponent: shifted) }
+        return ExactDecimal(negative: negative, digits: digits + Array(repeating: 0, count: shifted), exponent: 0)
+    }
+
     /// Exact product (`BigDecimal.multiply` without a context).
     static func * (lhs: ExactDecimal, rhs: ExactDecimal) -> ExactDecimal {
         ExactDecimal(negative: lhs.negative != rhs.negative, digits: Natural.multiply(lhs.digits, rhs.digits), exponent: lhs.exponent + rhs.exponent)
