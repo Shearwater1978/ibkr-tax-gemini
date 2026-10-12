@@ -27,6 +27,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.ibkrtax.mobile
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Portfolio Companion
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Face ID unlocks the app so only you can see your portfolio.
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait

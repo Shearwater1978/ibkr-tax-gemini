@@ -90,6 +90,8 @@ Format is implemented using a vetted library (Tink or CryptoKit primitives).
 | Play services Block Store (+ coroutines adapter) | 16.4.0 | End-to-end encrypted copy of the backup data key | Stored with the user's Android backup, only when end-to-end encryption is available; Google cannot read it. Play services' own usage reporting follows the user's Google settings and receives no app data |
 | Kotlin coroutines | 1.9.0 | Concurrency | None |
 
+**Logs (iOS).** The iOS app writes nothing to the system log either: no `print`, `debugPrint`, `dump`, `NSLog`, `os_log` or `Logger` in app sources, enforced by `NoLoggingTests`.
+
 **Libraries (iOS, as of 2026-10-12).** Apple frameworks only (SwiftUI, Security, CryptoKit), plus:
 
 | Library | Version | Purpose | Network or data collection |
