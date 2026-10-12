@@ -3,7 +3,7 @@
 - [x] 1.2 Warn when the chosen folder is local-only
 - [x] 1.3 Detect lost folder access and ask the user to choose the folder again without losing local data
 - [x] 1.4 Keep old backups when the user changes the folder, unless deletion is requested
-- [ ] 1.5 Implement the iOS equivalent (document picker with security-scoped bookmarks) _Status: iOS folder access done (bookmark kept in the encrypted database, security-scoped and coordinated reads and writes, app subfolder, lost access detected); the picker and Settings screens follow._
+- [ ] 1.5 Implement the iOS equivalent (document picker with security-scoped bookmarks) _Status: iOS done: system folder picker in Settings, bookmark kept in the encrypted database, security-scoped and coordinated reads and writes, app subfolder, local-only warning (On My iPhone), lost access detected. To verify on a physical iPhone with iCloud Drive._
 
 ## 2. Key management
 - [ ] 2.1 Implement device key in Keystore / Secure Enclave _Status: Android done (Keystore, StrongBox when available). iOS done (Secure Enclave P-256 key, this device only, wraps the database and pseudonym keys); verified on the simulator, physical-device check pending (mobile-app-core 5.2)._

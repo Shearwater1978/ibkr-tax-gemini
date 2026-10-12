@@ -1,9 +1,10 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /**
- * Report imports, ported from the Android `ImportsScreen`. Importing your own reports stays off
- * until encrypted backups exist on iOS (mobile-app-core task 1.2); debug builds can load the
- * synthetic sample reports, which are imported without a backup.
+ * Report imports, ported from the Android `ImportsScreen`. Importing stays off until backup
+ * encryption and a backup folder are set up (mobile-app-core task 1.2); debug builds can also load
+ * the synthetic sample reports, which are imported without a backup.
  */
 struct ImportsView: View {
     @ObservedObject var data: DataState
@@ -11,15 +12,36 @@ struct ImportsView: View {
     @State private var sampleMessages: [String] = []
     @State private var deleteTarget: ImportedReport?
     @State private var deleteAllOpen = false
+    @State private var picking = false
+    @State private var importing = false
+    @State private var progress: String?
+    @State private var fileResults: [String] = []
+    @State private var passphrase = ""
 
     var body: some View {
         List {
             Section {
                 Text(Strings.importsSupportedFormat)
-                Button(Strings.actionImportReport) {}
-                    .disabled(true)
-                Text(Strings.importsUnavailableBackup).font(.footnote).foregroundStyle(.secondary)
+                Button(importing ? Strings.importing : Strings.actionImportReport) { picking = true }
+                    .disabled(!data.importReady || importing)
+                if !data.importReady {
+                    // Import stays off until backups work (mobile-app-core task 1.2); say which step is next.
+                    Text(data.keyStatus == .ready ? Strings.importsUnavailableFolder : Strings.importsUnavailableKeys).font(.footnote).foregroundStyle(.secondary)
+                }
+                Text(Strings.importMultipleHint).font(.footnote).foregroundStyle(.secondary)
+                if let progress { Text(progress) }
+                ForEach(fileResults, id: \.self) { Text($0).font(.footnote) }
                 if let message { Text(message) }
+                let pending = data.history?.filter { $0.backupStatus == ReportImporter.backupPending }.count ?? 0
+                if pending > 0 {
+                    Text(Strings.backupPendingCount(pending)).font(.footnote)
+                    Button(Strings.backupRetry) {
+                        Task {
+                            guard let retry = await data.retryBackups() else { return }
+                            message = retry.accessLost ? Strings.backupAccessLost : Strings.backupRetried(retry.backedUp, retry.stillPending)
+                        }
+                    }
+                }
             } header: {
                 Text(Strings.importsTitle)
             }
@@ -48,6 +70,18 @@ struct ImportsView: View {
             }
         }
         .onAppear { data.reload() }
+        // IBKR exports may be labelled as CSV, plain text or generic data by different apps.
+        .fileImporter(isPresented: $picking, allowedContentTypes: [.commaSeparatedText, .plainText, .data], allowsMultipleSelection: true) { result in
+            guard case .success(let urls) = result, !urls.isEmpty else { return }
+            importing = true
+            message = nil
+            fileResults = []
+            Task {
+                fileResults = await data.importFiles(urls) { done, total in progress = Strings.importProgress(done, total) }
+                progress = nil
+                importing = false
+            }
+        }
         .confirmationDialog(Strings.deleteOneTitle, isPresented: Binding(get: { deleteTarget != nil }, set: { if !$0 { deleteTarget = nil } }),
                             titleVisibility: .visible, presenting: deleteTarget) { report in
             Button(Strings.deleteConfirm, role: .destructive) {
@@ -57,14 +91,17 @@ struct ImportsView: View {
         } message: { _ in
             Text(Strings.deleteOneBody)
         }
-        // No backup keys exist on iOS yet, so no passphrase is asked (Android asks once keys are set up).
-        .confirmationDialog(Strings.deleteAllTitle, isPresented: $deleteAllOpen, titleVisibility: .visible) {
+        // "Delete all" needs the backup passphrase once backup encryption is set up (mobile-report-upload spec).
+        .alert(Strings.deleteAllTitle, isPresented: $deleteAllOpen) {
+            if data.keyStatus == .ready { SecureField(Strings.deleteAllPassphrase, text: $passphrase) }
             Button(Strings.deleteConfirm, role: .destructive) {
-                Task { message = await data.deleteAll().map(Strings.deleteDone) }
+                let entered = passphrase
+                passphrase = ""
+                Task { message = await data.deleteAll(passphrase: entered).map(Strings.deleteDone) ?? Strings.deleteWrongPassphrase }
             }
-            Button(Strings.cancel, role: .cancel) {}
+            Button(Strings.cancel, role: .cancel) { passphrase = "" }
         } message: {
-            Text(Strings.deleteAllBodyNoKeys)
+            Text(data.keyStatus == .ready ? Strings.deleteAllBody : Strings.deleteAllBodyNoKeys)
         }
     }
 

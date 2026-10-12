@@ -133,7 +133,43 @@ enum Strings {
 
     static let importsTitle = "Report imports"
     static let importsSupportedFormat = "Supported format: IBKR Activity Statement (CSV, English)."
-    static let importsUnavailableBackup = "Import of your own reports turns on once encrypted backups are available on iPhone."
+    static let importsUnavailableKeys = "Import needs working backups first. In Settings: 1. set up backup encryption, 2. choose a backup folder."
+    static let importsUnavailableFolder = "Backup encryption is set up. Choose a backup folder in Settings to enable import."
+    static let importMultipleHint = "You can select several reports at once; each is imported on its own."
+    static let importing = "Importing…"
+    static func importProgress(_ done: Int, _ total: Int) -> String { "Importing file \(done) of \(total)…" }
+    static func importDone(_ inserted: Int, _ skipped: Int) -> String { "Imported: \(inserted) new records, \(skipped) already present. Encrypted backup saved and verified." }
+    static func importDonePending(_ inserted: Int, _ skipped: Int) -> String {
+        "Imported: \(inserted) new records, \(skipped) already present. The backup folder is not reachable right now; the encrypted backup is kept on this phone and retried."
+    }
+    static func importDoneAccessLost(_ inserted: Int, _ skipped: Int) -> String {
+        "Imported: \(inserted) new records, \(skipped) already present. The app lost access to the backup folder: choose it again in Settings."
+    }
+    static let importAlready = "This report was already imported. Nothing changed."
+    static let importNotReady = "Set up backup encryption and a backup folder in Settings first."
+    static let importUnsupported = "This is not a IBKR Activity Statement (CSV, English) report. Nothing was imported."
+    static let importEmpty = "The file is empty. Nothing was imported."
+    static func importMalformed(_ line: Int) -> String { "The report could not be read (problem near line \(line)). Nothing was imported." }
+    static let importInvalidRecord = "The report contains an entry without date, ticker or currency, or of an unknown type. Nothing was imported."
+    static let importTooLarge = "The file is larger than 20 MB, which is too big for a broker report. Nothing was imported."
+    static func backupPendingCount(_ count: Int) -> String { "\(count) backup(s) waiting for the backup folder." }
+    static let backupRetry = "Retry backup"
+    static func backupRetried(_ saved: Int, _ waiting: Int) -> String { "Backup retried: \(saved) saved, \(waiting) still waiting." }
+    static let backupAccessLost = "The app lost access to the backup folder. Choose it again in Settings."
+
+    static func describe(_ outcome: ImportOutcome) -> String {
+        switch outcome {
+        case .notReady: return importNotReady
+        case .alreadyImported: return importAlready
+        case .imported(let inserted, let skipped, .backedUp): return importDone(inserted, skipped)
+        case .imported(let inserted, let skipped, .pending): return importDonePending(inserted, skipped)
+        case .imported(let inserted, let skipped, .accessLost): return importDoneAccessLost(inserted, skipped)
+        case .rejected(.invalidRecord): return importInvalidRecord
+        case .rejected(.unparseable(.emptyFile)): return importEmpty
+        case .rejected(.unparseable(.unsupportedFormat)): return importUnsupported
+        case .rejected(.unparseable(.malformed(_, let line, _))): return importMalformed(line)
+        }
+    }
     static let importsHistoryTitle = "Imported reports"
     static func importsHistoryItem(_ time: String, _ account: String) -> String { "\(time) · account \(account)" }
     static func importsHistoryCounts(_ inserted: Int, _ skipped: Int) -> String {
@@ -150,15 +186,64 @@ enum Strings {
     static let deleteOneBody = "Records that only this import contains are removed from the app, and its encrypted backup file is deleted from the backup folder. Records that other imports also contain stay."
     static let deleteAllAction = "Delete all imported data"
     static let deleteAllTitle = "Delete all imported data?"
+    static let deleteAllBody = "All imported reports and records are removed from the app, and their encrypted backup files are deleted from the backup folder. Your backup encryption keys stay. Enter your backup passphrase to confirm."
     static let deleteAllBodyNoKeys = "All imported reports and records are removed from the app."
+    static let deleteAllPassphrase = "Backup passphrase"
     static let deleteConfirm = "Delete"
-    static func deleteDone(_ records: Int) -> String { "Deleted: \(records) records removed." }
+    static let deleteWrongPassphrase = "The passphrase is wrong. Nothing was deleted."
+    static func deleteDone(_ outcome: DeletionOutcome) -> String {
+        outcome.backupsLeft == 0
+            ? "Deleted: \(outcome.removedRecords) records removed, \(outcome.backupsDeleted) backup file(s) deleted."
+            : "Deleted: \(outcome.removedRecords) records removed. \(outcome.backupsLeft) backup file(s) could not be deleted because the backup folder is not reachable; delete them there yourself."
+    }
 
     static let debugSamplesTitle = "Debug build"
     static let debugSamplesAction = "Load synthetic sample reports"
     static func debugSamplesImported(_ name: String, _ inserted: Int, _ skipped: Int) -> String { "\(name): \(inserted) new, \(skipped) skipped" }
     static func debugSamplesAlready(_ name: String) -> String { "\(name): already imported" }
     static func debugSamplesRejected(_ name: String) -> String { "\(name): rejected" }
+
+    static let encryptionTitle = "Backup encryption"
+    static let encryptionBody = "Backups are encrypted on this phone with a key protected by your passphrase. Neither the storage provider nor anyone else can read them without it."
+    static let encryptionSetUp = "Set up backup encryption"
+    static let encryptionCreate = "Create keys"
+    static let encryptionWorking = "Creating keys… this takes a few seconds."
+    static let encryptionReady = "Backup encryption is set up."
+    static let encryptionNoCloudCopy = "On a new iPhone you will need your passphrase or recovery code to restore backups."
+    static let encryptionChange = "Change passphrase"
+    static let encryptionChangeSubmit = "Change"
+    static func passphraseRule(_ minimum: Int) -> String { "Use at least \(minimum) characters. A short sentence is easy to remember and hard to guess." }
+    static let passphraseCurrent = "Current passphrase"
+    static let passphraseNew = "New passphrase"
+    static let passphraseConfirm = "Repeat passphrase"
+    static func passphraseTooShort(_ minimum: Int) -> String { "The passphrase needs at least \(minimum) characters." }
+    static let passphraseTooSimple = "This passphrase is too simple. Avoid repeated characters and plain sequences."
+    static let passphraseMismatch = "The two passphrases do not match."
+    static let passphraseWrongCurrent = "The current passphrase is wrong."
+    static let recoveryTitle = "Your recovery code"
+    static let recoveryBody = "Write this code down and keep it somewhere safe, separate from your phone. It unlocks your backups if you forget the passphrase. It is shown only once; iOS cannot block screenshots, so do not keep one in your photos."
+    static let recoverySaved = "I have written down the recovery code"
+    static let recoveryDone = "Done"
+    static let recoveryCopy = "Copy code"
+    static let recoveryCopied = "Copied. Paste it into your password manager now: the clipboard is cleared after 1 minute and stays on this iPhone."
+    static let recoveryNew = "Create new recovery code"
+    static let recoveryNewHint = "Lost your recovery code or never saved it? Create a new one; your backups and passphrase stay the same."
+    static let recoveryNewSubmit = "Create code"
+    static let recoveryNewReplaces = "When you tap Done, this code replaces your previous one, which then stops working."
+
+    static let locationTitle = "Backup location"
+    static let folderBody = "Encrypted backups of your imported reports are saved in a folder you choose, for example in iCloud Drive. Only this app can read them, with your passphrase or recovery code."
+    static let locationChoose = "Choose backup folder"
+    static let locationChooseHint = "In the picker, go to where the backups should be kept (iCloud Drive is safest) and tap Open. The app creates its own folder \"Portfolio Companion backups\" there."
+    static func locationCurrent(_ place: String, _ path: String) -> String { "Backups go to \(place): \(path)" }
+    static let locationLabelICloud = "iCloud Drive"
+    static let locationLabelPhone = "this iPhone"
+    static let locationLabelOther = "another storage app"
+    static let locationChangeHint = "Choosing a new location keeps existing backups where they are."
+    static let folderLocalOnly = "This folder is only on this iPhone. If the phone is lost or reset, the backups are lost too. A folder in iCloud Drive or another cloud app is safer."
+    static let folderSaved = "Backup folder saved."
+    static let folderSavedNoKeys = "Backup folder saved. Set up backup encryption above to enable import."
+    static let folderNotUsable = "That folder cannot be used. Choose another one. Nothing was changed."
 
     static let settingsTitle = "Settings"
     static let settingsPrivacy = "Reports are processed on this device. Account identifiers are masked."

@@ -1,45 +1,95 @@
 import Foundation
 
-/// Imports shared by every screen (Android `DataState`): the history list and what changes it.
+/// Imports, keys and backup readiness shared by every screen (Android `DataState`).
 @MainActor
 final class DataState: ObservableObject {
     /// Nil until loaded.
     @Published private(set) var history: [ImportedReport]?
     @Published private(set) var storageUnavailable = false
+    @Published private(set) var keyStatus: BackupKeyStatus?
+    /// Backup encryption and a backup folder are set up, so import is allowed.
+    @Published private(set) var importReady = false
 
     private let container: AppContainer
-    /// Called after any change, so the portfolio reloads too.
+    /// Called after any change, so the other screens reload too.
     var onChange: () -> Void = {}
+    private lazy var retry = BackupRetry(
+        pending: { [container] in await Task.detached { (try? container.backup().isReady == true ? container.importer().pendingBackups().count : 0) ?? 0 }.value },
+        retry: { [container] in await Task.detached { try? container.backup().retryPending() }.value },
+        onChange: { [weak self] in self?.reload() }
+    )
 
     init(container: AppContainer) {
         self.container = container
     }
 
+    /// Reloads everything; call after an import, a deletion or a change of keys or folder.
     func reload() {
         Task {
-            let result = await Task.detached { [container] in Result { try container.importHistory().list() } }.value
-            switch result {
+            let (history, status, ready) = await Task.detached { [container] in
+                (Result { try container.importHistory().list() }, try? container.backupKeys().status(), (try? container.backup().isReady) ?? false)
+            }.value
+            switch history {
             case .success(let reports):
-                history = reports
+                self.history = reports
                 storageUnavailable = false
             case .failure:
-                history = nil
+                self.history = nil
                 storageUnavailable = true
             }
+            keyStatus = status
+            importReady = ready
+            // Every import, deletion and key or folder change comes through here.
+            retry.kick()
         }
     }
 
-    /// Returns the number of records removed, or nil when the import no longer exists or storage failed.
-    func deleteReport(_ id: Int64) async -> Int? {
-        let removed = await Task.detached { [container] in try? container.importer().deleteReport(id)?.removedRecords }.value
+    /// Imports each file on its own (one bad file does not stop the rest); returns one line per file.
+    func importFiles(_ urls: [URL], progress: @escaping (Int, Int) -> Void) async -> [String] {
+        var lines: [String] = []
+        for (index, url) in urls.enumerated() {
+            progress(index + 1, urls.count)
+            let line = await Task.detached { [container] () -> String in
+                let name = FileNameMasking.mask(url.lastPathComponent)
+                guard let bytes = Self.readLimited(url) else { return "\(name): \(Strings.importTooLarge)" }
+                guard let outcome = try? container.backup().importReport(bytes) else { return "\(name): \(Strings.storageUnavailable)" }
+                return "\(name): \(Strings.describe(outcome))"
+            }.value
+            lines.append(line)
+        }
         changed()
-        return removed
+        return lines
     }
 
-    func deleteAll() async -> Int? {
-        let removed = await Task.detached { [container] in try? container.importer().deleteAll().removedRecords }.value
+    /// Reads a picked file inside its security scope; nil when it is larger than any plausible report.
+    nonisolated private static func readLimited(_ url: URL) -> Data? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 20 * 1024 * 1024 else { return nil }
+        return try? Data(contentsOf: url)
+    }
+
+    func retryBackups() async -> RetryResult? {
+        let result = await Task.detached { [container] in try? container.backup().retryPending() }.value
         changed()
-        return removed
+        return result
+    }
+
+    /// Deletes one import, the records only it contains, and its backup file.
+    func deleteReport(_ id: Int64) async -> DeletionOutcome? {
+        let outcome = await Task.detached { [container] in try? container.backup().deleteImport(id) }.value
+        changed()
+        return outcome
+    }
+
+    /// Needs the backup passphrase once backup encryption is set up (mobile-report-upload spec); nil when it is wrong.
+    func deleteAll(passphrase: String?) async -> DeletionOutcome? {
+        if let keys = try? container.backupKeys(), keys.status() == .ready {
+            guard let passphrase, await keys.verifyPassphrase(passphrase) else { return nil }
+        }
+        let outcome = await Task.detached { [container] in try? container.backup().deleteAllImports() }.value
+        changed()
+        return outcome
     }
 
     /// Debug builds: imports the synthetic reports without a backup, plus made-up past prices and rates.
@@ -55,7 +105,7 @@ final class DataState: ObservableObject {
         return results
     }
 
-    private func changed() {
+    func changed() {
         reload()
         onChange()
     }

@@ -41,8 +41,47 @@ final class AppStateTests: XCTestCase {
         let again = await data.loadSamples()
         XCTAssertEqual(again.map(\.result), [.alreadyImported, .alreadyImported])
 
-        let removed = await data.deleteAll()
-        XCTAssertEqual(removed, 11)
+        // No backup keys here, so no passphrase is needed.
+        let removed = await data.deleteAll(passphrase: nil)
+        XCTAssertEqual(removed?.removedRecords, 11)
         XCTAssertEqual(PortfolioState.loadPortfolio(container, prices: nil), .noReports)
+    }
+
+    func testImportWithKeysAndFolderWritesAVerifiedBackupAndDeleteAllNeedsThePassphrase() async throws {
+        let data = DataState(container: container)
+        let passphrase = "correct horse battery"
+        let keys = try container.backupKeys()
+        try keys.confirm(try await keys.prepare(passphrase: passphrase))
+        let picked = base.appendingPathComponent("Picked", isDirectory: true)
+        try FileManager.default.createDirectory(at: picked, withIntermediateDirectories: true)
+        try container.backupLocation().set(BackupLocation(bookmark: try picked.bookmarkData(), subfolder: BackupLocation.subfolderName))
+        XCTAssertTrue(try container.backup().isReady)
+
+        // The file as the Files picker would hand it over; its name carries a synthetic account number.
+        let report = base.appendingPathComponent("U00000001_2023.csv")
+        try Fixtures.flexQuery(Fixtures.validBasic).write(to: report)
+        let lines = await data.importFiles([report]) { _, _ in }
+        XCTAssertEqual(lines, ["U••••0001_2023.csv: " + Strings.importDone(9, 0)])
+
+        let backups = picked.appendingPathComponent(BackupLocation.subfolderName)
+        let files = try FileManager.default.contentsOfDirectory(atPath: backups.path).sorted()
+        XCTAssertEqual(files.count, 1)
+        XCTAssertTrue(BackupService.isBackupFileName(files[0]))
+        _ = try container.backup().syncManifest()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: backups.appendingPathComponent(BackupService.manifestFile).path))
+        let decrypted = try BackupFileFormat.decrypt(dataKey: try XCTUnwrap(try keys.dataKey()), file: Data(contentsOf: backups.appendingPathComponent(files[0])))
+        XCTAssertEqual(decrypted, Fixtures.flexQuery(Fixtures.validBasic))
+
+        let refused = await data.deleteAll(passphrase: "wrong passphrase!")
+        XCTAssertNil(refused)
+        let deleted = await data.deleteAll(passphrase: passphrase)
+        XCTAssertEqual(deleted, DeletionOutcome(removedRecords: 9, backupsDeleted: 1, backupsLeft: 0))
+    }
+
+    func testFolderLocationsAreRecognised() {
+        XCTAssertEqual(BackupLocationKind.of(path: "/private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/Backups", ubiquitous: false), .iCloud)
+        XCTAssertEqual(BackupLocationKind.of(path: "/private/var/mobile/Containers/Shared/AppGroup/X/File Provider Storage/Backups", ubiquitous: false), .phone)
+        XCTAssertEqual(BackupLocationKind.of(path: "/private/var/mobile/Containers/Data/Application/Y/Dropbox/Backups", ubiquitous: false), .other)
+        XCTAssertEqual(BackupLocationKind.of(path: "/anything", ubiquitous: true), .iCloud)
     }
 }

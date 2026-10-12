@@ -60,6 +60,22 @@ final class AppContainer {
     }
 
     func fx() throws -> FxService { FxService(client: NbpClient(), cache: try fxStore()) }
+
+    private func secureDirectory() throws -> URL { try directory ?? SecureFiles.directory() }
+
+    func backupKeys() throws -> BackupKeys {
+        BackupKeys(files: LocalKeyFiles(directory: try secureDirectory(), wrapper: DeviceKeyWrapper(tag: DeviceKeys.databaseWrapTag)))
+    }
+
+    func backupLocation() throws -> BackupLocationStore { BackupLocationStore(database: try database()) }
+
+    /// Import with encrypted backup; encrypted copies wait for upload in the protected folder.
+    func backup() throws -> BackupService {
+        let keys = try backupKeys()
+        let location = try backupLocation()
+        return BackupService(dataKey: keys.dataKey, manifestJson: keys.manifestJson, folder: location.folder,
+                             reports: try importer(), pendingDirectory: try secureDirectory().appendingPathComponent("pending-backups", isDirectory: true))
+    }
 }
 
 /**

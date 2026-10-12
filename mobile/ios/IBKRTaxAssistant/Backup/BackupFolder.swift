@@ -192,3 +192,22 @@ struct BackupLocationStore {
         try database.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", [.text(key), .text(value)])
     }
 }
+
+/// Where a picked folder lives, for the label and the local-only warning (backup-location spec).
+enum BackupLocationKind: Equatable {
+    case iCloud
+    case phone
+    case other
+
+    static func of(_ url: URL) -> BackupLocationKind {
+        let ubiquitous = (try? url.resourceValues(forKeys: [.isUbiquitousItemKey]))?.isUbiquitousItem ?? false
+        return of(path: url.path, ubiquitous: ubiquitous)
+    }
+
+    /// iCloud Drive lives under "Mobile Documents"; "On My iPhone" folders and the app's own container are local.
+    static func of(path: String, ubiquitous: Bool) -> BackupLocationKind {
+        if ubiquitous || path.contains("/Mobile Documents/") { return .iCloud }
+        if path.contains("/File Provider Storage/") || path.hasPrefix(NSHomeDirectory()) { return .phone }
+        return .other
+    }
+}
