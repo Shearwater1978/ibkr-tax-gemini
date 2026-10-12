@@ -20,6 +20,9 @@ enum Fixtures {
         try! JSONSerialization.jsonObject(with: read("flex-query/expected/source_keys/\(stem(fixtureName)).json")) as! [String]
     }
 
+    /// Any fixture's bytes, by path below mobile/fixtures.
+    static func raw(_ path: String) -> Data { read(path) }
+
     /// Any JSON fixture, by path below mobile/fixtures.
     static func json(_ path: String) -> Any { try! JSONSerialization.jsonObject(with: read(path)) }
 

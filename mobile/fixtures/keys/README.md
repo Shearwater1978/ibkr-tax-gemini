@@ -7,4 +7,6 @@
 - wraps: AES-256-GCM, 12-byte nonce + ciphertext + tag, associated data `ibkrtax.dk.v1:passphrase` or `ibkrtax.dk.v1:recovery`;
 - key check: the first 16 bytes of HMAC-SHA256(data key, `ibkrtax key check v1`).
 
-A client that unlocks it with both secrets derives keys exactly as the other platform does, so backups move between Android and iOS. Never put real keys or passphrases here.
+`valid_basic_v1.bin` is `flex-query/valid_basic.csv` in the encrypted backup file format, encrypted with pyca/cryptography under that data key: magic `IBKB`, version byte 1, a 16-byte file id, a 12-byte nonce, then AES-256-GCM ciphertext and tag, with the 33-byte header as associated data.
+
+A client that unlocks it with both secrets derives keys exactly as the other platform does, and one that decrypts the backup file reads the other platform's files, so backups move between Android and iOS. Never put real keys or passphrases here.
