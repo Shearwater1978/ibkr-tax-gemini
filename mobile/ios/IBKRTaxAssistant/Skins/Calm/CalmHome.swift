@@ -35,11 +35,12 @@ struct CalmHome: View {
         Group {
             switch state.ui {
             case .loading:
-                Text(Strings.loading).foregroundStyle(CalmColors.muted).task { state.refresh() }
+                message { Text(Strings.loading).foregroundStyle(CalmColors.muted) }.task { state.refresh() }
+            // Settings stays reachable in every state; it holds "Erase all data", the way out when storage cannot be opened.
             case .storageUnavailable:
-                Text(Strings.storageUnavailable).multilineTextAlignment(.center).padding(24)
+                message { Text(Strings.storageUnavailable) }
             case .incomplete(let ticker, let date):
-                Text(Strings.portfolioIncomplete(ticker, date)).multilineTextAlignment(.center).padding(24)
+                message { Text(Strings.portfolioIncomplete(ticker, date)) }
             case .noReports:
                 VStack(alignment: .leading, spacing: 10) {
                     CalmTopRow(onImport: onImport, onSettings: onSettings)
@@ -57,6 +58,19 @@ struct CalmHome: View {
         }
         .foregroundStyle(CalmColors.ink)
         .background(Color.white)
+    }
+}
+
+extension CalmHome {
+    /// A centred message under the avatar and "+" buttons.
+    private func message<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack {
+            CalmTopRow(onImport: onImport, onSettings: onSettings)
+            Spacer()
+            content().multilineTextAlignment(.center)
+            Spacer()
+        }
+        .padding(22)
     }
 }
 

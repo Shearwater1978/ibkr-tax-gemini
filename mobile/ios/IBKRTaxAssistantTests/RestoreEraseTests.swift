@@ -122,7 +122,7 @@ final class EraseAndRestoreFlowTests: XCTestCase {
     }
 
     func testEraseLeavesAWorkingEmptyAppAndTheBackupRestoresWithTheRecoveryCode() async throws {
-        let container = AppContainer(directory: try SecureFiles.directory(base: base))
+        let container = AppContainer(directory: try SecureFiles.directory(base: base), deviceKeyTag: Self.testKeyTag)
         let data = DataState(container: container)
         let keys = try container.backupKeys()
         let pending = try await keys.prepare(passphrase: "correct horse battery")

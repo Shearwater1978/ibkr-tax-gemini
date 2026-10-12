@@ -1,4 +1,5 @@
 import Foundation
+import XCTest
 
 /// Loads shared synthetic fixtures from mobile/fixtures (copied into the test bundle as a folder).
 enum Fixtures {
@@ -35,4 +36,9 @@ enum Fixtures {
     }
 
     private final class Marker {}
+}
+
+extension XCTestCase {
+    /// The device key name for test containers; never the app's own, which tests must not create or delete.
+    static var testKeyTag: String { "ibkrtax.test.container-wrap" }
 }
