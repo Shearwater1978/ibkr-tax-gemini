@@ -1,5 +1,13 @@
 /// User-facing copy; keep in sync with Android `res/values/strings.xml`.
 enum Strings {
+    static let appName = "Portfolio Companion"
+
+    static let lockLocked = "Locked to protect your portfolio data."
+    static let lockUnlock = "Unlock"
+    static let lockPromptReason = "Unlock Portfolio Companion"
+    static let lockNoScreenLock = "This iPhone has no passcode, so the app cannot verify it is you. Set a passcode or Face ID in Settings to protect your data."
+    static let lockContinue = "Continue without lock"
+
     static let portfolioEmptyTitle = "No reports imported"
     static let portfolioEmptyBody = "Add reports from your broker to see your holdings."
     static let actionImportReport = "Import report"

@@ -31,12 +31,12 @@
 - [ ] 5.1 Integrate SQLCipher with key from device key _Status: Android done; iOS done (SQLCipher 4.19.0, raw 256-bit key wrapped by the Secure Enclave key, refuses to open without SQLCipher)._
 - [ ] 5.2 Include encrypted database backup in the backup set
 - [x] 5.3 Exclude local data from OS cloud backups _Status: Android done (allowBackup and fullBackupContent off, data extraction rules exclude every domain from cloud backup and device transfer). iOS done: database and wrapped keys live in a folder excluded from backup, with complete file protection (not observable on the simulator)._
-- [x] 5.4 Clear temporary files and caches on exit _Status: Android done; the app writes no plaintext files, and the cache folder is emptied at start and when the app goes to the background._
+- [x] 5.4 Clear temporary files and caches on exit _Status: Android done; the app writes no plaintext files, and the cache folder is emptied at start and when the app goes to the background. iOS does the same for its temporary and Caches folders._
 
 ## 6. Device hardening
-- [ ] 6.1 Disable screenshots on Android and hide content in app switcher on iOS _Status: Android done (FLAG_SECURE, verified on an emulator); iOS postponed._
-- [ ] 6.2 Auto-lock after timeout and on background _Status: Android done (locks on start and after 5 minutes in the background; biometric or device credential); iOS postponed._
-- [x] 6.3 Verify no sensitive data in logs in release builds _Status: Android done; the app does not log at all, enforced by `NoLoggingTest` (design Decision 9)._
+- [ ] 6.1 Disable screenshots on Android and hide content in app switcher on iOS _Status: Android done (FLAG_SECURE, verified on an emulator). iOS done: a cover hides the app whenever it is not active (app switcher, system prompts) and while the screen is recorded or mirrored; iOS cannot block screenshots. Verified on a simulator; app-switcher snapshot still to check on a physical iPhone._
+- [ ] 6.2 Auto-lock after timeout and on background _Status: Android done (locks on start and after 5 minutes in the background; biometric or device credential). iOS done with the same rule (Face ID, Touch ID or passcode), verified on a simulator with simulated Face ID._
+- [x] 6.3 Verify no sensitive data in logs in release builds _Status: Android done; the app does not log at all, enforced by `NoLoggingTest` (design Decision 9). iOS likewise, enforced by `NoLoggingTests`._
 - [x] 6.4 Review third-party SDKs for data collection _Status: Android reviewed, no analytics or crash SDKs (design Decision 9)._
 - [ ] 6.5 Integrate Play Integrity and App Attest
 
