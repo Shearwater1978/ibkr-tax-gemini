@@ -92,6 +92,30 @@ final class DataState: ObservableObject {
         return outcome
     }
 
+    /// Restores from a picked folder; on success the folder becomes this phone's backup folder.
+    func restore(from root: URL, secret: RestoreSecret?) async -> RestoreOutcome {
+        let outcome = await Task.detached { [container] () -> RestoreOutcome in
+            let scoped = root.startAccessingSecurityScopedResource()
+            defer { if scoped { root.stopAccessingSecurityScopedResource() } }
+            guard let found = RestoreService.locateBackup(in: root) else { return .noBackup }
+            guard let restore = try? container.restore(), let keys = try? container.backupKeys(), let bookmark = try? root.bookmarkData() else { return .accessLost }
+            let outcome = await restore.restore(found, secret: secret, localKey: (try? keys.dataKey()) ?? nil) { manifest, key in
+                try keys.adopt(manifest, dataKey: key)
+            }
+            if case .restored = outcome { try? container.backupLocation().set(BackupLocation(bookmark: bookmark, subfolder: found.subfolder)) }
+            return outcome
+        }.value
+        changed()
+        return outcome
+    }
+
+    /// Erase all data; afterwards every screen reloads empty, as after a fresh install.
+    func eraseAll() async -> ErasureResult {
+        let result = await Task.detached { [container] in container.eraser().eraseAll() }.value
+        changed()
+        return result
+    }
+
     /// Debug builds: imports the synthetic reports without a backup, plus made-up past prices and rates.
     func loadSamples() async -> [(name: String, result: ImportResult?)] {
         let results = await Task.detached { [container] () -> [(name: String, result: ImportResult?)] in

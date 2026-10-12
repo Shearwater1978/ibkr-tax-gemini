@@ -245,6 +245,40 @@ enum Strings {
     static let folderSavedNoKeys = "Backup folder saved. Set up backup encryption above to enable import."
     static let folderNotUsable = "That folder cannot be used. Choose another one. Nothing was changed."
 
+    static let restoreTitle = "Restore from a backup"
+    static let restoreBody = "New iPhone? Choose the folder that holds your backups (also backups made by the Android app). The app asks for your backup passphrase or recovery code."
+    static let restoreChoose = "Choose backup folder"
+    static let restoreRunning = "Restoring…"
+    static let restoreUnlockTitle = "Unlock your backup"
+    static let restoreUnlockBody = "Enter the backup passphrase or the recovery code you saved when you set up backups."
+    static let restoreUsePassphrase = "Passphrase"
+    static let restoreUseCode = "Recovery code"
+    static let restoreAction = "Restore"
+    static let restoreWrong = "This does not unlock the backup. Nothing was restored."
+    static let restoreNoBackup = "No backup found in this folder. Choose the folder that contains the backup files."
+    static let restoreAccessLost = "The folder could not be read. Choose it again."
+    static let restoreNewer = "This backup was made by a newer version of the app. Update the app first."
+    static func restoreDone(_ reports: Int, _ records: Int, already: Int, unreadable: Int) -> String {
+        var parts = ["Restored \(reports) \(reports == 1 ? "report" : "reports") with \(records) records."]
+        if already > 0 { parts.append("\(already) already on this phone.") }
+        if unreadable > 0 { parts.append("\(unreadable) backup files could not be read.") }
+        return parts.joined(separator: " ")
+    }
+
+    static let eraseTitle = "Erase all data"
+    static let eraseBody = "Deletes everything this app stores: imported reports and their records, every backup file in your backup folder, the backup keys, your price key and all settings. Without the keys, any backup copy left in the storage provider's trash cannot be read. This cannot be undone."
+    static let eraseAction = "Erase all data…"
+    static let eraseConfirmTitle = "Erase all data?"
+    static let eraseConfirmWord = "ERASE"
+    static func eraseConfirmBody(_ word: String) -> String { "Type \(word) to confirm. The app starts empty afterwards." }
+    static let eraseConfirmButton = "Erase"
+    static let eraseRunning = "Erasing…"
+    static let eraseDoneTitle = "All data erased"
+    static func eraseDoneBody(_ records: Int, _ files: Int) -> String { "Deleted \(records) records and \(files) backup files. The backup keys are destroyed." }
+    static let eraseFolderUnreachable = "The backup folder could not be reached, so its files were not deleted; without the keys they cannot be read."
+    static func eraseFilesLeft(_ count: Int) -> String { "\(count) backup files could not be deleted; without the keys they cannot be read." }
+    static func eraseStepsFailed(_ steps: String) -> String { "Some steps failed (\(steps)). Reinstall the app to remove what is left." }
+
     static let settingsTitle = "Settings"
     static let settingsPrivacy = "Reports are processed on this device. Account identifiers are masked."
 }
