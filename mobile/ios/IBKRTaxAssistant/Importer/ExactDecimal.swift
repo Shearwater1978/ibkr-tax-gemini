@@ -57,10 +57,66 @@ struct ExactDecimal: Hashable, CustomStringConvertible {
         self.init(negative: negative, digits: digits, exponent: exponent - fraction)
     }
 
+    static let one = ExactDecimal(negative: false, digits: [1], exponent: 0)
+
     var signum: Int { digits == [0] ? 0 : (negative ? -1 : 1) }
 
+    var magnitude: ExactDecimal { ExactDecimal(negative: false, digits: digits, exponent: exponent) }
+
+    var negated: ExactDecimal { ExactDecimal(negative: !negative, digits: digits, exponent: exponent) }
+
+    /// Exact product (`BigDecimal.multiply` without a context).
     static func * (lhs: ExactDecimal, rhs: ExactDecimal) -> ExactDecimal {
         ExactDecimal(negative: lhs.negative != rhs.negative, digits: Natural.multiply(lhs.digits, rhs.digits), exponent: lhs.exponent + rhs.exponent)
+    }
+
+    /// `multiply(other, MathContext(precision, HALF_EVEN))`.
+    func multiplied(by other: ExactDecimal, precision: Int = pythonPrecision) -> ExactDecimal {
+        (self * other).rounded(precision)
+    }
+
+    /// `add(other, MathContext(precision, HALF_EVEN))`: the exact sum at the smaller exponent, then rounded.
+    func adding(_ other: ExactDecimal, precision: Int = pythonPrecision) -> ExactDecimal {
+        let exponent = min(self.exponent, other.exponent)
+        let a = Natural.trimmed(digits + Array(repeating: 0, count: self.exponent - exponent))
+        let b = Natural.trimmed(other.digits + Array(repeating: 0, count: other.exponent - exponent))
+        let sum: ExactDecimal
+        if negative == other.negative {
+            sum = ExactDecimal(negative: negative, digits: Natural.add(a, b), exponent: exponent)
+        } else if Natural.compare(a, b) >= 0 {
+            sum = ExactDecimal(negative: negative, digits: Natural.subtract(a, b), exponent: exponent)
+        } else {
+            sum = ExactDecimal(negative: other.negative, digits: Natural.subtract(b, a), exponent: exponent)
+        }
+        return sum.rounded(precision)
+    }
+
+    /// `subtract(other, MathContext(precision, HALF_EVEN))`.
+    func subtracting(_ other: ExactDecimal, precision: Int = pythonPrecision) -> ExactDecimal {
+        adding(other.negated, precision: precision)
+    }
+
+    /// Numeric comparison (`BigDecimal.compareTo`): -1, 0 or 1, ignoring scale.
+    func compare(_ other: ExactDecimal) -> Int {
+        subtracting(other, precision: Int.max).signum
+    }
+
+    /// Rounds half-even to `precision` significant digits; shorter values are unchanged.
+    func rounded(_ precision: Int) -> ExactDecimal {
+        guard digits.count > precision else { return self }
+        var kept = Array(digits[..<precision])
+        let dropped = digits[precision...]
+        var exponent = self.exponent + dropped.count
+        let first = dropped.first!
+        let restZero = dropped.dropFirst().allSatisfy { $0 == 0 }
+        if first > 5 || (first == 5 && (!restZero || kept.last! % 2 == 1)) {
+            kept = Natural.add(kept, [1])
+            if kept.count > precision {
+                kept.removeLast()
+                exponent += 1
+            }
+        }
+        return ExactDecimal(negative: negative, digits: kept, exponent: exponent)
     }
 
     /**
