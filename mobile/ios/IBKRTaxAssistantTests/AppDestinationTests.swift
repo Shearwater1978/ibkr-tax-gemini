@@ -4,7 +4,7 @@ import XCTest
 final class AppDestinationTests: XCTestCase {
     // Must stay identical to the Android AppDestinationTest expectations.
     func testDestinationsMatchSharedNavigationContract() {
-        XCTAssertEqual(AppDestination.allCases.map(\.rawValue), ["portfolio", "imports", "settings"])
+        XCTAssertEqual(AppDestination.allCases.map(\.rawValue), ["portfolio", "dividends", "operations", "imports", "settings"])
     }
 
     func testStartDestinationIsPortfolio() {

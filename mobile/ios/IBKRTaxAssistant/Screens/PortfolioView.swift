@@ -10,10 +10,6 @@ struct PortfolioView: View {
             Text(Strings.portfolioEmptyBody).multilineTextAlignment(.center)
             Button(Strings.actionImportReport, action: onImportReport)
                 .buttonStyle(.borderedProminent)
-            Text(Strings.informationalNotice)
-                .font(.footnote)
-                .multilineTextAlignment(.center)
-                .padding(.top, 8)
         }
         .padding(24)
     }

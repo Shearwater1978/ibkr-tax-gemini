@@ -7,9 +7,9 @@ Native clients for the `mobile-app-core` OpenSpec change: Kotlin/Jetpack Compose
 | Path | `mobile/android` | `mobile/ios` |
 | Minimum OS | Android 10 (API 29) | iOS 16 |
 | App ID | `com.ibkrtax.mobile` | `com.ibkrtax.mobile` |
-| Toolchain | Android Studio, JDK 17+ | Xcode 15+, XcodeGen (macOS only) |
+| Toolchain | Android Studio, JDK 17+ | Xcode 27+, XcodeGen (macOS only) |
 
-The Android app is called **Portfolio Companion**; how to use it is in the [user guide](USER_GUIDE.md). Data protection: [privacy notice](PRIVACY.md) and [record of processing activities](PROCESSING_RECORD.md) (drafts; publisher details still placeholders).
+Both apps are called **Portfolio Companion**; how to use it is in the [user guide](USER_GUIDE.md). Data protection: [privacy notice](PRIVACY.md) and [record of processing activities](PROCESSING_RECORD.md) (drafts; publisher details still placeholders).
 
 ## Navigation contract
 
@@ -17,17 +17,17 @@ The Android app comes in four skins (`mobile-skins` OpenSpec change). They share
 
 ### Classic (both platforms)
 
-Classic is the original UI and the only navigation on iOS. Both clients expose the same bottom-tab navigation. Route IDs and order are checked by unit tests on each platform (`AppDestinationTest.kt`, `AppDestinationTests.swift`).
+Classic is the original UI and, for now, the only navigation on iOS; the other skins follow. Both clients expose the same bottom-tab navigation. Route IDs and order are checked by unit tests on each platform (`AppDestinationTest.kt`, `AppDestinationTests.swift`).
 
 | Order | Route | Tab | Purpose |
 |---|---|---|---|
 | 1 (start) | `portfolio` | Portfolio | Holdings; empty state with an action that opens Imports |
-| 2 | `dividends` | Dividends | Received dividends per month, year and position (Android only for now) |
-| 3 | `operations` | Operations | Imported transactions with ticker search and type filters (Android only for now) |
+| 2 | `dividends` | Dividends | Received dividends per month, year and position (iOS: empty state for now) |
+| 3 | `operations` | Operations | Imported transactions with ticker search and type filters (iOS: empty state for now) |
 | 4 | `imports` | Imports | Report import and status; disabled until encrypted storage exists |
 | 5 | `settings` | Settings | Backup, price key, and app version |
 
-When you change a destination, change it on both platforms and in this table. While iOS work is paused, Android leads: tabs marked "Android only for now" are added to iOS when it resumes.
+When you change a destination, change it on both platforms and in this table. Android leads; iOS catches up screen by screen.
 
 ### Calm, Bento and Focus (Android)
 
@@ -58,16 +58,35 @@ Position keys are `ticker|currency|isin` for held and `ticker|currency|sold` for
 
 ## iOS
 
-1. On a Mac, install Xcode and XcodeGen (`brew install xcodegen`).
+1. On a Mac, install Xcode 27 or later from the App Store and XcodeGen (`brew install xcodegen`), then set up the toolchain and the iOS Simulator runtime:
+
+   ```sh
+   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   sudo xcodebuild -license accept
+   xcodebuild -runFirstLaunch
+   xcodebuild -downloadPlatform iOS
+   xcrun simctl list devices available   # pick a simulator name, e.g. iPhone 17
+   ```
+
 2. Generate the project and run the tests:
 
    ```sh
    cd mobile/ios
    xcodegen generate
-   xcodebuild test -scheme IBKRTaxAssistant -destination 'platform=iOS Simulator,name=iPhone 15'
+   xcodebuild test -scheme IBKRTaxAssistant -destination 'platform=iOS Simulator,name=iPhone 17'
    ```
 
-3. Open `IBKRTaxAssistant.xcodeproj` and run it on a simulator. The `.xcodeproj` is generated and git-ignored; edit `project.yml` instead.
+3. Open `IBKRTaxAssistant.xcodeproj` in Xcode and run it on a simulator, or from the command line:
+
+   ```sh
+   xcodebuild build -scheme IBKRTaxAssistant -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath build
+   xcrun simctl boot "iPhone 17"
+   open -a DeviceHub   # Xcode 27's simulator window (formerly Simulator.app)
+   xcrun simctl install "iPhone 17" build/Build/Products/Debug-iphonesimulator/IBKRTaxAssistant.app
+   xcrun simctl launch "iPhone 17" com.ibkrtax.mobile
+   ```
+
+   The `.xcodeproj` and `build/` are generated and git-ignored; edit `project.yml` instead. The app targets iOS 16; the test target needs iOS 17 because Xcode 27's XCTest does.
 
 ## Test data
 

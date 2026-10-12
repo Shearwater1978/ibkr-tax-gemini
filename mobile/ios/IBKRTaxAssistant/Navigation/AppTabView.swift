@@ -18,6 +18,10 @@ struct AppTabView: View {
         switch destination {
         case .portfolio:
             PortfolioView(onImportReport: { selection = .imports })
+        case .dividends:
+            DividendsView()
+        case .operations:
+            OperationsView()
         case .imports:
             ImportsView()
         case .settings:
