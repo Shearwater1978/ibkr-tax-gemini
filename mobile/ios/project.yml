@@ -19,7 +19,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ibkrtax.mobile
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: IBKR Tax Assistant
+        INFOPLIST_KEY_CFBundleDisplayName: Portfolio Companion
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
@@ -29,6 +29,8 @@ targets:
     platform: iOS
     sources:
       - IBKRTaxAssistantTests
+    # Xcode 27's XCTest requires iOS 17; the app itself still targets iOS 16.
+    deploymentTarget: "17.0"
     dependencies:
       - target: IBKRTaxAssistant
     settings:

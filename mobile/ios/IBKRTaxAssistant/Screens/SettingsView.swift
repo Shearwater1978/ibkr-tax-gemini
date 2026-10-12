@@ -9,7 +9,6 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(Strings.settingsTitle).font(.title2)
             Text(Strings.settingsPrivacy)
-            Text(Strings.informationalNotice).font(.footnote).padding(.top, 8)
             Text("Version \(version)").font(.footnote).padding(.top, 8)
             Spacer()
         }
