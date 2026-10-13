@@ -188,16 +188,23 @@ struct FocusActivity: View {
     @ObservedObject var state: ActivityState
     let onBack: () -> Void
     let onImport: () -> Void
+    @State private var manual: ManualTarget?
 
     var body: some View {
         let view = state.view
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 FocusBack(label: "‹ " + Strings.calmBack, onBack: onBack)
-                Text(Strings.calmTabActivity).font(.focusSerif(26)).padding(.bottom, 12)
+                HStack {
+                    Text(Strings.calmTabActivity).font(.focusSerif(26))
+                    Spacer()
+                    Button("＋ " + Strings.manualAdd) { manual = .new }.foregroundStyle(FocusColors.deep)
+                }
+                .padding(.bottom, 12)
                 if view.hasAny == false {
                     Text(Strings.operationsEmpty).foregroundStyle(FocusColors.muted)
                     Button(Strings.calmAddReports, action: onImport).buttonStyle(.borderedProminent).foregroundStyle(.white).padding(.top, 12)
+                    Button(Strings.manualAdd) { manual = .new }.padding(.top, 8)
                 } else {
                     TextField("⌕  " + Strings.calmSearch, text: Binding(get: { view.query }, set: state.setQuery))
                         .textInputAutocapitalization(.characters).autocorrectionDisabled()
@@ -219,6 +226,8 @@ struct FocusActivity: View {
                         Text(group.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(FocusColors.muted).padding(.top, 14).padding(.bottom, 2)
                         ForEach(group.operations, id: \.id) { operation in
                             FocusActivityRow(operation: operation)
+                                .contentShape(Rectangle())
+                                .onTapGesture { if let id = operation.entryId { manual = .edit(id) } }
                                 // Load the next page shortly before the end of the list.
                                 .onAppear { if operation.id == view.items.dropLast(20).last?.id || operation.id == view.items.last?.id { state.loadMore() } }
                             Divider().overlay(FocusColors.line)
@@ -231,6 +240,7 @@ struct FocusActivity: View {
         }
         .foregroundStyle(FocusColors.ink)
         .onAppear { state.reload() }
+        .sheet(item: $manual) { ManualEntryView(target: $0) }
     }
 
     private func chip(_ title: String, isOn: Bool, action: @escaping () -> Void) -> some View {
@@ -277,6 +287,7 @@ private struct FocusActivityRow: View {
             Text(symbol).font(.system(size: 15)).foregroundStyle(tint).frame(width: 36, height: 36).background(background, in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(OperationDisplay.typeLabel(operation.eventType)) · \(operation.ticker)").font(.system(size: 15, weight: .semibold))
+                if operation.entryId != nil { Text(Strings.manualLabel).font(.system(size: 12, weight: .semibold)).foregroundStyle(FocusColors.deep) }
                 Text([Formats.date(operation.date), OperationDisplay.details(operation)].compactMap { $0 }.joined(separator: " · "))
                     .font(.system(size: 13)).foregroundStyle(FocusColors.muted)
             }

@@ -9,6 +9,8 @@ final class DataState: ObservableObject {
     @Published private(set) var keyStatus: BackupKeyStatus?
     /// Backup encryption and a backup folder are set up, so import is allowed.
     @Published private(set) var importReady = false
+    /// Manual operations that the last import or restore also brought (mobile-manual-operations "Warn about possible duplicates").
+    @Published private(set) var manualDuplicates: [StoredTransaction] = []
 
     private let container: AppContainer
     /// Called after any change, so the other screens reload too.
@@ -58,7 +60,22 @@ final class DataState: ObservableObject {
             lines.append(line)
         }
         changed()
+        await findManualDuplicates()
         return lines
+    }
+
+    func findManualDuplicates() async {
+        manualDuplicates = await Task.detached { [container] in ((try? container.manualOperations().duplicatesOfImports()) ?? []).map(\.0) }.value
+    }
+
+    /// Deletes the manual copy of a possible duplicate; nil when done, else why it could not be deleted.
+    func deleteManualCopy(_ row: StoredTransaction) async -> String? {
+        let entryId = String(row.sourceKey.dropFirst(ManualEntries.sourceKeyPrefix.count).prefix { $0 != ":" })
+        let result = await Task.detached { [container] in try? container.manualOperations().delete(entryId) }.value
+        changed()
+        await findManualDuplicates()
+        if case .oversold? = result { return Strings.manualDeleteNeeded }
+        return nil
     }
 
     /// Reads a picked file inside its security scope; nil when it is larger than any plausible report.
@@ -106,6 +123,7 @@ final class DataState: ObservableObject {
             return outcome
         }.value
         changed()
+        await findManualDuplicates()
         return outcome
     }
 

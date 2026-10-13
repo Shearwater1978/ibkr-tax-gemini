@@ -94,6 +94,7 @@ let calmSkin = Skin(
         .deleteImports: "Home: + button (import screen)",
         .appVersion: "Home: avatar > Settings",
         .skinSetting: "Home: avatar > Settings",
+        .manualEntry: "Activity tab: Add operation; tap a Manual row to edit",
     ],
     app: { AnyView(CalmApp(states: $0)) },
     preview: { AnyView(CalmPreview()) }

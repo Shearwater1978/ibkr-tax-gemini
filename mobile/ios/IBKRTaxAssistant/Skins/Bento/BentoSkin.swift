@@ -47,6 +47,7 @@ let bentoSkin = Skin(
         .deleteImports: "Data tab: Reports imported or Delete imported data",
         .appVersion: "Data tab: Settings",
         .skinSetting: "Data tab: Settings",
+        .manualEntry: "Activity tab: Add operation; tap a Manual row to edit",
     ],
     app: { AnyView(BentoApp(states: $0)) },
     preview: { AnyView(BentoPreview()) }

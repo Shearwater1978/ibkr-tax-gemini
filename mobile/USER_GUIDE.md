@@ -59,7 +59,7 @@ Amounts are shown in each position's own currency, or converted to US dollars wh
 
 ## Adding operations by hand
 
-For a small account, or a broker the app cannot read yet, you can type operations instead of importing reports, or add them next to imported ones. On Android:
+For a small account, or a broker the app cannot read yet, you can type operations instead of importing reports, or add them next to imported ones.
 
 - **Where:**
   - Classic, Calm and Bento: the activity list (Operations or Activity) → **Add operation**.
@@ -72,8 +72,7 @@ For a small account, or a broker the app cannot read yet, you can type operation
   - After an import, the app lists manual operations that the report now also contains, so you can delete the manual copy.
 - **Editing:** tap a row marked **Manual** in the activity list to edit or delete it. Imported operations cannot be edited.
 - **Backup:** manual operations are backed up encrypted to your backup folder after every change. A restore brings them back with your reports.
-
-The iPhone app gets this feature in a later version.
+- **Both apps:** Android and iPhone work the same way, and their backups of manual operations can be restored on either.
 
 ## Skins
 
