@@ -95,6 +95,13 @@ class BackupServiceTest {
     }
 
     @Test
+    fun backupFileEncryptedElsewhereDecrypts() {
+        // Encrypted with pyca/cryptography under the data key 0x00..0x1f; the iOS BackupServiceTests read the same file.
+        val file = Fixtures.keys("valid_basic_v1.bin")
+        assertArrayEquals(report, BackupFileFormat.decrypt(ByteArray(32) { it.toByte() }, file))
+    }
+
+    @Test
     fun importIsOffUntilKeysAndFolderExist() {
         assertEquals(ImportOutcome.NotReady, service(key = null).importReport(report))
         assertEquals(ImportOutcome.NotReady, service(target = null).importReport(report))
