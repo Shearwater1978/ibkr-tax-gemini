@@ -35,7 +35,7 @@ fewer, branched from `main`.
 - [x] 6.2 Manual-entry repository and deletion rules
 
 ## 7. iOS: manual operations
-- [ ] 7.1 Row builder, instrument lookup, validation and duplicate matching, with the shared fixture tests
+- [x] 7.1 Row builder, instrument lookup, validation and duplicate matching, with the shared fixture tests, and the `ManualOperations` service
 
 ## 8. iOS: backup and restore
 - [ ] 8.1 Journal writer and restore; decrypts the Android-built `journal_v1.bin`
