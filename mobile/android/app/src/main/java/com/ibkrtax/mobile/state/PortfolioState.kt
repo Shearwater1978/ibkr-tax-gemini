@@ -106,8 +106,8 @@ class PortfolioState(
         /** Reads the encrypted database, cached prices and cached NBP rates; must run off the main thread. */
         fun loadPortfolio(container: AppContainer, prices: RefreshOutcome?): PortfolioUiState =
             try {
-                val reports = container.importHistory.list()
-                if (reports.isEmpty()) {
+                // Imported or typed by hand: any stored operation means there is a portfolio (mobile-manual-operations).
+                if (!container.operations.hasAny()) {
                     PortfolioUiState.NoReports
                 } else {
                     when (val result = container.portfolio.holdings()) {

@@ -178,6 +178,11 @@ private struct BentoDashboard: View {
         }
     }
 
+    /// Share of the total in whole percent, cut off like the Android `toInt()`; exact decimals, so one currency shows 100.
+    private func currencyPercent(_ value: ExactDecimal, _ total: ExactDecimal) -> Int {
+        Int(Double((value.multiplied(by: ExactDecimal("100")!).divided(by: total) ?? .zero).description) ?? 0)
+    }
+
     @ViewBuilder
     private func currencyMix(_ valueUsd: [String: ExactDecimal?], _ total: ExactDecimal) -> some View {
         let byCurrency = Dictionary(grouping: data.rows, by: \.currency)
@@ -203,7 +208,7 @@ private struct BentoDashboard: View {
                     ForEach(Array(byCurrency.enumerated()), id: \.offset) { index, entry in
                         HStack(spacing: 4) {
                             Circle().fill(currencyColors[index % currencyColors.count]).frame(width: 8, height: 8)
-                            Text("\(entry.key) \(Int((Double(entry.value.description) ?? 0) * 100 / totalValue))%").font(.system(size: 12)).foregroundStyle(BentoColors.muted)
+                            Text("\(entry.key) \(currencyPercent(entry.value, total))%").font(.system(size: 12)).foregroundStyle(BentoColors.muted)
                         }
                     }
                 }

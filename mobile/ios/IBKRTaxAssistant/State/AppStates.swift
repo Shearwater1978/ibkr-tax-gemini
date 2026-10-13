@@ -230,7 +230,8 @@ final class PortfolioState: ObservableObject {
     /// Reads the encrypted database, cached prices and cached NBP rates; runs off the main thread.
     nonisolated static func loadPortfolio(_ container: AppContainer, prices: RefreshOutcome?) -> PortfolioUiState {
         do {
-            if try container.importHistory().list().isEmpty { return .noReports }
+            // Imported or typed by hand: any stored operation means there is a portfolio (mobile-manual-operations).
+            if try !container.operations().hasAny() { return .noReports }
             switch try container.portfolio().holdings() {
             case .incomplete(let ticker, let date):
                 return .incomplete(ticker: ticker, date: date)

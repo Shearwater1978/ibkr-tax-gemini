@@ -23,6 +23,17 @@ extension Notification.Name {
     static let manualOperationsChanged = Notification.Name("ibkrtax.manualOperationsChanged")
 }
 
+/// Currencies offered for manual operations, most common first; the same list as Android.
+enum ManualCurrencies {
+    static let common = ["USD", "EUR", "GBP", "CHF", "PLN", "CAD", "AUD", "JPY", "HKD", "SGD", "CNY", "SEK", "NOK", "DKK", "CZK", "HUF"]
+
+    /// The list, plus `current` when an entry uses a currency outside it.
+    static func choices(including current: String?) -> [String] {
+        guard let current, !current.isEmpty, !common.contains(current) else { return common }
+        return [current] + common
+    }
+}
+
 /// Turns what the user typed into a plain decimal string: a comma works as the decimal separator (Android `plainDecimal`).
 func plainDecimal(_ text: String) -> String {
     let trimmed = text.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "\u{00a0}", with: "")
@@ -58,12 +69,18 @@ struct ManualEntryView: View {
                     Text(Strings.manualHint)
                 }
                 if let message { Text(message).foregroundStyle(.red) }
-                if entryId != nil {
-                    Button(Strings.manualDelete, role: .destructive) { confirmDelete = true }.disabled(busy)
+                // Also in the form itself: some skins hide navigation bars, and the way out must never depend on one.
+                Section {
+                    Button(Strings.manualSave) { save(confirmDuplicate: false) }.bold().disabled(busy)
+                    Button(Strings.cancel) { dismiss() }
+                    if entryId != nil {
+                        Button(Strings.manualDelete, role: .destructive) { confirmDelete = true }.disabled(busy)
+                    }
                 }
             }
             .navigationTitle(entryId == nil ? Strings.manualAdd : Strings.manualEdit)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(Strings.cancel) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button(Strings.manualSave) { save(confirmDuplicate: false) }.disabled(busy) }
@@ -83,19 +100,27 @@ struct ManualEntryView: View {
         }
     }
 
+    @ViewBuilder
     private func field(_ name: String) -> some View {
         let problem = problems.first { $0.field == name }
         let binding = Binding(get: { values[name] ?? "" }, set: { values[name] = Self.upperCase.contains(name) ? $0.uppercased() : $0 })
-        return VStack(alignment: .leading, spacing: 2) {
-            TextField(Strings.manualField(type, name), text: binding)
-                .keyboardType(Self.upperCase.contains(name) ? .asciiCapable : (name == "date" ? .numbersAndPunctuation : .decimalPad))
-                .textInputAutocapitalization(Self.upperCase.contains(name) ? .characters : .never)
-                .autocorrectionDisabled()
-            if let problem {
-                Text(Strings.manualProblem(type, problem, sameTicker: values["newTicker"] == values["ticker"])).font(.footnote).foregroundStyle(.red)
+        if name == "currency" {
+            Picker(Strings.manualField(type, name), selection: binding) {
+                ForEach(ManualCurrencies.choices(including: values[name]), id: \.self) { Text($0).tag($0) }
+            }
+        } else {
+            // The name stays above the field: a placeholder alone disappears once the field has a value.
+            VStack(alignment: .leading, spacing: 2) {
+                Text(Strings.manualField(type, name)).font(.caption).foregroundStyle(.secondary)
+                TextField(Strings.manualField(type, name), text: binding)
+                    .keyboardType(Self.upperCase.contains(name) ? .asciiCapable : (name == "date" ? .numbersAndPunctuation : .decimalPad))
+                    .textInputAutocapitalization(Self.upperCase.contains(name) ? .characters : .never)
+                    .autocorrectionDisabled()
+                if let problem {
+                    Text(Strings.manualProblem(type, problem, sameTicker: values["newTicker"] == values["ticker"])).font(.footnote).foregroundStyle(.red)
+                }
             }
         }
-        .accessibilityElement(children: .combine)
     }
 
     private func load() async {
