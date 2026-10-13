@@ -5,6 +5,8 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.ibkrtax.mobile.importer.StoredTransaction
+import com.ibkrtax.mobile.manual.ManualStore
+import com.ibkrtax.mobile.manual.StoredRow
 
 /**
  * One operation entered by hand (mobile-manual-operations): the form as entered and the `transactions`
@@ -19,9 +21,9 @@ data class ManualEntry(
 )
 
 /** Stores manual entries next to imported operations; imported rows are never changed here. */
-class ManualEntries(private val database: SupportSQLiteOpenHelper) {
+class ManualEntries(private val database: SupportSQLiteOpenHelper) : ManualStore {
     /** Adds the entry, or replaces it and all its rows when [ManualEntry.entryId] exists. */
-    fun save(entry: ManualEntry) {
+    override fun save(entry: ManualEntry) {
         require(entry.rows.isNotEmpty()) { "A manual entry needs at least one row" }
         require(entry.rows.all { it.sourceKey.startsWith(SOURCE_KEY_PREFIX + entry.entryId) }) { "Manual source keys must be manual:<entryId>…" }
         val db = database.writableDatabase
@@ -47,7 +49,7 @@ class ManualEntries(private val database: SupportSQLiteOpenHelper) {
     }
 
     /** False when no such entry exists. */
-    fun delete(entryId: String): Boolean {
+    override fun delete(entryId: String): Boolean {
         val db = database.writableDatabase
         db.beginTransaction()
         try {
@@ -60,7 +62,12 @@ class ManualEntries(private val database: SupportSQLiteOpenHelper) {
         }
     }
 
-    fun get(entryId: String): ManualEntry? = load("WHERE entry_id = ?", arrayOf<Any?>(entryId)).firstOrNull()
+    override fun get(entryId: String): ManualEntry? = load("WHERE entry_id = ?", arrayOf<Any?>(entryId)).firstOrNull()
+
+    override fun allRows(): List<StoredRow> =
+        database.readableDatabase.query("SELECT $ROW_COLUMNS FROM transactions ORDER BY date, id").use { cursor ->
+            buildList { while (cursor.moveToNext()) add(StoredRow(if (cursor.isNull(0)) null else cursor.getString(0), cursor.toTransaction())) }
+        }
 
     /** Every manual entry, oldest entered first. */
     fun all(): List<ManualEntry> = load("", emptyArray())

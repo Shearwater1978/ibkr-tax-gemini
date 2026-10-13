@@ -147,6 +147,18 @@ class ManualStorageInstrumentedTest {
     }
 
     @Test
+    fun allRowsMarkManualRowsWithTheirEntry() {
+        importer.import(fixture("valid_basic.csv"))
+        manual.save(entry("e1", buy("e1")))
+
+        val rows = manual.allRows()
+        assertEquals(count(), rows.size)
+        assertEquals(listOf("manual:e1"), rows.filter { it.entryId == "e1" }.map { it.row.sourceKey })
+        assertEquals(count("WHERE origin = 'report'"), rows.count { it.entryId == null })
+        assertEquals(rows.map { it.row.date }.sorted(), rows.map { it.row.date })
+    }
+
+    @Test
     fun aDividendAndItsTaxAreOneEntry() {
         val dividend = buy("d1").copy(eventType = "DIVIDEND", quantity = "0", price = "0", amount = "2.40", fee = "0")
         val tax = buy("d1", suffix = ":tax").copy(eventType = "TAX", quantity = "0", price = "0", amount = "-0.36", fee = "0")
