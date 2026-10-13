@@ -109,6 +109,7 @@ object CalmSkin : Skin {
         Feature.DELETE_IMPORTS to "Home: + button (import screen)",
         Feature.APP_VERSION to "Home: avatar > Settings",
         Feature.SKIN_SETTING to "Home: avatar > Settings",
+        Feature.MANUAL_ENTRY to "Activity tab: Add operation; tap a Manual row to edit",
     )
 
     @Composable

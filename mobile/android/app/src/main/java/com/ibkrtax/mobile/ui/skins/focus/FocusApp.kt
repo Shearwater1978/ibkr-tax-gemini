@@ -1,5 +1,7 @@
 package com.ibkrtax.mobile.ui.skins.focus
 
+import com.ibkrtax.mobile.ui.common.ManualTarget
+import com.ibkrtax.mobile.ui.common.ManualEntryHost
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -127,6 +129,7 @@ object FocusSkin : Skin {
         Feature.DELETE_IMPORTS to "+ menu: Delete imported data",
         Feature.APP_VERSION to "Today: Settings button, or + menu: Settings and skins",
         Feature.SKIN_SETTING to "Today: Settings button, or + menu: Settings and skins",
+        Feature.MANUAL_ENTRY to "+ menu: Add operation; Activity: tap a Manual row to edit",
     )
 
     @Composable
@@ -179,6 +182,8 @@ private fun FocusNavigation(states: AppStates, nav: NavHostController = remember
     val stack by nav.currentBackStack.collectAsState()
     var usd by remember { mutableStateOf(UiPreferences.usdView(context)) }
     var menu by remember { mutableStateOf(false) }
+    val manual = remember { mutableStateOf<ManualTarget?>(null) }
+    ManualEntryHost(manual)
     val titled = mapOf(FocusRoute.IMPORT to R.string.calm_add_reports, FocusRoute.REPORTS to R.string.imports_history_title, FocusRoute.SETTINGS to R.string.settings_title)
     Scaffold(
         containerColor = FocusColors.Page,
@@ -226,6 +231,7 @@ private fun FocusNavigation(states: AppStates, nav: NavHostController = remember
                 UiPreferences.setUsdView(context, usd)
             },
             onGo = { target -> menu = false; nav.navigate(target) },
+            onAdd = { menu = false; manual.value = ManualTarget.New },
         )
     }
 }
@@ -280,13 +286,14 @@ private fun TabLabel(text: String, on: Boolean, onClick: () -> Unit) {
 /** Everything about data in one place (mobile-skin-focus "Focus navigation"). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PlusMenu(states: AppStates, usd: Boolean, onDismiss: () -> Unit, onToggleUsd: () -> Unit, onGo: (String) -> Unit) {
+private fun PlusMenu(states: AppStates, usd: Boolean, onDismiss: () -> Unit, onToggleUsd: () -> Unit, onGo: (String) -> Unit, onAdd: () -> Unit) {
     val data by states.data.view.collectAsState()
     val portfolio by states.portfolio.ui.collectAsState()
     LaunchedEffect(Unit) { states.data.reload() }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = FocusColors.Page) {
         Column(Modifier.padding(horizontal = 22.dp).padding(bottom = 24.dp)) {
             MenuRow("＋ " + stringResource(R.string.calm_add_reports), "›", bold = true) { onGo(FocusRoute.IMPORT) }
+            MenuRow("＋ " + stringResource(R.string.manual_add), "›", bold = true, onClick = onAdd)
             MenuRow(stringResource(R.string.focus_menu_activity), "›") { onGo(FocusRoute.ACTIVITY) }
             MenuRow(stringResource(R.string.focus_menu_amounts), stringResource(if (usd) R.string.focus_amounts_usd else R.string.focus_amounts_own) + " ⇄", onClick = onToggleUsd)
             val backup = when {

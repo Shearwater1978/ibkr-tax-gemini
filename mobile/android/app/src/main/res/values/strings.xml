@@ -462,4 +462,64 @@
         <item>Repeat for every year since you opened the account. Save the files on this phone (for example in Downloads or Google Drive) and import them here together. Overlapping periods are fine: records already imported are skipped.</item>
         <item>The files contain your account number, so keep them private. The app stores it only masked.</item>
     </string-array>
+    <!-- Manual operations (mobile-manual-operations) -->
+    <string name="manual_add">Add operation</string>
+    <string name="manual_edit">Edit operation</string>
+    <string name="manual_label">Manual</string>
+    <string name="manual_type">Type</string>
+    <string name="manual_type_buy">Buy</string>
+    <string name="manual_type_sell">Sell</string>
+    <string name="manual_type_transfer_in">Transfer in</string>
+    <string name="manual_type_transfer_out">Transfer out</string>
+    <string name="manual_type_dividend">Dividend</string>
+    <string name="manual_type_tax">Withholding-tax correction</string>
+    <string name="manual_type_split">Split</string>
+    <string name="manual_type_stock_div">Stock dividend</string>
+    <string name="manual_type_merger">Merger or symbol change</string>
+    <string name="manual_type_spinoff">Spin-off</string>
+    <string name="manual_field_date">Date (YYYY-MM-DD)</string>
+    <string name="manual_field_ticker">Ticker</string>
+    <string name="manual_field_currency">Currency</string>
+    <string name="manual_field_quantity">Number of shares</string>
+    <string name="manual_field_price">Price per share</string>
+    <string name="manual_field_cost">Cost per share</string>
+    <string name="manual_field_fee">Commission</string>
+    <string name="manual_field_gross">Gross amount</string>
+    <string name="manual_field_tax">Withholding tax</string>
+    <string name="manual_field_tax_amount">Amount (negative when tax was withheld, positive for a refund)</string>
+    <string name="manual_field_new_shares">New shares (2 in a 2-for-1 split)</string>
+    <string name="manual_field_old_shares">Old shares (1 in a 2-for-1 split)</string>
+    <string name="manual_field_old_quantity">Old shares given up</string>
+    <string name="manual_field_new_ticker">New ticker</string>
+    <string name="manual_field_new_quantity">New shares received</string>
+    <string name="manual_field_received">Shares received</string>
+    <string name="manual_field_from_ticker">Spun off from (ticker)</string>
+    <string name="manual_problem_missing">Required</string>
+    <string name="manual_problem_invalid">Not valid</string>
+    <string name="manual_problem_positive">Must be more than 0</string>
+    <string name="manual_problem_negative">Cannot be negative</string>
+    <string name="manual_problem_tax">Cannot be more than the gross amount</string>
+    <string name="manual_problem_zero">Cannot be 0</string>
+    <string name="manual_problem_whole">Must be a whole number above 0</string>
+    <string name="manual_problem_future">Cannot be in the future</string>
+    <string name="manual_problem_same_ticker">Must differ from the old ticker</string>
+    <string name="manual_oversold">You held %1$s %2$s on %3$s, so this would sell or move out more than you had.</string>
+    <string name="manual_nothing_held">You held no %1$s before %2$s, so there is nothing to split.</string>
+    <string name="manual_duplicate_title">This looks like an operation you already have</string>
+    <string name="manual_duplicate_body">%1$s · %2$s · %3$s is already in your operations. Save it anyway?</string>
+    <string name="manual_save_anyway">Save anyway</string>
+    <string name="manual_save">Save</string>
+    <string name="manual_cancel">Cancel</string>
+    <string name="manual_delete">Delete</string>
+    <string name="manual_delete_title">Delete this operation?</string>
+    <string name="manual_delete_body">It is removed from your portfolio and from the encrypted backup.</string>
+    <string name="manual_duplicates_title">Possible duplicates</string>
+    <string name="manual_duplicates_body">These operations you entered by hand look like operations from your reports. If one is the same operation, delete the manual copy.</string>
+    <string name="manual_delete_copy">Delete manual copy</string>
+    <string name="manual_delete_needed">This manual operation cannot be deleted: a later sale needs its shares.</string>
+    <plurals name="restore_manual">
+        <item quantity="one">%1$d operation entered by hand.</item>
+        <item quantity="other">%1$d operations entered by hand.</item>
+    </plurals>
+    <string name="manual_hint">Numbers use a dot or a comma for decimals. Ticker and currency name the instrument; if your reports already contain it, its exchange and ISIN are reused.</string>
 </resources>

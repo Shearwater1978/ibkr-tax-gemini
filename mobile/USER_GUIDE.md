@@ -57,6 +57,24 @@ Amounts are shown in each position's own currency, or converted to US dollars wh
 - Each price shows its freshness: live, delayed, latest close or stale. Instruments outside these markets show no price, and totals say so.
 - Price requests contain only ticker symbols (and, for Finnhub, your key); the key is stored encrypted on the device and never put into backups.
 
+## Adding operations by hand
+
+For a small account, or a broker the app cannot read yet, you can type operations instead of importing reports, or add them next to imported ones. On Android:
+
+- **Where:**
+  - Classic, Calm and Bento: the activity list (Operations or Activity) → **Add operation**.
+  - Focus: **+** → **Add operation**.
+- **Types:** buy, sell, transfer in and out, dividend with withholding tax, withholding-tax correction, split, stock dividend, merger or symbol change, and spin-off.
+- **Instrument:** give its ticker and currency. If your imported reports already contain that ticker and currency, the app reuses their exchange and ISIN, so prices and holdings match. Otherwise the ticker is priced as a US listing.
+- **Checks:**
+  - The app refuses a sale or transfer of more shares than you held on that date, and says how many you held.
+  - If an operation looks like one you already have (same date, type, ticker, currency and quantity or amount), the app asks before saving.
+  - After an import, the app lists manual operations that the report now also contains, so you can delete the manual copy.
+- **Editing:** tap a row marked **Manual** in the activity list to edit or delete it. Imported operations cannot be edited.
+- **Backup:** manual operations are backed up encrypted to your backup folder after every change. A restore brings them back with your reports.
+
+The iPhone app gets this feature in a later version.
+
 ## Skins
 
 | Skin | Look | Where things are |
@@ -98,5 +116,6 @@ All reports come back, new imports are backed up to the same folder again, and t
 Open the list of imported reports (Imports tab, the import screen, Bento's "Reports imported", or Focus's "+" → "Delete imported data"):
 
 - **Delete this import** removes records that only that report contains, plus its encrypted backup file. Overlapping reports stay complete.
-- **Delete all imported data** asks for your backup passphrase and removes all reports and their backup files. Backup keys stay unchanged.
-- **Erase all data** (at the end of Settings) removes everything: reports and records, every backup file and the key manifest in the backup folder, the backup keys (also the automatic copy), your price key and all settings. You confirm by typing ERASE, so it works even if you forgot your passphrase. Without the keys, a copy left in your storage provider's trash cannot be read. The app then restarts as if newly installed.
+- **Delete all imported data** asks for your backup passphrase and removes all reports and their backup files. Backup keys stay unchanged. Operations you added by hand stay; delete them one by one from the activity list.
+- **Delete a manual operation:** tap it in the activity list, then **Delete**.
+- **Erase all data** (at the end of Settings) removes everything: reports and records, operations added by hand, every backup file and the key manifest in the backup folder, the backup keys (also the automatic copy), your price key and all settings. You confirm by typing ERASE, so it works even if you forgot your passphrase. Without the keys, a copy left in your storage provider's trash cannot be read. The app then restarts as if newly installed.

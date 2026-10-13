@@ -1,5 +1,9 @@
 package com.ibkrtax.mobile.ui.skins.calm
 
+import com.ibkrtax.mobile.ui.common.ManualTarget
+import com.ibkrtax.mobile.ui.common.ManualEntryHost
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -60,16 +64,22 @@ import kotlinx.coroutines.flow.filter
 fun CalmActivity(state: ActivityState, onImport: () -> Unit) {
     val view by state.view.collectAsState()
     val list = rememberLazyListState()
+    val manual = remember { mutableStateOf<ManualTarget?>(null) }
+    ManualEntryHost(manual)
     LaunchedEffect(Unit) { state.reload() }
     LaunchedEffect(view.query, view.filters) { list.scrollToItem(0) }
     val nearEnd by remember { derivedStateOf { (list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= list.layoutInfo.totalItemsCount - 20 } }
     LaunchedEffect(list) { snapshotFlow { nearEnd }.distinctUntilChanged().filter { it }.collect { state.loadMore() } }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 22.dp)) {
-        Text(stringResource(R.string.calm_tab_activity), fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp, bottom = 12.dp))
+        Row(Modifier.padding(top = 14.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.calm_tab_activity), fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            TextButton(onClick = { manual.value = ManualTarget.New }) { Text("＋ " + stringResource(R.string.manual_add), color = CalmColors.Accent) }
+        }
         if (view.hasAny == false) {
             Text(stringResource(R.string.operations_empty), color = CalmColors.Muted)
             Button(onClick = onImport, modifier = Modifier.padding(top = 12.dp)) { Text(stringResource(R.string.calm_add_reports)) }
+            TextButton(onClick = { manual.value = ManualTarget.New }) { Text(stringResource(R.string.manual_add)) }
             return@Column
         }
         TextField(
@@ -102,7 +112,7 @@ fun CalmActivity(state: ActivityState, onImport: () -> Unit) {
                 item(key = "m-$month") {
                     Text(month?.format(monthFormat)?.replaceFirstChar { it.titlecase() } ?: "—", color = CalmColors.Muted, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.padding(top = 14.dp, bottom = 2.dp))
                 }
-                items(ops, key = { it.id }) { ActivityRow(it) }
+                items(ops, key = { it.id }) { op -> ActivityRow(op, onEdit = { id -> manual.value = ManualTarget.Edit(id) }) }
             }
             item { Spacer(Modifier.height(24.dp)) }
         }
@@ -110,7 +120,7 @@ fun CalmActivity(state: ActivityState, onImport: () -> Unit) {
 }
 
 @Composable
-private fun ActivityRow(op: Operation) {
+private fun ActivityRow(op: Operation, onEdit: (String) -> Unit) {
     val (symbol, tint, background) = when (op.eventType) {
         "BUY" -> Triple("＋", CalmColors.Accent, CalmColors.AccentSoft)
         "SELL" -> Triple("−", CalmColors.Loss, CalmColors.LossSoft)
@@ -118,10 +128,15 @@ private fun ActivityRow(op: Operation) {
         "TAX" -> Triple("%", CalmColors.Muted, CalmColors.Card)
         else -> Triple("⇄", CalmColors.Ink, CalmColors.Card)
     }
-    Row(Modifier.fillMaxWidth().padding(vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+    val entryId = op.entryId
+    Row(
+        Modifier.fillMaxWidth().then(if (entryId != null) Modifier.clickable { onEdit(entryId) } else Modifier).padding(vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Box(Modifier.size(36.dp).background(background, CircleShape), contentAlignment = Alignment.Center) { Text(symbol, color = tint, fontSize = 15.sp) }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text("${typeLabel(op.eventType)} · ${op.ticker}", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            if (entryId != null) Text(stringResource(R.string.manual_label), color = CalmColors.Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Text(listOfNotNull(displayDate(op.date), OperationDisplay.details(op)).joinToString(" · "), color = CalmColors.Muted, fontSize = 13.sp)
         }
         Column(horizontalAlignment = Alignment.End) {

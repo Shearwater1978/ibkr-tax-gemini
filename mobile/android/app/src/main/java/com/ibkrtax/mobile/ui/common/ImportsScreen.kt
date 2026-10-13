@@ -1,5 +1,8 @@
 package com.ibkrtax.mobile.ui.common
 
+import com.ibkrtax.mobile.storage.ManualEntries
+import com.ibkrtax.mobile.manual.ManualDeleteResult
+import com.ibkrtax.mobile.importer.StoredTransaction
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -77,6 +80,11 @@ fun ImportsScreen(state: DataState, reportsOnly: Boolean = false) {
     var fileResults by remember { mutableStateOf(emptyList<String>()) }
     var deleteTarget by remember { mutableStateOf<ImportedReport?>(null) }
     var deleteAllOpen by remember { mutableStateOf(false) }
+    // Manual operations that an import now also brings (mobile-manual-operations "Warn about possible duplicates").
+    var duplicates by remember { mutableStateOf(emptyList<StoredTransaction>()) }
+    suspend fun findDuplicates() {
+        duplicates = withContext(Dispatchers.IO) { runCatching { context.appContainer.manualOperations.duplicatesOfImports().map { it.first } }.getOrDefault(emptyList()) }
+    }
     val data by state.view.collectAsState()
     val keyStatus = data.keyStatus
     val ready = data.importReady
@@ -112,6 +120,8 @@ fun ImportsScreen(state: DataState, reportsOnly: Boolean = false) {
             }
             progress = null
             importing = false
+            findDuplicates()
+            context.appContainer.states.manualChanged()
         }
     }
 
@@ -150,6 +160,8 @@ fun ImportsScreen(state: DataState, reportsOnly: Boolean = false) {
             RestoreSection(onRestored = { result ->
                 importMessage = result
                 refresh++
+                scope.launch { findDuplicates() }
+                context.appContainer.states.manualChanged()
                 // Backups hold Interactive Brokers reports, the only supported format so far.
                 if (brokers != null && brokers.current == null) brokers.choose(BrokerId.INTERACTIVE_BROKERS)
             })
@@ -186,6 +198,26 @@ fun ImportsScreen(state: DataState, reportsOnly: Boolean = false) {
             progress?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
             fileResults.forEach { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
             importMessage?.let { Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp)) }
+            if (duplicates.isNotEmpty()) {
+                Text(stringResource(R.string.manual_duplicates_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                Text(stringResource(R.string.manual_duplicates_body), style = MaterialTheme.typography.bodySmall)
+                duplicates.forEach { row ->
+                    Text(
+                        listOf(displayDate(row.date), typeLabel(row.eventType), row.ticker).joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    TextButton(onClick = {
+                        scope.launch {
+                            val entryId = row.sourceKey.removePrefix(ManualEntries.SOURCE_KEY_PREFIX).substringBefore(":")
+                            val result = withContext(Dispatchers.IO) { context.appContainer.manualOperations.delete(entryId) }
+                            if (result is ManualDeleteResult.Oversold) importMessage = texts.cannotDelete
+                            context.appContainer.states.manualChanged()
+                            findDuplicates()
+                        }
+                    }) { Text(stringResource(R.string.manual_delete_copy)) }
+                }
+            }
             val pending = history.orEmpty().count { it.backupStatus == ImportHistory.PENDING }
             if (pending > 0) {
                 Text(stringResource(R.string.backup_pending_count, pending), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
@@ -368,6 +400,7 @@ private class ImportTexts(
     private val deletedDone: String,
     private val deletedLeft: String,
     val wrongPassphrase: String,
+    val cannotDelete: String,
 ) {
     fun deleted(outcome: DeletionOutcome): String =
         if (outcome.backupsLeft == 0) {
@@ -413,6 +446,7 @@ private fun ImportTexts() = ImportTexts(
     deletedDone = stringResource(R.string.delete_done),
     deletedLeft = stringResource(R.string.delete_done_left),
     wrongPassphrase = stringResource(R.string.delete_wrong_passphrase),
+    cannotDelete = stringResource(R.string.manual_delete_needed),
 )
 
 /** Resolves result strings while in composition so they can be used from a coroutine. */

@@ -24,11 +24,11 @@ fewer, branched from `main`.
 - [x] 4.3 Decrypt and restore `journal_v1.bin` in tests
 
 ## 5. Android: screens
-- [ ] 5.1 Shared "Add operation" form with a type picker and per-type fields, plus edit and delete with confirmation
-- [ ] 5.2 Activity rows: "Manual" label and tap to edit in all skins; empty states offer "Add operation"
-- [ ] 5.3 Import result: "Possible duplicates" with "Delete manual copy"
-- [ ] 5.4 `Feature.MANUAL_ENTRY` placed in Classic, Calm, Bento and Focus (Decision 8); `SkinCatalogTest` passes
-- [ ] 5.5 Update the user guide, the privacy notice and `mobile/README.md`
+- [x] 5.1 Shared "Add operation" form with a type picker and per-type fields, plus edit and delete with confirmation
+- [x] 5.2 Activity rows: "Manual" label and tap to edit in all skins; empty states offer "Add operation"
+- [x] 5.3 Import result: "Possible duplicates" with "Delete manual copy"
+- [x] 5.4 `Feature.MANUAL_ENTRY` placed in Classic, Calm, Bento and Focus (Decision 8); `SkinCatalogTest` passes
+- [x] 5.5 Update the user guide, the privacy notice and `mobile/README.md`
 
 ## 6. iOS: unified storage
 - [ ] 6.1 Same schema version 7 migration (`manual_entries` and the rebuilt `transactions`) and migration test

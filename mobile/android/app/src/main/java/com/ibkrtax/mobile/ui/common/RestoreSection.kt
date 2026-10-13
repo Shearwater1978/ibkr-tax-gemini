@@ -174,6 +174,7 @@ private fun RestoreTexts(): RestoreTexts {
         done = { r ->
             listOfNotNull(
                 resources.getQuantityString(R.plurals.restore_done, r.reports, r.reports, r.inserted),
+                r.manualEntries.takeIf { it > 0 }?.let { resources.getQuantityString(R.plurals.restore_manual, it, it) },
                 r.alreadyImported.takeIf { it > 0 }?.let { resources.getString(R.string.restore_already, it) },
                 r.unreadable.takeIf { it > 0 }?.let { resources.getString(R.string.restore_unreadable, it) },
             ).joinToString(" ")

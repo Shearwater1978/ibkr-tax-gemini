@@ -1,5 +1,7 @@
 package com.ibkrtax.mobile.ui.skins.bento
 
+import com.ibkrtax.mobile.ui.common.ManualTarget
+import com.ibkrtax.mobile.ui.common.ManualEntryHost
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -213,13 +215,17 @@ fun BentoIncome(state: IncomeState, onPayer: (ticker: String, currency: String) 
 fun BentoActivity(state: ActivityState, onImport: () -> Unit) {
     val view by state.view.collectAsState()
     val list = rememberLazyListState()
+    val manual = remember { mutableStateOf<ManualTarget?>(null) }
+    ManualEntryHost(manual)
     LaunchedEffect(Unit) { state.reload() }
     LaunchedEffect(view.query, view.filters) { list.scrollToItem(0) }
     val nearEnd by remember { derivedStateOf { (list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= list.layoutInfo.totalItemsCount - 20 } }
     LaunchedEffect(list) { snapshotFlow { nearEnd }.distinctUntilChanged().filter { it }.collect { state.loadMore() } }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Header(stringResource(R.string.calm_tab_activity))
+        Header(stringResource(R.string.calm_tab_activity)) {
+            Pill("＋ " + stringResource(R.string.manual_add), active = false) { manual.value = ManualTarget.New }
+        }
         if (view.hasAny == false) {
             Tile(Modifier.fillMaxWidth(), onClick = onImport) {
                 Text(stringResource(R.string.operations_empty), color = BentoColors.Muted)
@@ -249,18 +255,23 @@ fun BentoActivity(state: ActivityState, onImport: () -> Unit) {
             }
         }
         LazyColumn(state = list, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(22.dp))) {
-            items(view.items, key = { it.id }) { ActivityItem(it) }
+            items(view.items, key = { it.id }) { op -> ActivityItem(op, onEdit = { id -> manual.value = ManualTarget.Edit(id) }) }
             item { Spacer(Modifier.height(TAB_BAR_ROOM)) }
         }
     }
 }
 
 @Composable
-private fun ActivityItem(op: Operation) {
-    Row(Modifier.fillMaxWidth().background(BentoColors.Tile).padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun ActivityItem(op: Operation, onEdit: (String) -> Unit) {
+    val entryId = op.entryId
+    Row(
+        Modifier.fillMaxWidth().background(BentoColors.Tile).then(if (entryId != null) Modifier.clickable { onEdit(entryId) } else Modifier)
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         LogoTile(op.ticker)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            Text(typeLabel(op.eventType), fontWeight = FontWeight.Bold)
+            Text(typeLabel(op.eventType) + if (entryId != null) " · " + stringResource(R.string.manual_label) else "", fontWeight = FontWeight.Bold)
             Text(listOfNotNull(displayDate(op.date), OperationDisplay.details(op)).joinToString(" · "), color = BentoColors.Muted, fontSize = 12.sp)
         }
         Text(OperationDisplay.amount(op), fontWeight = FontWeight.Bold, color = if (op.eventType == "DIVIDEND") BentoColors.Gain else BentoColors.Ink)

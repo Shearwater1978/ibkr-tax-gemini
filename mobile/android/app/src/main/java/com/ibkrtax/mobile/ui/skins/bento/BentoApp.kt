@@ -132,6 +132,7 @@ object BentoSkin : Skin {
         Feature.DELETE_IMPORTS to "Data tab: Reports imported or Delete imported data",
         Feature.APP_VERSION to "Data tab: Settings",
         Feature.SKIN_SETTING to "Data tab: Settings",
+        Feature.MANUAL_ENTRY to "Activity tab: Add operation; tap a Manual row to edit",
     )
 
     @Composable

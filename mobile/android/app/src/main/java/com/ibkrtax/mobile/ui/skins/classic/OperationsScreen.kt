@@ -1,5 +1,6 @@
 package com.ibkrtax.mobile.ui.skins.classic
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -44,6 +46,8 @@ import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.state.ActivityState
 import com.ibkrtax.mobile.storage.Operation
 import com.ibkrtax.mobile.storage.OperationFilter
+import com.ibkrtax.mobile.ui.common.ManualEntryHost
+import com.ibkrtax.mobile.ui.common.ManualTarget
 import com.ibkrtax.mobile.ui.common.OperationDisplay
 import com.ibkrtax.mobile.ui.common.displayDate
 import com.ibkrtax.mobile.ui.common.labelRes
@@ -66,6 +70,8 @@ fun OperationsScreen(state: ActivityState, onImportReport: () -> Unit) {
     val hasAny = view.hasAny
     val listState = rememberLazyListState()
 
+    val manual = remember { mutableStateOf<ManualTarget?>(null) }
+    ManualEntryHost(manual)
     LaunchedEffect(Unit) { state.reload() }
     // New search or filters: the list starts again from the top.
     LaunchedEffect(query, filters) { listState.scrollToItem(0) }
@@ -80,14 +86,13 @@ fun OperationsScreen(state: ActivityState, onImportReport: () -> Unit) {
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Text(
-            stringResource(R.string.operations_title),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)) {
+            Text(stringResource(R.string.operations_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            TextButton(onClick = { manual.value = ManualTarget.New }) { Text(stringResource(R.string.manual_add)) }
+        }
         when (hasAny) {
             null -> Text(stringResource(R.string.loading))
-            false -> NoOperations(onImportReport)
+            false -> NoOperations(onImportReport, onAdd = { manual.value = ManualTarget.New })
             true -> {
                 OutlinedTextField(
                     value = query,
@@ -123,7 +128,7 @@ fun OperationsScreen(state: ActivityState, onImportReport: () -> Unit) {
                     }
                 } else {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        items(items, key = { it.id }) { OperationRow(it) }
+                        items(items, key = { it.id }) { op -> OperationRow(op, onEdit = { id -> manual.value = ManualTarget.Edit(id) }) }
                         item { Spacer(Modifier.height(24.dp)) }
                     }
                 }
@@ -133,21 +138,25 @@ fun OperationsScreen(state: ActivityState, onImportReport: () -> Unit) {
 }
 
 @Composable
-private fun NoOperations(onImportReport: () -> Unit) {
+private fun NoOperations(onImportReport: () -> Unit, onAdd: () -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(top = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(stringResource(R.string.operations_empty), textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
         Button(onClick = onImportReport) { Text(stringResource(R.string.action_import_report)) }
+        TextButton(onClick = onAdd) { Text(stringResource(R.string.manual_add)) }
     }
 }
 
 @Composable
-private fun OperationRow(operation: Operation) {
+private fun OperationRow(operation: Operation, onEdit: (String) -> Unit) {
     val muted = MaterialTheme.typography.bodySmall
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    val entryId = operation.entryId
+    val row = Modifier.fillMaxWidth().let { if (entryId != null) it.clickable { onEdit(entryId) } else it }
+    Column(modifier = row.padding(vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(operation.ticker, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 8.dp))
-            Text(typeLabel(operation.eventType), style = muted, modifier = Modifier.weight(1f))
+            val type = typeLabel(operation.eventType) + if (entryId != null) " · " + stringResource(R.string.manual_label) else ""
+            Text(type, style = muted, modifier = Modifier.weight(1f))
             Text(OperationDisplay.amount(operation), textAlign = TextAlign.End)
         }
         val details = listOfNotNull(
