@@ -47,6 +47,16 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(PortfolioState.loadPortfolio(container, prices: nil), .noReports)
     }
 
+    func testManualOperationsAloneFillThePortfolio() throws {
+        XCTAssertEqual(PortfolioState.loadPortfolio(container, prices: nil), .noReports)
+        let fields = ["date": "2024-01-02", "ticker": "AAPL", "currency": "USD", "quantity": "3", "price": "150.00", "fee": "0"]
+        guard case .saved = try container.manualOperations().save(.buy, fields) else { return XCTFail("not saved") }
+
+        guard case .loaded(let loaded) = PortfolioState.loadPortfolio(container, prices: nil) else { return XCTFail("portfolio not loaded") }
+        XCTAssertEqual(loaded.rows.map(\.ticker), ["AAPL"])
+        XCTAssertEqual(loaded.rows.first?.holding.quantity.compare(ExactDecimal("3")!), 0)
+    }
+
     func testImportWithKeysAndFolderWritesAVerifiedBackupAndDeleteAllNeedsThePassphrase() async throws {
         let data = DataState(container: container)
         let passphrase = "correct horse battery"
