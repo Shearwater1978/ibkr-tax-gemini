@@ -37,9 +37,9 @@ changes. That matters because the FIFO and dividend rules are covered by tests a
 | Transfer in, out | one `TRANSFER` row (positive or negative quantity; cost per share for transfer in) |
 | Dividend | one `DIVIDEND` row (gross) and, if tax > 0, one `TAX` row (negative) with the same date, ticker and currency |
 | Withholding-tax correction | one `TAX` row (positive or negative) |
-| Split | one `SPLIT` row with the `split_ratio` the importer stores for "SPLIT new FOR old" |
+| Split | one `SPLIT` row with `split_ratio` = new ÷ old and a positive quantity, like IBKR's positive split row: the shares added for a forward split, the new share count for a reverse split |
 | Stock dividend | one `STOCK_DIV` row (shares received) |
-| Merger or symbol change | a negative `MERGER` row for the old ticker and a positive one for the new ticker |
+| Merger or symbol change | a negative `MERGER` row for the old ticker and a positive `STOCK_DIV` row for the new ticker, as IBKR books them |
 | Spin-off | one `SPINOFF` row (shares of the new company received) |
 
 - FIFO links the two rows of a merger through their date and the description stem before the trailing parentheses.
