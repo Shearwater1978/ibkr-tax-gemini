@@ -167,7 +167,8 @@ class ReportImporter(
             }
             val before = count(db, "transactions")
             db.execSQL("DELETE FROM report_records WHERE report_id = ?", arrayOf(reportId))
-            db.execSQL("DELETE FROM transactions WHERE source_key NOT IN (SELECT source_key FROM report_records)")
+            // Manual operations are in no report, so only report rows are candidates.
+            db.execSQL("DELETE FROM transactions WHERE origin = 'report' AND source_key NOT IN (SELECT source_key FROM report_records)")
             db.execSQL(
                 "UPDATE transactions SET report_id = " +
                     "(SELECT MIN(rr.report_id) FROM report_records rr WHERE rr.source_key = transactions.source_key) " +
@@ -183,7 +184,7 @@ class ReportImporter(
         }
     }
 
-    /** Deletes every import and record; returns the backup files to remove from the folder. */
+    /** Deletes every import and its records; manual operations stay. Returns the backup files to remove from the folder. */
     fun deleteAll(): DeletedImports {
         val db = database.writableDatabase
         db.beginTransaction()
@@ -191,9 +192,9 @@ class ReportImporter(
             val files = db.query("SELECT backup_file FROM reports WHERE backup_file IS NOT NULL").use { cursor ->
                 buildList { while (cursor.moveToNext()) add(cursor.getString(0)) }
             }
-            val removed = count(db, "transactions")
+            val removed = db.query("SELECT count(*) FROM transactions WHERE origin = 'report'").use { it.moveToFirst(); it.getInt(0) }
             db.execSQL("DELETE FROM report_records")
-            db.execSQL("DELETE FROM transactions")
+            db.execSQL("DELETE FROM transactions WHERE origin = 'report'")
             db.execSQL("DELETE FROM reports")
             db.setTransactionSuccessful()
             return DeletedImports(removedRecords = removed, backupFiles = files)
