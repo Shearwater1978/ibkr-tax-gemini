@@ -55,7 +55,7 @@ class DataState(
             keyStatus = { runCatching { container.backupKeys.status() }.getOrNull() },
             importReady = { runCatching { container.backup.isReady }.getOrDefault(false) },
             history = { runCatching { container.importHistory.list() }.getOrNull() },
-            pendingBackups = { runCatching { if (container.backup.isReady) container.importer.pendingBackups().size else 0 }.getOrDefault(0) },
+            pendingBackups = { runCatching { if (container.backup.isReady) container.backup.pendingCount() else 0 }.getOrDefault(0) },
             retryBackups = { container.backup.retryPending() },
         )
     }
