@@ -108,9 +108,10 @@ fun CalmHome(state: PortfolioState, income: IncomeState, onImport: () -> Unit, o
     val progress by state.progress.collectAsState()
     LaunchedEffect(Unit) { state.refresh() }
     when (val current = ui) {
-        PortfolioUiState.Loading -> Centered { Text(stringResource(R.string.loading), color = CalmColors.Muted) }
-        PortfolioUiState.StorageUnavailable -> Centered { Text(stringResource(R.string.storage_unavailable), textAlign = TextAlign.Center) }
-        is PortfolioUiState.Incomplete -> Centered { Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center) }
+        PortfolioUiState.Loading -> Centered(onImport, onSettings) { Text(stringResource(R.string.loading), color = CalmColors.Muted) }
+        // Settings stays reachable in every state; it holds "Erase all data", the way out when storage cannot be opened.
+        PortfolioUiState.StorageUnavailable -> Centered(onImport, onSettings) { Text(stringResource(R.string.storage_unavailable), textAlign = TextAlign.Center) }
+        is PortfolioUiState.Incomplete -> Centered(onImport, onSettings) { Text(stringResource(R.string.portfolio_incomplete, current.ticker, current.date), textAlign = TextAlign.Center) }
         PortfolioUiState.NoReports -> Column(Modifier.fillMaxSize().padding(22.dp)) {
             TopRow(onImport, onSettings)
             Spacer(Modifier.height(40.dp))
@@ -122,9 +123,13 @@ fun CalmHome(state: PortfolioState, income: IncomeState, onImport: () -> Unit, o
     }
 }
 
+/** A centred message under the avatar and "+" buttons. */
 @Composable
-private fun Centered(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) { content() }
+private fun Centered(onImport: () -> Unit, onSettings: () -> Unit, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxSize().padding(22.dp)) {
+        TopRow(onImport, onSettings)
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { content() }
+    }
 }
 
 @Composable

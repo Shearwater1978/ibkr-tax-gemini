@@ -1,5 +1,8 @@
 package com.ibkrtax.mobile.keys
 
+import com.ibkrtax.mobile.testing.Fixtures
+import java.util.Base64
+import org.json.JSONObject
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,6 +16,21 @@ class KeyVaultTest {
     // Small Argon2id settings keep the JVM tests fast; production uses Argon2idParams.DEFAULT.
     private val vault = KeyVault(Argon2idParams(memoryKiB = 1024, iterations = 1, parallelism = 1))
     private val passphrase = "correct horse battery".toCharArray()
+
+    @Test
+    fun manifestBuiltElsewhereUnlocksWithProductionSettings() {
+        // Built with argon2-cffi (reference Argon2) and pyca/cryptography; the iOS KeyVaultTests read the same file.
+        val fixture = JSONObject(Fixtures.keys("manifest_v1.json").decodeToString())
+        val manifest = KeyManifest.fromJson(fixture.getJSONObject("manifest").toString())
+        val dataKey = Base64.getDecoder().decode(fixture.getString("dataKey"))
+        val production = KeyVault()
+
+        assertEquals(Argon2idParams.DEFAULT, manifest.argon2)
+        assertArrayEquals(dataKey, production.unlockWithPassphrase(manifest, fixture.getString("passphrase").toCharArray()))
+        assertArrayEquals(dataKey, production.unlockWithRecoveryCode(manifest, RecoveryCode.format(fixture.getString("recoveryCode")).lowercase()))
+        assertTrue(production.matches(manifest, dataKey))
+        assertEquals(manifest, KeyManifest.fromJson(manifest.toJson()))
+    }
 
     @Test
     fun passphrasePolicyRejectsShortAndTrivialPassphrases() {
