@@ -66,6 +66,7 @@ object ClassicSkin : Skin {
         Feature.DELETE_IMPORTS to "Imports tab",
         Feature.APP_VERSION to "Settings tab",
         Feature.SKIN_SETTING to "Settings tab",
+        Feature.MANUAL_ENTRY to "Operations tab: Add operation; tap a Manual row to edit",
     )
 
     @Composable

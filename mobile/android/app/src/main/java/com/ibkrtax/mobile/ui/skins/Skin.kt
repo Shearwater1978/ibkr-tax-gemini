@@ -27,6 +27,7 @@ enum class Feature {
     DELETE_IMPORTS,
     APP_VERSION,
     SKIN_SETTING,
+    MANUAL_ENTRY,
 }
 
 /**

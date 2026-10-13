@@ -20,7 +20,7 @@ enum class OperationFilter(val eventType: String?) {
     }
 }
 
-/** One imported transaction as listed to the user: no account, report or file reference. */
+/** One stored transaction as listed to the user: no account, report or file reference. [entryId] is set for manual ones. */
 data class Operation(
     val id: Long,
     val date: String,
@@ -31,6 +31,7 @@ data class Operation(
     val currency: String,
     val amount: BigDecimal,
     val fee: BigDecimal,
+    val entryId: String? = null,
 )
 
 /** Read-only, paged access to imported transactions, newest first. */
@@ -65,7 +66,7 @@ class OperationsRepository(private val database: SupportSQLiteOpenHelper) {
         args += limit
         args += offset
         return database.readableDatabase.query(
-            "SELECT id, date, event_type, ticker, quantity, price, currency, amount, fee FROM transactions " +
+            "SELECT id, date, event_type, ticker, quantity, price, currency, amount, fee, entry_id FROM transactions " +
                 "$where ORDER BY date DESC, id DESC LIMIT ? OFFSET ?",
             args.toTypedArray(),
         ).use { cursor ->
@@ -82,6 +83,7 @@ class OperationsRepository(private val database: SupportSQLiteOpenHelper) {
                             currency = cursor.getString(6),
                             amount = decimal(cursor.getString(7)),
                             fee = decimal(cursor.getString(8)),
+                            entryId = if (cursor.isNull(9)) null else cursor.getString(9),
                         ),
                     )
                 }

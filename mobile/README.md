@@ -13,7 +13,7 @@ Both apps are called **Portfolio Companion**; how to use it is in the [user guid
 
 ## Navigation contract
 
-Both apps come in four skins (`mobile-skins` OpenSpec change). They share the state holders (Android `state/`, iOS `State/`) and the common screens (Android `ui/common`, iOS `Screens/`: import, imported reports, Settings), so data and numbers are identical; only layout and navigation differ. Each skin declares where every `Feature` lives, and `SkinCatalogTest` (`SkinCatalogTests` on iOS) fails if one is missing.
+Both apps come in four skins (`mobile-skins` OpenSpec change). They share the state holders (Android `state/`, iOS `State/`) and the common screens (Android `ui/common`, iOS `Screens/`: import, imported reports, Settings), so data and numbers are identical; only layout and navigation differ. Each skin declares where every `Feature` lives, and `SkinCatalogTest` (`SkinCatalogTests` on iOS) fails if one is missing. Manual operations (`mobile-manual-operations`, Android so far) use one shared form, `ui/common/ManualEntryDialog.kt`, which every skin's activity screen opens as a dialog instead of a route.
 
 ### Classic
 

@@ -15,6 +15,14 @@ class AppStates(
     val activity: ActivityState,
     val data: DataState,
 ) {
+    /** A manual operation was added, edited or deleted: every view re-reads stored data, without new prices. */
+    fun manualChanged() {
+        portfolio.reload()
+        income.reload()
+        activity.reload()
+        data.reload()
+    }
+
     companion object {
         fun create(container: AppContainer): AppStates {
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

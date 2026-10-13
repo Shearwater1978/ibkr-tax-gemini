@@ -21,6 +21,7 @@ Portfolio Companion reads your broker reports **on your phone** and keeps the re
 | Data | Source | Where it stays |
 |---|---|---|
 | Trades, dividends, withholding tax, corporate actions, instruments held | Reports you import | Encrypted database on your phone |
+| Operations you add by hand (date, ticker, currency, quantities, prices, amounts) | You | Encrypted database on your phone; backed up encrypted like reports |
 | Account number | Report header | Stored only as a keyed pseudonym and the last four characters; never shown in full |
 | Report file name | File you pick | Not stored; shown masked during import |
 | Names, tax identification numbers | Not read | — |
@@ -38,7 +39,7 @@ All processing (reading reports, calculating positions, returns and dividends) h
 | Finnhub (USA), only with your own key | Ticker symbols of US-listed holdings and your Finnhub key | Market prices | When prices refresh |
 | Yahoo Finance (USA) | Ticker symbols (US listings without a Finnhub key; European listings always) | Market prices | When prices refresh |
 | National Bank of Poland (NBP) | Nothing about you; the app downloads the public rate table | Approximate USD conversion | When rates refresh |
-| Your storage provider (for example Google Drive), chosen by you | Backup files and a key manifest, **encrypted on the phone** before upload | Backup and moving to a new phone | After each import and on retry |
+| Your storage provider (for example Google Drive), chosen by you | Backup files (reports and operations added by hand) and a key manifest, **encrypted on the phone** before upload | Backup and moving to a new phone | After each import or manual change, and on retry |
 | Google, via Android Block Store | The backup data key, **end-to-end encrypted** with your phone's screen lock; only when your phone supports that | Restoring on a new phone without the passphrase | When backups are set up or restored |
 
 Like any internet request, these providers see your IP address and the time of the request. The app sends no quantities, amounts, account data or report contents to Finnhub, Yahoo or NBP. Neither your storage provider nor Google can read your backups or your backup key. The providers listed may store data outside the European Economic Area (Finnhub, Yahoo and Google are US companies); for backups and the key copy they only ever receive encrypted data.
