@@ -14,7 +14,7 @@ final class DataState: ObservableObject {
     /// Called after any change, so the other screens reload too.
     var onChange: () -> Void = {}
     private lazy var retry = BackupRetry(
-        pending: { [container] in await Task.detached { (try? container.backup().isReady == true ? container.importer().pendingBackups().count : 0) ?? 0 }.value },
+        pending: { [container] in await Task.detached { (try? container.backup().isReady == true ? container.backup().pendingCount() : 0) ?? 0 }.value },
         retry: { [container] in await Task.detached { try? container.backup().retryPending() }.value },
         onChange: { [weak self] in self?.reload() }
     )

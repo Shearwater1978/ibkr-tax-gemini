@@ -22,7 +22,8 @@ enum RestoreOutcome: Equatable {
     case accessLost
 
     /// `unreadable`: backup files that could not be decrypted or imported; the others were restored.
-    case restored(reports: Int, inserted: Int, alreadyImported: Int, unreadable: Int)
+    /// `manualEntries`: operations entered by hand, from the newest manual journal.
+    case restored(reports: Int, inserted: Int, alreadyImported: Int, unreadable: Int, manualEntries: Int = 0)
 }
 
 /**
@@ -36,6 +37,8 @@ enum RestoreOutcome: Equatable {
 struct RestoreService {
     let reports: ReportStore
     var vault = KeyVault()
+    /// Restores the manual journal after the reports (mobile-manual-operations Decision 6).
+    var journal: ManualJournalBackup?
 
     /// `localKey`: a data key already on this phone, used when it matches. `saveKeys` stores the unlocked key before the reports are imported.
     func restore(_ folder: BackupFolder, secret: RestoreSecret?, localKey: Data? = nil, saveKeys: (KeyManifest, Data) throws -> Void) async -> RestoreOutcome {
@@ -77,10 +80,13 @@ struct RestoreService {
             }
             try saveKeys(manifest, dataKey)
 
+            // A journal is JSON; report backups are CSV. Journals are restored after every report.
+            let journals = decrypted.compactMap { item in ManualJournal.decode(item.bytes).map { (name: item.name, journal: $0) } }
+            let journalNames = Set(journals.map(\.name))
             var restored = 0
             var inserted = 0
             var already = 0
-            for (name, bytes) in decrypted {
+            for (name, bytes) in decrypted where !journalNames.contains(name) {
                 switch try reports.importReport(bytes, backupFile: name) {
                 case .imported(_, let count, _):
                     try reports.markBackedUp(name)
@@ -92,7 +98,8 @@ struct RestoreService {
                     unreadable += 1
                 }
             }
-            return .restored(reports: restored, inserted: inserted, alreadyImported: already, unreadable: unreadable)
+            let manualEntries = try journal?.restore(journals) ?? 0
+            return .restored(reports: restored, inserted: inserted, alreadyImported: already, unreadable: unreadable, manualEntries: manualEntries)
         } catch is BackupFolderError {
             return .accessLost
         } catch {

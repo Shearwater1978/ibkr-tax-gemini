@@ -38,7 +38,7 @@ fewer, branched from `main`.
 - [x] 7.1 Row builder, instrument lookup, validation and duplicate matching, with the shared fixture tests, and the `ManualOperations` service
 
 ## 8. iOS: backup and restore
-- [ ] 8.1 Journal writer and restore; decrypts the Android-built `journal_v1.bin`
+- [x] 8.1 Journal writer and restore; decrypts the Android-built `journal_v1.bin`
 
 ## 9. iOS: screens
 - [ ] 9.1 Form, activity labels, import duplicates, and placement in all four skins; `SkinCatalogTests` passes

@@ -72,7 +72,23 @@ final class AppContainer {
 
     func backupLocation() throws -> BackupLocationStore { BackupLocationStore(database: try database()) }
 
-    func restore() throws -> RestoreService { RestoreService(reports: try importer()) }
+    func restore() throws -> RestoreService { RestoreService(reports: try importer(), journal: try manualJournal()) }
+
+    /// Operations entered by hand (mobile-manual-operations), stored next to imported ones.
+    func manualEntries() throws -> ManualEntries { ManualEntries(database: try database()) }
+
+    func manualJournal() throws -> ManualJournalBackup {
+        let keys = try backupKeys()
+        let location = try backupLocation()
+        return ManualJournalBackup(dataKey: keys.dataKey, folder: location.folder, store: try manualEntries(),
+                                   pendingDirectory: try secureDirectory().appendingPathComponent("pending-backups", isDirectory: true))
+    }
+
+    /// Saving or deleting an entry backs up the manual journal.
+    func manualOperations() throws -> ManualOperations {
+        let journal = try manualJournal()
+        return ManualOperations(store: try manualEntries(), onChanged: { _ = try? journal.changed() })
+    }
 
     /**
      * Erase all data (task 7.6). Afterwards the container starts over as on a fresh install: the next
@@ -114,7 +130,8 @@ final class AppContainer {
         let keys = try backupKeys()
         let location = try backupLocation()
         return BackupService(dataKey: keys.dataKey, manifestJson: keys.manifestJson, folder: location.folder,
-                             reports: try importer(), pendingDirectory: try secureDirectory().appendingPathComponent("pending-backups", isDirectory: true))
+                             reports: try importer(), pendingDirectory: try secureDirectory().appendingPathComponent("pending-backups", isDirectory: true),
+                             journal: try manualJournal())
     }
 }
 
