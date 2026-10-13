@@ -16,14 +16,21 @@ class DataClassificationTest {
         val columns = mutableSetOf<String>()
         Regex("""CREATE TABLE (\w+) \((.*?)\)\s*"""", RegexOption.DOT_MATCHES_ALL).findAll(source).forEach { match ->
             val table = match.groupValues[1]
-            // Columns are separated by commas, except inside table constraints such as PRIMARY KEY (a, b).
-            match.groupValues[2].lines().map { it.trim() }
+            // Columns are separated by commas, except inside table constraints such as PRIMARY KEY (a, b);
+            // a CHECK constraint comes after the columns.
+            match.groupValues[2].substringBefore("CHECK (").lines().map { it.trim() }
                 .filterNot { it.startsWith("PRIMARY KEY (") || it.startsWith("FOREIGN KEY") || it.startsWith("UNIQUE (") }
                 .flatMap { it.split(",") }.map { it.trim() }
                 .filter { it.isNotEmpty() }
                 .forEach { columns += "$table.${it.split(Regex("""\s+""")).first()}" }
         }
         Regex("""ALTER TABLE (\w+) ADD COLUMN (\w+)""").findAll(source).forEach { columns += "${it.groupValues[1]}.${it.groupValues[2]}" }
+        // A rebuilt table replaces the old one under the old name (schema version 7).
+        Regex("""ALTER TABLE (\w+) RENAME TO (\w+)""").findAll(source).forEach { rename ->
+            val (from, to) = rename.destructured
+            columns.removeAll { it.startsWith("$to.") }
+            columns.filter { it.startsWith("$from.") }.forEach { columns -= it; columns += to + it.removePrefix(from) }
+        }
         return columns
     }
 

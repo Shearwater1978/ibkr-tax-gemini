@@ -5,6 +5,8 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.ibkrtax.mobile.importer.StoredTransaction
+import com.ibkrtax.mobile.manual.JournalState
+import com.ibkrtax.mobile.manual.JournalStore
 import com.ibkrtax.mobile.manual.ManualStore
 import com.ibkrtax.mobile.manual.StoredRow
 
@@ -21,7 +23,7 @@ data class ManualEntry(
 )
 
 /** Stores manual entries next to imported operations; imported rows are never changed here. */
-class ManualEntries(private val database: SupportSQLiteOpenHelper) : ManualStore {
+class ManualEntries(private val database: SupportSQLiteOpenHelper) : ManualStore, JournalStore {
     /** Adds the entry, or replaces it and all its rows when [ManualEntry.entryId] exists. */
     override fun save(entry: ManualEntry) {
         require(entry.rows.isNotEmpty()) { "A manual entry needs at least one row" }
@@ -71,6 +73,46 @@ class ManualEntries(private val database: SupportSQLiteOpenHelper) : ManualStore
 
     /** Every manual entry, oldest entered first. */
     fun all(): List<ManualEntry> = load("", emptyArray())
+
+    override fun entries(): List<ManualEntry> = all()
+
+    override fun journalState(): JournalState {
+        val values = database.readableDatabase.query("SELECT key, value FROM app_settings WHERE key LIKE 'manual_journal_%'").use { cursor ->
+            buildMap { while (cursor.moveToNext()) put(cursor.getString(0), cursor.getString(1)) }
+        }
+        return JournalState(
+            sequence = values[JOURNAL_SEQUENCE]?.toLongOrNull() ?: 0,
+            file = values[JOURNAL_FILE],
+            pending = values[JOURNAL_PENDING],
+            stale = values[JOURNAL_STALE] == "true",
+        )
+    }
+
+    override fun setJournalState(state: JournalState) {
+        val db = database.writableDatabase
+        db.beginTransaction()
+        try {
+            db.execSQL("DELETE FROM app_settings WHERE key LIKE 'manual_journal_%'")
+            mapOf(JOURNAL_SEQUENCE to state.sequence.toString(), JOURNAL_FILE to state.file, JOURNAL_PENDING to state.pending, JOURNAL_STALE to state.stale.toString())
+                .forEach { (key, value) ->
+                    if (value != null) {
+                        db.insert(
+                            "app_settings",
+                            SQLiteDatabase.CONFLICT_REPLACE,
+                            ContentValues().apply {
+                                put("key", key)
+                                put("value", value)
+                            },
+                        )
+                    }
+                }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    override fun restoreEntries(entries: List<ManualEntry>) = entries.forEach(::save)
 
     private fun load(where: String, args: Array<Any?>): List<ManualEntry> {
         val db = database.readableDatabase
@@ -129,6 +171,10 @@ class ManualEntries(private val database: SupportSQLiteOpenHelper) : ManualStore
     companion object {
         const val ORIGIN_MANUAL = "manual"
         const val SOURCE_KEY_PREFIX = "manual:"
+        private const val JOURNAL_SEQUENCE = "manual_journal_sequence"
+        private const val JOURNAL_FILE = "manual_journal_file"
+        private const val JOURNAL_PENDING = "manual_journal_pending"
+        private const val JOURNAL_STALE = "manual_journal_stale"
         private const val ROW_COLUMNS = "entry_id, source_key, date, event_type, ticker, quantity, price, currency, amount, fee, " +
             "description, split_ratio, isin, conid, instrument_description, listing_exchange"
     }

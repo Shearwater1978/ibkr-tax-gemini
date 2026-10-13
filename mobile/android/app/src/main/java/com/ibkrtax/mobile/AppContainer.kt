@@ -13,6 +13,8 @@ import com.ibkrtax.mobile.fx.NbpClient
 import com.ibkrtax.mobile.keys.BackupKeys
 import com.ibkrtax.mobile.keys.BlockStoreKeyCopy
 import com.ibkrtax.mobile.keys.LocalKeyFiles
+import com.ibkrtax.mobile.manual.ManualJournalBackup
+import com.ibkrtax.mobile.manual.ManualOperations
 import com.ibkrtax.mobile.prices.FinnhubProvider
 import com.ibkrtax.mobile.prices.PriceService
 import com.ibkrtax.mobile.prices.RateLimiter
@@ -27,6 +29,7 @@ import com.ibkrtax.mobile.storage.FxStore
 import com.ibkrtax.mobile.state.AppStates
 import com.ibkrtax.mobile.storage.DividendEvents
 import com.ibkrtax.mobile.storage.ImportHistory
+import com.ibkrtax.mobile.storage.ManualEntries
 import com.ibkrtax.mobile.storage.OperationsRepository
 import com.ibkrtax.mobile.storage.PortfolioRepository
 import com.ibkrtax.mobile.storage.PriceStore
@@ -75,8 +78,21 @@ class AppContainer(context: Context) {
             folder = { backupLocation.get()?.let { SafBackupFolder(appContext, Uri.parse(it.treeUri), it.subfolder) } },
             reports = reportStore,
             pendingDir = File(appContext.noBackupFilesDir, "pending-backups"),
+            journal = manualJournal,
         )
     }
+
+    /** Operations entered by hand (mobile-manual-operations), stored next to imported ones. */
+    val manualEntries: ManualEntries by lazy { ManualEntries(database) }
+    val manualJournal: ManualJournalBackup by lazy {
+        ManualJournalBackup(
+            dataKey = { backupKeys.dataKey() },
+            folder = { backupLocation.get()?.let { SafBackupFolder(appContext, Uri.parse(it.treeUri), it.subfolder) } },
+            store = manualEntries,
+            pendingDir = File(appContext.noBackupFilesDir, "pending-backups"),
+        )
+    }
+    val manualOperations: ManualOperations by lazy { ManualOperations(manualEntries, onChanged = { manualJournal.changed() }) }
 
     /** Erase all data (task 7.6); afterwards the app must restart, since this container is unusable. */
     val eraser: DataEraser by lazy {
@@ -97,7 +113,7 @@ class AppContainer(context: Context) {
     }
 
     /** Restore on a new device from the backup folder (encrypted-backup "Restore on a new device"). */
-    val restore: RestoreService by lazy { RestoreService(reportStore) }
+    val restore: RestoreService by lazy { RestoreService(reportStore, journal = manualJournal) }
 
     private val reportStore: ReportStore by lazy {
         object : ReportStore {

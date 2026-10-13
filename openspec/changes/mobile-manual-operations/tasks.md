@@ -19,9 +19,9 @@ fewer, branched from `main`.
 - [x] 3.5 `ManualOperations` service: save (add or edit), delete and duplicates after import, with the checks above
 
 ## 4. Android: backup and restore
-- [ ] 4.1 Journal payload and writer: write and verify the new journal, then delete the old one; pending state and retry
-- [ ] 4.2 Restore: recognise journals by content, restore the newest after the reports
-- [ ] 4.3 Decrypt and restore `journal_v1.bin` in tests
+- [x] 4.1 Journal payload and writer: write and verify the new journal, then delete the old one; pending state and retry
+- [x] 4.2 Restore: recognise journals by content, restore the newest after the reports
+- [x] 4.3 Decrypt and restore `journal_v1.bin` in tests
 
 ## 5. Android: screens
 - [ ] 5.1 Shared "Add operation" form with a type picker and per-type fields, plus edit and delete with confirmation

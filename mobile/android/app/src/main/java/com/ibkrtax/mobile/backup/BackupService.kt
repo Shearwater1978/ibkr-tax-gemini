@@ -3,6 +3,7 @@ package com.ibkrtax.mobile.backup
 import com.ibkrtax.mobile.importer.FlexParseResult
 import com.ibkrtax.mobile.storage.DeletedImports
 import com.ibkrtax.mobile.importer.FlexQueryParser
+import com.ibkrtax.mobile.manual.ManualJournalBackup
 import com.ibkrtax.mobile.storage.ImportRejection
 import com.ibkrtax.mobile.storage.ImportResult
 import java.io.File
@@ -67,6 +68,8 @@ class BackupService(
     private val reports: ReportStore,
     private val pendingDir: File,
     private val random: SecureRandom = SecureRandom(),
+    /** The manual-entry journal, retried together with the report backups. */
+    private val journal: ManualJournalBackup? = null,
 ) {
     val isReady: Boolean get() = dataKey() != null && folder() != null
 
@@ -89,9 +92,12 @@ class BackupService(
         }
     }
 
+    /** Report backups and the manual journal still waiting for the folder. */
+    fun pendingCount(): Int = reports.pendingBackups().size + if (journal?.isPending == true) 1 else 0
+
     /** Uploads backups that could not be written earlier, and refreshes the manifest. */
     fun retryPending(): RetryResult {
-        val target = folder() ?: return RetryResult(0, reports.pendingBackups().size, accessLost = false)
+        val target = folder() ?: return RetryResult(0, pendingCount(), accessLost = false)
         var backedUp = 0
         var accessLost = false
         for (name in reports.pendingBackups()) {
@@ -104,7 +110,14 @@ class BackupService(
             if (accessLost) break
         }
         if (!accessLost) syncManifest()
-        return RetryResult(backedUp, reports.pendingBackups().size, accessLost)
+        if (!accessLost && journal?.isPending == true) {
+            when (journal.sync()) {
+                BackupResult.BACKED_UP -> backedUp++
+                BackupResult.ACCESS_LOST -> accessLost = true
+                BackupResult.PENDING -> Unit
+            }
+        }
+        return RetryResult(backedUp, pendingCount(), accessLost)
     }
 
     /** Deletes one import, the records only it contains, and its backup file (mobile-report-upload "Delete imported reports"). */

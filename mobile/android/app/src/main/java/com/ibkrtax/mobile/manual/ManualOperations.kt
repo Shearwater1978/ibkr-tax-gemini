@@ -49,6 +49,8 @@ class ManualOperations(
     private val store: ManualStore,
     private val clock: Clock = Clock.systemUTC(),
     private val newId: () -> String = { UUID.randomUUID().toString() },
+    /** Runs after every saved or deleted entry; the app backs up the manual journal here. */
+    private val onChanged: () -> Unit = {},
 ) {
     /** Adds an entry, or replaces [entryId]'s entry. Numbers in [fields] are plain decimal strings. */
     fun save(type: ManualType, fields: Map<String, String>, entryId: String? = null, confirmDuplicate: Boolean = false): ManualSaveResult {
@@ -69,6 +71,7 @@ class ManualOperations(
             if (matches.isNotEmpty()) return ManualSaveResult.PossibleDuplicate(matches)
         }
         store.save(ManualEntry(id, type.name, JSONObject(complete).toString(), clock.instant().toString(), rows))
+        onChanged()
         return ManualSaveResult.Saved(id)
     }
 
@@ -77,7 +80,9 @@ class ManualOperations(
         if (all.none { it.entryId == entryId }) return ManualDeleteResult.NotFound
         val remaining = all.filter { it.entryId != entryId }.map { it.row }
         ManualFifo.oversell(ManualFifo.events(all.map { it.row }), ManualFifo.events(remaining))?.let { return ManualDeleteResult.Oversold(it) }
-        return if (store.delete(entryId)) ManualDeleteResult.Deleted else ManualDeleteResult.NotFound
+        if (!store.delete(entryId)) return ManualDeleteResult.NotFound
+        onChanged()
+        return ManualDeleteResult.Deleted
     }
 
     /** Manual rows that match imported ones, each with the imported row; shown after an import. */

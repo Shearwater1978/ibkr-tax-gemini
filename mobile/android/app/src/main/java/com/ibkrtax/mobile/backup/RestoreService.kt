@@ -4,6 +4,8 @@ import com.ibkrtax.mobile.keys.KeyManifest
 import com.ibkrtax.mobile.keys.KeyVault
 import com.ibkrtax.mobile.keys.UnsupportedManifestException
 import com.ibkrtax.mobile.keys.WrongSecretException
+import com.ibkrtax.mobile.manual.ManualJournal
+import com.ibkrtax.mobile.manual.ManualJournalBackup
 import com.ibkrtax.mobile.storage.ImportResult
 import java.io.IOException
 import org.json.JSONException
@@ -30,8 +32,11 @@ sealed interface RestoreOutcome {
 
     data object AccessLost : RestoreOutcome
 
-    /** [unreadable]: backup files that could not be decrypted or imported; the others were restored. */
-    data class Restored(val reports: Int, val inserted: Int, val alreadyImported: Int, val unreadable: Int) : RestoreOutcome
+    /**
+     * [unreadable]: backup files that could not be decrypted or imported; the others were restored.
+     * [manualEntries]: operations entered by hand, from the newest manual journal.
+     */
+    data class Restored(val reports: Int, val inserted: Int, val alreadyImported: Int, val unreadable: Int, val manualEntries: Int = 0) : RestoreOutcome
 }
 
 /**
@@ -41,7 +46,12 @@ sealed interface RestoreOutcome {
  * backup file is decrypted first, so a wrong key restores nothing; the reports are then imported
  * like new ones (fresh device-bound pseudonyms) and kept as backed up, since their files exist.
  */
-class RestoreService(private val reports: ReportStore, private val vault: KeyVault = KeyVault()) {
+class RestoreService(
+    private val reports: ReportStore,
+    private val vault: KeyVault = KeyVault(),
+    /** Restores the manual journal after the reports (mobile-manual-operations Decision 6). */
+    private val journal: ManualJournalBackup? = null,
+) {
     /** [saveKeys] stores the unlocked key on this device before the reports are imported. */
     suspend fun restore(
         folder: BackupFolder,
@@ -79,10 +89,13 @@ class RestoreService(private val reports: ReportStore, private val vault: KeyVau
             }
             saveKeys(manifest, dataKey)
 
+            // A journal is JSON; report backups are CSV. Journals are restored after every report.
+            val journals = decrypted.mapNotNull { (name, bytes) -> ManualJournal.decode(bytes)?.let { name to it } }
+            val journalNames = journals.map { it.first }.toSet()
             var restored = 0
             var inserted = 0
             var already = 0
-            for ((name, bytes) in decrypted) {
+            for ((name, bytes) in decrypted.filter { it.first !in journalNames }) {
                 when (val result = reports.import(bytes, name)) {
                     is ImportResult.Imported -> {
                         reports.markBackedUp(name)
@@ -93,7 +106,8 @@ class RestoreService(private val reports: ReportStore, private val vault: KeyVau
                     is ImportResult.Rejected -> unreadable++
                 }
             }
-            return RestoreOutcome.Restored(restored, inserted, already, unreadable)
+            val manualEntries = journal?.restore(journals) ?: 0
+            return RestoreOutcome.Restored(restored, inserted, already, unreadable, manualEntries)
         } catch (e: IOException) {
             // Includes FolderAccessLostException: the folder could not be read.
             return RestoreOutcome.AccessLost

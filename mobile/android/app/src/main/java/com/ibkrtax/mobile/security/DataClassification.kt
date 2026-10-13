@@ -50,6 +50,8 @@ object DataClassification {
         "reports.backup_status" to technical,
 
         "transactions.id" to technical,
+        "transactions.origin" to technical,
+        "transactions.entry_id" to Classified(DataClass.NON_PERSONAL, "random id of a manual entry"),
         "transactions.report_id" to technical,
         "transactions.source_key" to Classified(DataClass.QUASI_IDENTIFIER, "derived from the record's own fields; used to avoid duplicates"),
         "transactions.date" to Classified(DataClass.QUASI_IDENTIFIER, "trade or payment date"),
@@ -67,13 +69,18 @@ object DataClassification {
         "transactions.instrument_description" to instrument,
         "transactions.listing_exchange" to instrument,
 
+        "manual_entries.entry_id" to Classified(DataClass.NON_PERSONAL, "random id"),
+        "manual_entries.type" to technical,
+        "manual_entries.fields" to Classified(DataClass.FINANCIAL_VALUE, "the operation as typed (date, ticker, amounts); stored encrypted, shown only in the app, backed up encrypted"),
+        "manual_entries.entered_at" to technical,
+
         "report_records.report_id" to technical,
         "report_records.source_key" to Classified(DataClass.QUASI_IDENTIFIER, "same as transactions.source_key"),
 
         "app_settings.key" to technical,
         "app_settings.value" to Classified(
             DataClass.QUASI_IDENTIFIER,
-            "the Finnhub key (a credential: sent only to Finnhub, never shown in full or backed up) and the backup folder URI",
+            "the Finnhub key (a credential: sent only to Finnhub, never shown in full or backed up), the backup folder URI and the manual journal state (sequence and random file names)",
         ),
 
         "price_cache.symbol" to instrument,

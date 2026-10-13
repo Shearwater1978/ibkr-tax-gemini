@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ibkrtax.mobile.importer.StoredTransaction
+import com.ibkrtax.mobile.manual.JournalState
 import com.ibkrtax.mobile.security.DeviceKeys
 import com.ibkrtax.mobile.security.Pseudonymizer
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
@@ -156,6 +157,18 @@ class ManualStorageInstrumentedTest {
         assertEquals(listOf("manual:e1"), rows.filter { it.entryId == "e1" }.map { it.row.sourceKey })
         assertEquals(count("WHERE origin = 'report'"), rows.count { it.entryId == null })
         assertEquals(rows.map { it.row.date }.sorted(), rows.map { it.row.date })
+    }
+
+    @Test
+    fun journalStateAndRestoredEntriesAreKept() {
+        assertEquals(JournalState(), manual.journalState())
+        manual.setJournalState(JournalState(sequence = 3, file = "a.bin", pending = null, stale = true))
+        assertEquals(JournalState(sequence = 3, file = "a.bin", pending = null, stale = true), manual.journalState())
+        manual.setJournalState(JournalState(sequence = 4, file = null, pending = "b.bin"))
+        assertEquals(JournalState(sequence = 4, pending = "b.bin"), manual.journalState())
+
+        manual.restoreEntries(listOf(entry("e1", buy("e1")), entry("e2", buy("e2"))))
+        assertEquals(listOf("e1", "e2"), manual.entries().map { it.entryId })
     }
 
     @Test
