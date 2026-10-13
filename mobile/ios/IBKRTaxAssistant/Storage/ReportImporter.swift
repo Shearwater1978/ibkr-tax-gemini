@@ -118,7 +118,8 @@ struct ReportImporter {
             if case .text(let file)? = row[0] { backupFiles.append(file) }
             let before = try count("transactions")
             try database.execute("DELETE FROM report_records WHERE report_id = ?", [.integer(reportId)])
-            try database.execute("DELETE FROM transactions WHERE source_key NOT IN (SELECT source_key FROM report_records)")
+            // Manual operations are in no report, so only report rows are candidates.
+            try database.execute("DELETE FROM transactions WHERE origin = 'report' AND source_key NOT IN (SELECT source_key FROM report_records)")
             try database.execute(
                 """
                 UPDATE transactions SET report_id =
@@ -132,13 +133,13 @@ struct ReportImporter {
         }
     }
 
-    /// Deletes every import and record; returns the backup files to remove from the folder.
+    /// Deletes every import and its records; manual operations stay. Returns the backup files to remove from the folder.
     func deleteAll() throws -> DeletedImports {
         try database.transaction {
             let files = try texts("SELECT backup_file FROM reports WHERE backup_file IS NOT NULL")
-            let removed = try count("transactions")
+            let removed = try count("transactions WHERE origin = 'report'")
             try database.execute("DELETE FROM report_records")
-            try database.execute("DELETE FROM transactions")
+            try database.execute("DELETE FROM transactions WHERE origin = 'report'")
             try database.execute("DELETE FROM reports")
             return DeletedImports(removedRecords: removed, backupFiles: files)
         }
