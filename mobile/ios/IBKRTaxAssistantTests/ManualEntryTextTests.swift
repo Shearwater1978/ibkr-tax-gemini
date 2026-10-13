@@ -12,6 +12,13 @@ final class ManualEntryTextTests: XCTestCase {
         XCTAssertEqual(plainDecimal("1,2,3"), "1,2,3")
     }
 
+    func testCommonCurrenciesAndOneOutsideTheList() {
+        XCTAssertEqual(ManualCurrencies.choices(including: "USD"), ManualCurrencies.common)
+        XCTAssertEqual(ManualCurrencies.choices(including: nil).first, "USD")
+        XCTAssertEqual(ManualCurrencies.choices(including: "ZAR"), ["ZAR"] + ManualCurrencies.common)
+        XCTAssertEqual(Set(ManualCurrencies.common).count, ManualCurrencies.common.count)
+    }
+
     func testCalendarDayIso() {
         XCTAssertEqual(CalendarDay(year: 2026, month: 3, day: 7).iso, "2026-03-07")
     }
