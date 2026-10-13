@@ -2,8 +2,8 @@ Android leads and iOS follows, as with the skins. Each numbered section is one P
 fewer, branched from `main`.
 
 ## 1. Shared fixtures
-- [ ] 1.1 Build `mobile/fixtures/manual/journal_v1.json` (synthetic entries of every type) and `journal_v1.bin` (encrypted with the key fixture's data key) with Python, documented in a README like `fixtures/keys`
-- [ ] 1.2 Add expected rows for each manual entry, matching the rows the importer writes for the same operations
+- [x] 1.1 Build `mobile/fixtures/manual/journal_v1.json` (synthetic entries of every type) and `journal_v1.bin` (encrypted with the key fixture's data key) with Python, documented in a README like `fixtures/keys`
+- [x] 1.2 Add expected rows for each manual entry, matching the rows the importer writes for the same operations _The rows are in the journal; `ManualJournalFixtureTest` (both platforms) checks the encrypted copy and that the manual buy equals the imported `valid_basic.csv` buy._
 
 ## 2. Android: unified storage
 - [ ] 2.1 Schema version 7: rebuild `transactions` with `origin`, nullable `report_id`, `entry_id`, `entered_at` and the CHECK constraint, in one transaction

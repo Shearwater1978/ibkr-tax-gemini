@@ -15,6 +15,9 @@ object Fixtures {
     /** Synthetic key manifest and backup file built outside the app (see mobile/fixtures/keys/README.md). */
     fun keys(name: String): ByteArray = read("keys/$name")
 
+    /** Synthetic manual journal, plain and encrypted (see mobile/fixtures/manual/README.md). */
+    fun manual(name: String): ByteArray = read("manual/$name")
+
     /** Records the Python reference parser produces for a valid fixture. */
     fun expectedJson(fixtureName: String): String =
         read("flex-query/expected/${fixtureName.removeSuffix(".csv")}.json").decodeToString()

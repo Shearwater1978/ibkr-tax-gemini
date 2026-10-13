@@ -1,0 +1,481 @@
+{
+  "kind": "manual-journal",
+  "version": 1,
+  "sequence": 12,
+  "savedAt": "2026-10-13T08:00:00Z",
+  "entries": [
+    {
+      "entryId": "00000000-0000-4000-8000-000000000001",
+      "type": "BUY",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-01-10",
+        "ticker": "AAPL",
+        "currency": "USD",
+        "quantity": "10",
+        "price": "150.00",
+        "fee": "1.00"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000001",
+          "date": "2023-01-10",
+          "eventType": "BUY",
+          "ticker": "AAPL",
+          "quantity": "10",
+          "price": "150.00",
+          "currency": "USD",
+          "amount": "1500.00",
+          "fee": "-1.00",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000002",
+      "type": "SELL",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-06-21",
+        "ticker": "AAPL",
+        "currency": "USD",
+        "quantity": "4",
+        "price": "180.50",
+        "fee": "1.00"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000002",
+          "date": "2023-06-21",
+          "eventType": "SELL",
+          "ticker": "AAPL",
+          "quantity": "-4",
+          "price": "180.50",
+          "currency": "USD",
+          "amount": "-722.00",
+          "fee": "-1.00",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000003",
+      "type": "TRANSFER_IN",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-02-01",
+        "ticker": "MSFT",
+        "currency": "USD",
+        "quantity": "5",
+        "price": "250.00"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000003",
+          "date": "2023-02-01",
+          "eventType": "TRANSFER",
+          "ticker": "MSFT",
+          "quantity": "5",
+          "price": "250.00",
+          "currency": "USD",
+          "amount": "1250.00",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000004",
+      "type": "TRANSFER_OUT",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-08-01",
+        "ticker": "MSFT",
+        "currency": "USD",
+        "quantity": "2"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000004",
+          "date": "2023-08-01",
+          "eventType": "TRANSFER",
+          "ticker": "MSFT",
+          "quantity": "-2",
+          "price": "0",
+          "currency": "USD",
+          "amount": "0",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000005",
+      "type": "DIVIDEND",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-05-18",
+        "ticker": "AAPL",
+        "currency": "USD",
+        "amount": "2.40",
+        "tax": "0.36"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000005",
+          "date": "2023-05-18",
+          "eventType": "DIVIDEND",
+          "ticker": "AAPL",
+          "quantity": "0",
+          "price": "0",
+          "currency": "USD",
+          "amount": "2.40",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        },
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000005:tax",
+          "date": "2023-05-18",
+          "eventType": "TAX",
+          "ticker": "AAPL",
+          "quantity": "0",
+          "price": "0",
+          "currency": "USD",
+          "amount": "-0.36",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000006",
+      "type": "TAX",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-07-03",
+        "ticker": "AAPL",
+        "currency": "USD",
+        "amount": "0.12"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000006",
+          "date": "2023-07-03",
+          "eventType": "TAX",
+          "ticker": "AAPL",
+          "quantity": "0",
+          "price": "0",
+          "currency": "USD",
+          "amount": "0.12",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000007",
+      "type": "BUY",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-03-01",
+        "ticker": "SAP",
+        "currency": "EUR",
+        "quantity": "4",
+        "price": "120.00",
+        "fee": "3.00"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000007",
+          "date": "2023-03-01",
+          "eventType": "BUY",
+          "ticker": "SAP",
+          "quantity": "4",
+          "price": "120.00",
+          "currency": "EUR",
+          "amount": "480.00",
+          "fee": "-3.00",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000008",
+      "type": "SPLIT",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-07-03",
+        "ticker": "SAP",
+        "currency": "EUR",
+        "newShares": "2",
+        "oldShares": "1",
+        "heldBefore": "4"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000008",
+          "date": "2023-07-03",
+          "eventType": "SPLIT",
+          "ticker": "SAP",
+          "quantity": "4",
+          "price": "0",
+          "currency": "EUR",
+          "amount": "0",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": "2",
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000009",
+      "type": "BUY",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2022-03-01",
+        "ticker": "GE",
+        "currency": "USD",
+        "quantity": "80",
+        "price": "12.50",
+        "fee": "1.00"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000009",
+          "date": "2022-03-01",
+          "eventType": "BUY",
+          "ticker": "GE",
+          "quantity": "80",
+          "price": "12.50",
+          "currency": "USD",
+          "amount": "1000.00",
+          "fee": "-1.00",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000010",
+      "type": "SPLIT",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2022-08-02",
+        "ticker": "GE",
+        "currency": "USD",
+        "newShares": "1",
+        "oldShares": "8",
+        "heldBefore": "80"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000010",
+          "date": "2022-08-02",
+          "eventType": "SPLIT",
+          "ticker": "GE",
+          "quantity": "10.000",
+          "price": "0",
+          "currency": "USD",
+          "amount": "0",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": "0.125",
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000011",
+      "type": "STOCK_DIV",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2023-04-03",
+        "ticker": "KO",
+        "currency": "USD",
+        "quantity": "2"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000011",
+          "date": "2023-04-03",
+          "eventType": "STOCK_DIV",
+          "ticker": "KO",
+          "quantity": "2",
+          "price": "0",
+          "currency": "USD",
+          "amount": "0",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000012",
+      "type": "BUY",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2021-05-10",
+        "ticker": "OLDCO",
+        "currency": "USD",
+        "quantity": "10",
+        "price": "50.00",
+        "fee": "0"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000012",
+          "date": "2021-05-10",
+          "eventType": "BUY",
+          "ticker": "OLDCO",
+          "quantity": "10",
+          "price": "50.00",
+          "currency": "USD",
+          "amount": "500.00",
+          "fee": "0",
+          "description": "Manual",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000013",
+      "type": "MERGER",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2022-01-15",
+        "ticker": "OLDCO",
+        "currency": "USD",
+        "quantity": "10",
+        "newTicker": "NEWCO",
+        "newQuantity": "5"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000013",
+          "date": "2022-01-15",
+          "eventType": "MERGER",
+          "ticker": "OLDCO",
+          "quantity": "-10",
+          "price": "0",
+          "currency": "USD",
+          "amount": "0",
+          "fee": "0",
+          "description": "Manual corporate action 00000000-0000-4000-8000-000000000013 (OLDCO)",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        },
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000013:new",
+          "date": "2022-01-15",
+          "eventType": "STOCK_DIV",
+          "ticker": "NEWCO",
+          "quantity": "5",
+          "price": "0",
+          "currency": "USD",
+          "amount": "0",
+          "fee": "0",
+          "description": "Manual corporate action 00000000-0000-4000-8000-000000000013 (NEWCO)",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    },
+    {
+      "entryId": "00000000-0000-4000-8000-000000000014",
+      "type": "SPINOFF",
+      "enteredAt": "2026-10-13T08:00:00Z",
+      "fields": {
+        "date": "2021-06-03",
+        "ticker": "OGN",
+        "currency": "USD",
+        "quantity": "2",
+        "fromTicker": "MRK"
+      },
+      "rows": [
+        {
+          "sourceKey": "manual:00000000-0000-4000-8000-000000000014",
+          "date": "2021-06-03",
+          "eventType": "SPINOFF",
+          "ticker": "OGN",
+          "quantity": "2",
+          "price": "0",
+          "currency": "USD",
+          "amount": "0",
+          "fee": "0",
+          "description": "Manual spin-off from MRK",
+          "splitRatio": null,
+          "isin": "",
+          "conid": "",
+          "instrumentDescription": "",
+          "listingExchange": ""
+        }
+      ]
+    }
+  ]
+}
