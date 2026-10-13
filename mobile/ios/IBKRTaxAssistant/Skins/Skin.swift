@@ -42,8 +42,7 @@ struct Skin {
 }
 
 enum SkinCatalog {
-    /// Focus joins once it is ported from Android.
-    static let skins: [Skin] = [classicSkin, calmSkin, bentoSkin]
+    static let skins: [Skin] = [classicSkin, calmSkin, bentoSkin, focusSkin]
 
     static let `default` = classicSkin
 
