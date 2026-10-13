@@ -66,6 +66,14 @@ fun ManualEntryHost(target: MutableState<ManualTarget?>) {
     target.value?.let { current -> ManualEntryDialog(current, onDone = { target.value = null }) }
 }
 
+/** Currencies offered for manual operations, most common first; the same list as iOS. */
+internal object ManualCurrencies {
+    val COMMON = listOf("USD", "EUR", "GBP", "CHF", "PLN", "CAD", "AUD", "JPY", "HKD", "SGD", "CNY", "SEK", "NOK", "DKK", "CZK", "HUF")
+
+    /** The list, plus [current] when an entry uses a currency outside it. */
+    fun choices(current: String?): List<String> = if (current.isNullOrEmpty() || current in COMMON) COMMON else listOf(current) + COMMON
+}
+
 /** Turns what the user typed into a plain decimal string: a comma works as the decimal separator. */
 internal fun plainDecimal(text: String): String {
     val trimmed = text.trim().replace(" ", "").replace(" ", "")
@@ -178,6 +186,10 @@ fun ManualEntryDialog(target: ManualTarget, onDone: () -> Unit) {
                 }
                 type.fields.filter { it != "heldBefore" }.forEach { name ->
                     val problem = problems.firstOrNull { it.field == name }
+                    if (name == "currency") {
+                        CurrencyField(values[name].orEmpty(), stringResource(fieldLabel(type, name))) { values[name] = it }
+                        return@forEach
+                    }
                     OutlinedTextField(
                         value = values[name].orEmpty(),
                         onValueChange = { values[name] = if (name in UPPERCASE_FIELDS) it.uppercase() else it },
@@ -239,6 +251,30 @@ fun ManualEntryDialog(target: ManualTarget, onDone: () -> Unit) {
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.manual_cancel)) } },
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CurrencyField(value: String, label: String, onChange: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = open, onExpandedChange = { open = it }) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = open) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+        )
+        ExposedDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            ManualCurrencies.choices(value).forEach { code ->
+                DropdownMenuItem(text = { Text(code) }, onClick = {
+                    onChange(code)
+                    open = false
+                })
+            }
+        }
     }
 }
 
