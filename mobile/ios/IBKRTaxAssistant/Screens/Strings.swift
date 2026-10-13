@@ -403,6 +403,53 @@ enum Strings {
     static let bentoDeleteEntry = "Delete imported data"
     static func bentoVersion(_ version: String) -> String { "About · version \(version)" }
 
+    static let skinFocusName = "Focus"
+    static let skinFocusDescription = "Words first: one plain sentence about today, insight cards and a short story for each holding."
+    static let focusTabToday = "Today"
+    static let focusMenu = "More"
+    static let focusMenuActivity = "Activity and operations"
+    static let focusMenuAmounts = "Show amounts in"
+    static let focusAmountsUsd = "US dollars"
+    static let focusAmountsOwn = "Own currency"
+    static let focusMenuBackup = "Encrypted backup"
+    static let focusMenuPrices = "Prices"
+    static func focusPricesStatus(_ us: String) -> String { "US: \(us) · EU: Yahoo, 15 min" }
+    static let focusMenuSecurity = "Security and recovery code"
+    static let focusMenuSettings = "Settings and skins"
+    static let focusMenuDelete = "Delete imported data"
+    static let focusMorning = "Good morning"
+    static let focusAfternoon = "Good afternoon"
+    static let focusEvening = "Good evening"
+    static let focusCardMonth = "THIS MONTH"
+    static func focusCardMonthBody(_ count: Int) -> String { "in dividends from \(count) \(count == 1 ? "company" : "companies")" }
+    static let focusCardMove = "BIGGEST MOVE"
+    static func focusCardMoveBody(_ amount: String, _ quantity: String) -> String { "\(amount) on your \(quantity) shares" }
+    static let focusCardPrices = "PRICES"
+    static let focusPricesFresh = "Up to date"
+    static let focusPricesDelayed = "Delayed"
+    static let focusPricesClose = "At last close"
+    static let focusPricesStale = "Out of date"
+    static func focusPricesRefreshing(_ progress: String) -> String { "Refreshing \(progress)" }
+    static let focusPricesTap = "Tap to refresh"
+    static func focusCardPosition(_ index: Int, _ count: Int) -> String { "Card \(index) of \(count)" }
+    static let focusCard12m = "LAST 12 MONTHS"
+    static let focusCard12mBody = "dividends after tax"
+    static let focusOwn = "What you own"
+    static let focusSeeAll = "See all"
+    static let focusOthers = "Others"
+    static let focusHoldingsTitle = "Your holdings"
+    static let focusHoldingsHintUsd = "Sorted by the change today · amounts in US dollars"
+    static let focusHoldingsHintOwn = "Sorted by the change today · amounts in their own currency"
+    static let focusRising = "Rising today"
+    static let focusFalling = "Falling today"
+    static let focusNoChange = "No change or no price today"
+    static let focusSold = "Sold"
+    static func focusShares(_ quantity: String) -> String { "\(quantity) shares" }
+    static let focusBackToday = "‹ Today"
+    static func focusAShare(_ price: String) -> String { "\(price) a share" }
+    static let focusStoryTotal = "All in all"
+    static func focusTaxWithheld(_ amount: String) -> String { "\(amount) tax withheld" }
+
     static let brokerIbkrName = "Interactive Brokers"
     static let brokerIbkrFormat = "IBKR Activity Statement (CSV, English)"
     static let brokerQuestion = "Which broker are your reports from?"

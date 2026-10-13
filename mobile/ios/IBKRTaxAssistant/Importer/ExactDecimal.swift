@@ -108,8 +108,8 @@ struct ExactDecimal: Hashable, CustomStringConvertible {
         subtracting(other, precision: Int.max).signum
     }
 
-    /// `setScale(scale, HALF_EVEN)`: exactly `scale` decimal places, e.g. 2 for cents.
-    func withScale(_ scale: Int) -> ExactDecimal {
+    /// `setScale(scale, HALF_EVEN)` (or `HALF_UP` when `halfUp`): exactly `scale` decimal places, e.g. 2 for cents.
+    func withScale(_ scale: Int, halfUp: Bool = false) -> ExactDecimal {
         let target = -scale
         if exponent >= target { return ExactDecimal(negative: negative, digits: digits + Array(repeating: 0, count: exponent - target), exponent: target) }
         let keep = digits.count - (target - exponent)
@@ -119,7 +119,7 @@ struct ExactDecimal: Hashable, CustomStringConvertible {
         var magnitude = kept
         let first = dropped.first!
         let restZero = dropped.dropFirst().allSatisfy { $0 == 0 }
-        if first > 5 || (first == 5 && (!restZero || kept.last! % 2 == 1)) { magnitude = Natural.add(kept, [1]) }
+        if first > 5 || (first == 5 && (halfUp || !restZero || kept.last! % 2 == 1)) { magnitude = Natural.add(kept, [1]) }
         return ExactDecimal(negative: negative, digits: magnitude, exponent: target)
     }
 
