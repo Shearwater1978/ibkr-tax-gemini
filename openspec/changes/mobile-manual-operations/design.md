@@ -15,9 +15,11 @@ reports also contain. Backups are encrypted copies of the report files (`IBKB` f
 | `report_id` | the report (NOT NULL) | NULL |
 | `source_key` | as today | `manual:<uuid>`, plus `:tax` for a dividend's withholding tax |
 | `entry_id` | NULL | the manual entry the row belongs to (`<uuid>`) |
-| `entered_at` | NULL | when it was saved or last edited (UTC, ISO) |
 
-- A CHECK constraint keeps `origin` and `report_id` consistent.
+- A new `manual_entries` table holds one row per entry: `entry_id`, the form `type`, the form `fields` (JSON of
+  decimal strings) and `entered_at` (UTC, ISO). Edit forms and the backup journal read it. `transactions.entry_id`
+  references it with `ON DELETE CASCADE`, so deleting an entry deletes its rows.
+- A CHECK constraint keeps `origin`, `report_id` and `entry_id` consistent.
 - SQLite cannot make a column nullable in place. The migration therefore creates `transactions_v7`, copies every row
   with `origin = 'report'`, drops the old table, renames the new one and recreates the index. All of this runs in one
   database transaction, and a failure leaves version 6 intact.

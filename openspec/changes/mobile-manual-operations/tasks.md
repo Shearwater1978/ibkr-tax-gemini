@@ -6,10 +6,10 @@ fewer, branched from `main`.
 - [x] 1.2 Add expected rows for each manual entry, matching the rows the importer writes for the same operations _The rows are in the journal; `ManualJournalFixtureTest` (both platforms) checks the encrypted copy and that the manual buy equals the imported `valid_basic.csv` buy._
 
 ## 2. Android: unified storage
-- [ ] 2.1 Schema version 7: rebuild `transactions` with `origin`, nullable `report_id`, `entry_id`, `entered_at` and the CHECK constraint, in one transaction
-- [ ] 2.2 Migration test: a version 6 database with fixture rows migrates with every row unchanged and `origin = 'report'`
-- [ ] 2.3 Repository for manual entries: insert, replace and delete an entry's rows; list entries; imported rows stay read-only
-- [ ] 2.4 Keep "Delete all imported data" and per-import deletion from touching manual rows; "Erase all data" removes them
+- [x] 2.1 Schema version 7: `manual_entries`, and `transactions` rebuilt with `origin`, nullable `report_id`, `entry_id` and the CHECK constraint, in one transaction
+- [x] 2.2 Migration test: a version 6 database with fixture rows migrates with every row unchanged and `origin = 'report'`
+- [x] 2.3 Repository for manual entries: insert, replace and delete an entry's rows; list entries; imported rows stay read-only
+- [x] 2.4 Keep "Delete all imported data" and per-import deletion from touching manual rows; "Erase all data" removes them
 
 ## 3. Android: manual operations
 - [ ] 3.1 Entry model and row builder for every type (Decision 2), tested field by field against the fixture rows
@@ -30,7 +30,7 @@ fewer, branched from `main`.
 - [ ] 5.5 Update the user guide, the privacy notice and `mobile/README.md`
 
 ## 6. iOS: unified storage
-- [ ] 6.1 Same schema version 7 migration and migration test
+- [ ] 6.1 Same schema version 7 migration (`manual_entries` and the rebuilt `transactions`) and migration test
 - [ ] 6.2 Manual-entry repository and deletion rules
 
 ## 7. iOS: manual operations

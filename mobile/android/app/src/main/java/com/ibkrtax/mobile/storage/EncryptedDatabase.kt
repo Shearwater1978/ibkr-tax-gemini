@@ -17,7 +17,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 object EncryptedDatabase {
     const val NAME = "ibkrtax.db"
     private const val WRAPPED_KEY_FILE = "ibkrtax.db.key"
-    private const val SCHEMA_VERSION = 6
+    private const val SCHEMA_VERSION = 7
 
     init {
         System.loadLibrary("sqlcipher")
@@ -57,6 +57,7 @@ object EncryptedDatabase {
             addMainPageColumns(db)
             addBackupColumns(db)
             createReportRecords(db)
+            addManualOperations(db)
         }
 
         override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -65,6 +66,7 @@ object EncryptedDatabase {
             if (oldVersion < 4) addMainPageColumns(db)
             if (oldVersion < 5) addBackupColumns(db)
             if (oldVersion < 6) createReportRecords(db)
+            if (oldVersion < 7) addManualOperations(db)
         }
 
         override fun onConfigure(db: SupportSQLiteDatabase) {
@@ -167,6 +169,61 @@ object EncryptedDatabase {
             db.execSQL("CREATE INDEX report_records_source_key ON report_records (source_key)")
             // Imports made before this version only know the records they inserted themselves.
             db.execSQL("INSERT OR IGNORE INTO report_records (report_id, source_key) SELECT report_id, source_key FROM transactions")
+        }
+
+        /**
+         * Manual operations (mobile-manual-operations Decision 1): what the user entered goes to
+         * `manual_entries`, its rows to `transactions` with origin 'manual' and no report. SQLite cannot
+         * make `report_id` nullable in place, so the table is rebuilt; existing rows become 'report' rows.
+         * The open helper runs this inside the upgrade transaction, so a failure keeps version 6.
+         */
+        private fun addManualOperations(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE manual_entries (
+                    entry_id TEXT PRIMARY KEY NOT NULL,
+                    type TEXT NOT NULL,
+                    fields TEXT NOT NULL,
+                    entered_at TEXT NOT NULL
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE TABLE transactions_v7 (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    origin TEXT NOT NULL DEFAULT 'report',
+                    report_id INTEGER REFERENCES reports(id),
+                    entry_id TEXT REFERENCES manual_entries(entry_id) ON DELETE CASCADE,
+                    source_key TEXT NOT NULL UNIQUE,
+                    date TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    ticker TEXT NOT NULL,
+                    quantity TEXT NOT NULL,
+                    price TEXT NOT NULL,
+                    currency TEXT NOT NULL,
+                    amount TEXT NOT NULL,
+                    fee TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    split_ratio TEXT,
+                    isin TEXT NOT NULL DEFAULT '',
+                    conid TEXT NOT NULL DEFAULT '',
+                    instrument_description TEXT NOT NULL DEFAULT '',
+                    listing_exchange TEXT NOT NULL DEFAULT '',
+                    CHECK (
+                        (origin = 'report' AND report_id IS NOT NULL AND entry_id IS NULL) OR
+                        (origin = 'manual' AND report_id IS NULL AND entry_id IS NOT NULL)
+                    )
+                )
+                """.trimIndent(),
+            )
+            val columns = "id, report_id, source_key, date, event_type, ticker, quantity, price, currency, amount, fee, description, " +
+                "split_ratio, isin, conid, instrument_description, listing_exchange"
+            db.execSQL("INSERT INTO transactions_v7 ($columns) SELECT $columns FROM transactions")
+            db.execSQL("DROP TABLE transactions")
+            db.execSQL("ALTER TABLE transactions_v7 RENAME TO transactions")
+            db.execSQL("CREATE INDEX transactions_ticker_date ON transactions (ticker, date)")
+            db.execSQL("CREATE INDEX transactions_entry ON transactions (entry_id)")
         }
     }
 }
