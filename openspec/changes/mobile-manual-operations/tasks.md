@@ -12,10 +12,11 @@ fewer, branched from `main`.
 - [x] 2.4 Keep "Delete all imported data" and per-import deletion from touching manual rows; "Erase all data" removes them
 
 ## 3. Android: manual operations
-- [ ] 3.1 Entry model and row builder for every type (Decision 2), tested field by field against the fixture rows
-- [ ] 3.2 Instrument lookup that reuses ISIN, conid and listing exchange from imported rows (Decision 3)
-- [ ] 3.3 Validation, including the FIFO oversell check on add, edit and delete (Decision 4)
-- [ ] 3.4 Duplicate matching for imports and manual saves (Decision 5)
+- [x] 3.1 Entry model and row builder for every type (Decision 2), tested field by field against the fixture rows
+- [x] 3.2 Instrument lookup that reuses ISIN, conid and listing exchange from imported rows (Decision 3)
+- [x] 3.3 Validation, including the FIFO oversell check on add, edit and delete (Decision 4)
+- [x] 3.4 Duplicate matching for imports and manual saves (Decision 5)
+- [x] 3.5 `ManualOperations` service: save (add or edit), delete and duplicates after import, with the checks above
 
 ## 4. Android: backup and restore
 - [ ] 4.1 Journal payload and writer: write and verify the new journal, then delete the old one; pending state and retry
