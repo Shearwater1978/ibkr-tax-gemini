@@ -1,4 +1,6 @@
-# Portfolio Companion: privacy notice (Android)
+# Portfolio Companion: privacy notice
+
+This notice describes the Android app; the iPhone app works the same way except for the points in [On iPhone](#on-iphone).
 
 > **Draft.** Publisher and contact details are placeholders and must be filled in, and the text reviewed, before any public release (for example on Google Play). It describes what the app does; it is not legal advice.
 
@@ -50,6 +52,14 @@ Tapping "Get key from Finnhub" opens Finnhub's website in a browser tab; what yo
 - The app locks with your screen lock or biometrics, blocks screenshots and hides its content in the app switcher.
 - The app writes nothing to the system log and clears its cache folder whenever you leave it.
 - Android's own cloud backup and phone-to-phone transfer exclude the app's data; only the app's encrypted backups move.
+
+## On iPhone
+
+- There is no copy of the backup key outside the phone: nothing goes to Apple or Google in place of Android Block Store, so restoring on a new iPhone needs your passphrase or recovery code.
+- The database key and the pseudonym key are wrapped with a key in the iPhone's Secure Enclave that never leaves this device.
+- The app's files use iOS's strongest file protection (readable only while the phone is unlocked) and are excluded from iCloud and computer backups; only the app's encrypted backups move.
+- The app locks with Face ID, Touch ID or your passcode and hides its content in the app switcher. iOS does not let apps block screenshots.
+- A copied recovery code stays on this iPhone (not shared with other devices) and is cleared from the clipboard after one minute.
 
 ## How long data is kept
 

@@ -1,4 +1,6 @@
-# Portfolio Companion: user guide (Android)
+# Portfolio Companion: user guide
+
+The app runs on Android and iPhone. Screens, numbers and skins are the same on both; the differences are listed in [On iPhone](#on-iphone).
 
 Portfolio Companion shows your portfolio, returns, dividends and activity from your broker's reports, on your phone. It is **informational only**: it does not calculate or file taxes (for PIT-38, use the desktop tool in this repository), and its amounts are not tax results.
 
@@ -66,6 +68,14 @@ Amounts are shown in each position's own currency, or converted to US dollars wh
 
 Switch skins in Settings → **Skin** → **Change skin**.
 
+## On iPhone
+
+- **Moving files to the phone:** save the reports in **Files** or **iCloud Drive** (for example with AirDrop or from Safari) and pick them there.
+- **Backup folder:** choose a folder in iCloud Drive or another provider in Files. A folder that is only on this iPhone works, but the app warns you that it will not survive losing the phone.
+- **New iPhone:** there is no automatic copy of the backup key yet, so restoring always asks for your **passphrase** or **recovery code**.
+- **Lock and privacy:** the app locks with Face ID, Touch ID or your passcode, and hides its contents in the app switcher. iOS does not let apps block screenshots.
+- **Erase all data** resets the app in place instead of restarting it.
+
 ## Privacy and security
 
 The full privacy notice is in [PRIVACY.md](PRIVACY.md); this is the short version.
@@ -77,7 +87,7 @@ The full privacy notice is in [PRIVACY.md](PRIVACY.md); this is the short versio
 
 1. Install the app on the new phone and open the import screen (Classic: Imports tab; Calm: "+"; Bento: Data → Add reports; Focus: "+" → Add reports).
 2. Under **Restore from a backup**, tap **Choose backup folder** and pick the folder that holds your backups (or the folder that contains "Portfolio Companion backups").
-3. If you set up the new phone from your old phone's Android backup and both phones have a screen lock, the app unlocks the backup by itself. Otherwise enter your **passphrase** or **recovery code**.
+3. On Android, if you set up the new phone from your old phone's Android backup and both phones have a screen lock, the app unlocks the backup by itself. Otherwise (and always on iPhone) enter your **passphrase** or **recovery code**.
 
 All reports come back, new imports are backed up to the same folder again, and the old backups stay as they are. A wrong passphrase or code restores nothing.
 - The app locks with your device's screen lock and blocks screenshots and previews in the app switcher. Without a device screen lock it cannot verify it is you; set one in system settings.

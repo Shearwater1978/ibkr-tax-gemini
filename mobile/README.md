@@ -13,11 +13,11 @@ Both apps are called **Portfolio Companion**; how to use it is in the [user guid
 
 ## Navigation contract
 
-The Android app comes in four skins (`mobile-skins` OpenSpec change). They share the state holders in `state/` and the screens in `ui/common` (import, imported reports, Settings), so data and numbers are identical; only layout and navigation differ. Each skin declares where every `Feature` lives, and `SkinCatalogTest` fails if one is missing.
+Both apps come in four skins (`mobile-skins` OpenSpec change). They share the state holders (Android `state/`, iOS `State/`) and the common screens (Android `ui/common`, iOS `Screens/`: import, imported reports, Settings), so data and numbers are identical; only layout and navigation differ. Each skin declares where every `Feature` lives, and `SkinCatalogTest` (`SkinCatalogTests` on iOS) fails if one is missing.
 
-### Classic (both platforms)
+### Classic
 
-Classic is the original UI and, for now, the only navigation on iOS; the other skins follow. Both clients expose the same bottom-tab navigation. Route IDs and order are checked by unit tests on each platform (`AppDestinationTest.kt`, `AppDestinationTests.swift`).
+Classic is the original UI. Both clients expose the same bottom-tab navigation. Route IDs and order are checked by unit tests on each platform (`AppDestinationTest.kt`, `AppDestinationTests.swift`).
 
 | Order | Route | Tab | Purpose |
 |---|---|---|---|
@@ -29,9 +29,9 @@ Classic is the original UI and, for now, the only navigation on iOS; the other s
 
 When you change a destination, change it on both platforms and in this table. Android leads; iOS catches up screen by screen.
 
-### Calm, Bento and Focus (Android)
+### Calm, Bento and Focus
 
-Routes are private to each skin package (`ui/skins/<skin>`); details open as sheets or as routes. When you change a skin's navigation, update its row here and its `features` map.
+Routes are private to each skin (Android `ui/skins/<skin>`, iOS `Skins/<Skin>`); details open as sheets or as routes. The iOS skins use the same routes as enum cases in a `NavigationStack` path (for example `story(key)`). When you change a skin's navigation, change it on both platforms, in its row here and in its `features` map.
 
 | Skin | Tabs (start first) | Other routes | Details |
 |---|---|---|---|
