@@ -131,6 +131,17 @@ final class ManualStorageTests: XCTestCase {
         XCTAssertEqual(rows.map(\.row.date), rows.map(\.row.date).sorted())
     }
 
+    func testJournalStateAndRestoredEntriesAreKept() throws {
+        XCTAssertEqual(try manual.journalState(), JournalState())
+        try manual.setJournalState(JournalState(sequence: 3, file: "a.bin", pending: nil, stale: true))
+        XCTAssertEqual(try manual.journalState(), JournalState(sequence: 3, file: "a.bin", pending: nil, stale: true))
+        try manual.setJournalState(JournalState(sequence: 4, file: nil, pending: "b.bin"))
+        XCTAssertEqual(try manual.journalState(), JournalState(sequence: 4, pending: "b.bin"))
+
+        try manual.restoreEntries([entry("e1", buy("e1")), entry("e2", buy("e2"))])
+        XCTAssertEqual(try manual.entries().map(\.entryId), ["e1", "e2"])
+    }
+
     func testADividendAndItsTaxAreOneEntry() throws {
         var dividend = buy("d1")
         (dividend.eventType, dividend.quantity, dividend.price, dividend.amount, dividend.fee) = ("DIVIDEND", "0", "0", "2.40", "0")

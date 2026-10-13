@@ -56,10 +56,10 @@ struct RestoreSection: View {
             switch outcome {
             case .needsSecret, .wrongSecret:
                 break
-            case .restored(let reports, let inserted, let already, let unreadable):
+            case .restored(let reports, let inserted, let already, let unreadable, let manual):
                 self.folder = nil
                 self.secret = ""
-                message = Strings.restoreDone(reports, inserted, already: already, unreadable: unreadable)
+                message = Strings.restoreDone(reports, inserted, already: already, unreadable: unreadable, manual: manual)
             case .noBackup, .accessLost, .newerVersion:
                 self.folder = nil
                 message = outcome == .newerVersion ? Strings.restoreNewer : (outcome == .accessLost ? Strings.restoreAccessLost : Strings.restoreNoBackup)

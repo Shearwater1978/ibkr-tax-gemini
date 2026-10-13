@@ -259,8 +259,9 @@ enum Strings {
     static let restoreNoBackup = "No backup found in this folder. Choose the folder that contains the backup files."
     static let restoreAccessLost = "The folder could not be read. Choose it again."
     static let restoreNewer = "This backup was made by a newer version of the app. Update the app first."
-    static func restoreDone(_ reports: Int, _ records: Int, already: Int, unreadable: Int) -> String {
+    static func restoreDone(_ reports: Int, _ records: Int, already: Int, unreadable: Int, manual: Int = 0) -> String {
         var parts = ["Restored \(reports) \(reports == 1 ? "report" : "reports") with \(records) records."]
+        if manual > 0 { parts.append("\(manual) \(manual == 1 ? "operation" : "operations") entered by hand.") }
         if already > 0 { parts.append("\(already) already on this phone.") }
         if unreadable > 0 { parts.append("\(unreadable) backup files could not be read.") }
         return parts.joined(separator: " ")

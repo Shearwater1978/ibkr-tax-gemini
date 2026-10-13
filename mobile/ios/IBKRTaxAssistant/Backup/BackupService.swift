@@ -69,6 +69,8 @@ struct BackupService {
     let reports: ReportStore
     /// Encrypted copies waiting for upload, in the protected folder.
     let pendingDirectory: URL
+    /// The manual-entry journal, retried together with the report backups.
+    var journal: ManualJournalBackup?
 
     var isReady: Bool { ((try? dataKey()) ?? nil) != nil && ((try? folder()) ?? nil) != nil }
 
@@ -95,9 +97,12 @@ struct BackupService {
         }
     }
 
+    /// Report backups and the manual journal still waiting for the folder.
+    func pendingCount() throws -> Int { try reports.pendingBackups().count + (journal?.isPending == true ? 1 : 0) }
+
     /// Uploads backups that could not be written earlier, and refreshes the manifest.
     func retryPending() throws -> RetryResult {
-        guard let target = try folder() else { return RetryResult(backedUp: 0, stillPending: try reports.pendingBackups().count, accessLost: false) }
+        guard let target = try folder() else { return RetryResult(backedUp: 0, stillPending: try pendingCount(), accessLost: false) }
         var backedUp = 0
         var accessLost = false
         for name in try reports.pendingBackups() {
@@ -110,7 +115,14 @@ struct BackupService {
             if accessLost { break }
         }
         if !accessLost { _ = try syncManifest() }
-        return RetryResult(backedUp: backedUp, stillPending: try reports.pendingBackups().count, accessLost: accessLost)
+        if !accessLost, let journal, journal.isPending {
+            switch try journal.sync() {
+            case .backedUp: backedUp += 1
+            case .accessLost: accessLost = true
+            case .pending: break
+            }
+        }
+        return RetryResult(backedUp: backedUp, stillPending: try pendingCount(), accessLost: accessLost)
     }
 
     /// Deletes one import, the records only it contains, and its backup file (mobile-report-upload "Delete imported reports").
