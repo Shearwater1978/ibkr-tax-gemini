@@ -54,6 +54,7 @@ let focusSkin = Skin(
         .deleteImports: "+ menu: Delete imported data",
         .appVersion: "Today: Settings button, or + menu: Settings and skins",
         .skinSetting: "Today: Settings button, or + menu: Settings and skins",
+        .manualEntry: "+ menu: Add operation; Activity: tap a Manual row to edit",
     ],
     app: { AnyView(FocusApp(states: $0)) },
     preview: { AnyView(FocusPreview()) }
@@ -79,6 +80,8 @@ private struct FocusApp: View {
     @State private var tab = FocusTab.today
     @State private var path: [FocusRoute] = []
     @State private var menu = false
+    /// The "+" sheet shows the manual-entry form instead of the menu.
+    @State private var adding = false
     @AppStorage("usd_view") private var usd = false
 
     var body: some View {
@@ -92,12 +95,16 @@ private struct FocusApp: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             FocusBottomBar(current: tab, menuOpen: menu, onTab: { menu = false; open($0) }, onMenu: { menu.toggle() })
         }
-        .sheet(isPresented: $menu) {
-            FocusPlusMenu(data: states.data, portfolio: states.portfolio, usd: $usd) { route in
-                menu = false
-                path.append(route)
+        .sheet(isPresented: $menu, onDismiss: { adding = false }) {
+            if adding {
+                ManualEntryView(target: .new)
+            } else {
+                FocusPlusMenu(data: states.data, portfolio: states.portfolio, usd: $usd, onAdd: { adding = true }) { route in
+                    menu = false
+                    path.append(route)
+                }
+                .presentationDetents([.medium, .large])
             }
-            .presentationDetents([.medium, .large])
         }
         .tint(FocusColors.ink)
         .preferredColorScheme(.light)
@@ -191,6 +198,7 @@ private struct FocusPlusMenu: View {
     @ObservedObject var data: DataState
     @ObservedObject var portfolio: PortfolioState
     @Binding var usd: Bool
+    let onAdd: () -> Void
     let onGo: (FocusRoute) -> Void
 
     var body: some View {
@@ -200,6 +208,7 @@ private struct FocusPlusMenu: View {
         ScrollView {
             VStack(spacing: 0) {
                 row("＋ " + Strings.calmAddReports, "›", bold: true) { onGo(.importReports) }
+                row("＋ " + Strings.manualAdd, "›", bold: true, action: onAdd)
                 row(Strings.focusMenuActivity, "›") { onGo(.activity) }
                 row(Strings.focusMenuAmounts, (usd ? Strings.focusAmountsUsd : Strings.focusAmountsOwn) + " ⇄") { usd.toggle() }
                 row(Strings.focusMenuBackup, backup) { onGo(.settings) }

@@ -157,12 +157,15 @@ struct BentoIncome: View {
 struct BentoActivity: View {
     @ObservedObject var state: ActivityState
     let onImport: () -> Void
+    @State private var manual: ManualTarget?
 
     var body: some View {
         let view = state.view
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                BentoHeader(title: Strings.calmTabActivity)
+                BentoHeader(title: Strings.calmTabActivity) {
+                    BentoPill(text: "＋ " + Strings.manualAdd, active: false) { manual = .new }
+                }
                 if view.hasAny == false {
                     BentoTile(action: onImport) {
                         Text(Strings.operationsEmpty).foregroundStyle(BentoColors.muted)
@@ -190,7 +193,7 @@ struct BentoActivity: View {
                         HStack(spacing: 12) {
                             TickerTile(ticker: operation.ticker, size: 38)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(OperationDisplay.typeLabel(operation.eventType)).bold()
+                                Text(manualTypeLabel(operation)).bold()
                                 Text([Formats.date(operation.date), OperationDisplay.details(operation)].compactMap { $0 }.joined(separator: " · "))
                                     .font(.system(size: 12)).foregroundStyle(BentoColors.muted)
                             }
@@ -200,6 +203,8 @@ struct BentoActivity: View {
                         .monospacedDigit()
                         .padding(.horizontal, 14).padding(.vertical, 11)
                         .background(BentoColors.tile)
+                        .contentShape(Rectangle())
+                        .onTapGesture { if let id = operation.entryId { manual = .edit(id) } }
                         // Load the next page shortly before the end of the list.
                         .onAppear { if operation.id == view.items.dropLast(20).last?.id || operation.id == view.items.last?.id { state.loadMore() } }
                         Divider().overlay(BentoColors.line)
@@ -210,6 +215,7 @@ struct BentoActivity: View {
             .padding(.horizontal, 16)
         }
         .onAppear { state.reload() }
+        .sheet(item: $manual) { ManualEntryView(target: $0) }
     }
 }
 

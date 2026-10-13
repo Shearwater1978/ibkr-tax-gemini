@@ -41,7 +41,7 @@ fewer, branched from `main`.
 - [x] 8.1 Journal writer and restore; decrypts the Android-built `journal_v1.bin`
 
 ## 9. iOS: screens
-- [ ] 9.1 Form, activity labels, import duplicates, and placement in all four skins; `SkinCatalogTests` passes
+- [x] 9.1 Form, activity labels, import duplicates, and placement in all four skins; `SkinCatalogTests` passes
 
 ## 10. Verification
 - [ ] 10.1 Back up manual entries on Android, restore on iOS, and the other way round

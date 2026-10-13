@@ -24,6 +24,7 @@ enum Feature: CaseIterable {
     case deleteImports
     case appVersion
     case skinSetting
+    case manualEntry
 }
 
 /**

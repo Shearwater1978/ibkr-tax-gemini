@@ -22,6 +22,10 @@ final class AppStates: ObservableObject {
             income?.reload()
             activity?.reload()
         }
+        // A manual operation changed: everything re-reads stored data, and the backup retry starts if needed.
+        NotificationCenter.default.addObserver(forName: .manualOperationsChanged, object: nil, queue: .main) { [weak data] _ in
+            Task { @MainActor in data?.changed() }
+        }
     }
 }
 

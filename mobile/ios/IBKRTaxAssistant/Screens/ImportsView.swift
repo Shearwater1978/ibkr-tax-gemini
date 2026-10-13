@@ -48,6 +48,21 @@ struct ImportsView: View {
                 if let progress { Text(progress) }
                 ForEach(fileResults, id: \.self) { Text($0).font(.footnote) }
                 if let message { Text(message) }
+                if !data.manualDuplicates.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(Strings.manualDuplicatesTitle).font(.headline)
+                        Text(Strings.manualDuplicatesBody).font(.footnote).foregroundStyle(.secondary)
+                    }
+                    ForEach(data.manualDuplicates, id: \.sourceKey) { row in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text([Formats.date(row.date), OperationDisplay.typeLabel(row.eventType), row.ticker].joined(separator: " · "))
+                            Button(Strings.manualDeleteCopy, role: .destructive) {
+                                Task { if let problem = await data.deleteManualCopy(row) { message = problem } }
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
                 let pending = data.history?.filter { $0.backupStatus == ReportImporter.backupPending }.count ?? 0
                 if pending > 0 {
                     Text(Strings.backupPendingCount(pending)).font(.footnote)

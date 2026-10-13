@@ -22,7 +22,7 @@ enum OperationFilter: CaseIterable {
     static func of(_ eventType: String) -> OperationFilter { allCases.first { $0.eventType == eventType } ?? .other }
 }
 
-/// One imported transaction as listed to the user: no account, report or file reference.
+/// One stored transaction as listed to the user: no account, report or file reference. `entryId` is set for manual ones.
 struct OperationRecord: Equatable {
     var id: Int64
     var date: String
@@ -33,6 +33,7 @@ struct OperationRecord: Equatable {
     var currency: String
     var amount: ExactDecimal
     var fee: ExactDecimal
+    var entryId: String? = nil
 }
 
 /// Read-only, paged access to imported transactions, newest first. Port of the Android `OperationsRepository`.
@@ -70,13 +71,13 @@ struct OperationsRepository {
         let whereClause = conditions.isEmpty ? "" : "WHERE " + conditions.joined(separator: " AND ")
         arguments += [.integer(Int64(limit)), .integer(Int64(offset))]
         return try database.query(
-            "SELECT id, date, event_type, ticker, quantity, price, currency, amount, fee FROM transactions \(whereClause) ORDER BY date DESC, id DESC LIMIT ? OFFSET ?",
+            "SELECT id, date, event_type, ticker, quantity, price, currency, amount, fee, entry_id FROM transactions \(whereClause) ORDER BY date DESC, id DESC LIMIT ? OFFSET ?",
             arguments
         ).compactMap { row in
             guard case .integer(let id)? = row[0], case .text(let date)? = row[1], case .text(let type)? = row[2],
                   case .text(let ticker)? = row[3], case .text(let currency)? = row[6] else { return nil }
             return OperationRecord(id: id, date: date, eventType: type, ticker: ticker, quantity: decimal(row[4]), price: decimal(row[5]),
-                             currency: currency, amount: decimal(row[7]), fee: decimal(row[8]))
+                             currency: currency, amount: decimal(row[7]), fee: decimal(row[8]), entryId: { if case .text(let id)? = row[9] { return id } else { return nil } }())
         }
     }
 

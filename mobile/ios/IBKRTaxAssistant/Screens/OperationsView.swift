@@ -4,6 +4,7 @@ import SwiftUI
 struct OperationsView: View {
     @ObservedObject var state: ActivityState
     let onImportReport: () -> Void
+    @State private var manual: ManualTarget?
 
     var body: some View {
         let view = state.view
@@ -15,6 +16,7 @@ struct OperationsView: View {
                 VStack(spacing: 16) {
                     Text(Strings.operationsEmpty).multilineTextAlignment(.center)
                     Button(Strings.actionImportReport, action: onImportReport).buttonStyle(.borderedProminent)
+                    Button(Strings.manualAdd) { manual = .new }
                 }
                 .padding(24)
             case true?:
@@ -39,7 +41,11 @@ struct OperationsView: View {
                             }
                         }
                     } header: {
-                        Text(Strings.operationsTitle)
+                        HStack {
+                            Text(Strings.operationsTitle)
+                            Spacer()
+                            Button(Strings.manualAdd) { manual = .new }.textCase(nil)
+                        }
                     }
                     Section {
                         if view.items.isEmpty {
@@ -48,6 +54,8 @@ struct OperationsView: View {
                         }
                         ForEach(view.items, id: \.id) { operation in
                             OperationRow(operation: operation)
+                                .contentShape(Rectangle())
+                                .onTapGesture { if let id = operation.entryId { manual = .edit(id) } }
                                 // Load the next page shortly before the end of the list.
                                 .onAppear { if operation.id == view.items.dropLast(20).last?.id || operation.id == view.items.last?.id { state.loadMore() } }
                         }
@@ -57,6 +65,7 @@ struct OperationsView: View {
             }
         }
         .onAppear { state.reload() }
+        .sheet(item: $manual) { ManualEntryView(target: $0) }
     }
 }
 
@@ -67,7 +76,7 @@ private struct OperationRow: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text(operation.ticker).bold()
-                Text(OperationDisplay.typeLabel(operation.eventType)).font(.footnote).foregroundStyle(.secondary)
+                Text(manualTypeLabel(operation)).font(.footnote).foregroundStyle(.secondary)
                 Spacer()
                 Text(OperationDisplay.amount(operation)).monospacedDigit()
             }

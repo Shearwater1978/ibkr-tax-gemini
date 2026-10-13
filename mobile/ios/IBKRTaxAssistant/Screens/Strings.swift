@@ -404,6 +404,72 @@ enum Strings {
     static let bentoDeleteEntry = "Delete imported data"
     static func bentoVersion(_ version: String) -> String { "About · version \(version)" }
 
+    // Manual operations (mobile-manual-operations), same wording as Android.
+    static let manualAdd = "Add operation"
+    static let manualEdit = "Edit operation"
+    static let manualLabel = "Manual"
+    static let manualType = "Type"
+    static func manualTypeName(_ type: ManualType) -> String {
+        switch type {
+        case .buy: return "Buy"
+        case .sell: return "Sell"
+        case .transferIn: return "Transfer in"
+        case .transferOut: return "Transfer out"
+        case .dividend: return "Dividend"
+        case .tax: return "Withholding-tax correction"
+        case .split: return "Split"
+        case .stockDividend: return "Stock dividend"
+        case .merger: return "Merger or symbol change"
+        case .spinoff: return "Spin-off"
+        }
+    }
+    static func manualField(_ type: ManualType, _ name: String) -> String {
+        switch name {
+        case "date": return "Date (YYYY-MM-DD)"
+        case "ticker": return "Ticker"
+        case "currency": return "Currency"
+        case "quantity": return type == .merger ? "Old shares given up" : (type == .stockDividend || type == .spinoff ? "Shares received" : "Number of shares")
+        case "price": return type == .transferIn ? "Cost per share" : "Price per share"
+        case "fee": return "Commission"
+        case "amount": return type == .tax ? "Amount (negative when tax was withheld, positive for a refund)" : "Gross amount"
+        case "tax": return "Withholding tax"
+        case "newShares": return "New shares (2 in a 2-for-1 split)"
+        case "oldShares": return "Old shares (1 in a 2-for-1 split)"
+        case "newTicker": return "New ticker"
+        case "newQuantity": return "New shares received"
+        default: return "Spun off from (ticker)"
+        }
+    }
+    static func manualProblem(_ type: ManualType, _ problem: ManualProblem, sameTicker: Bool) -> String {
+        switch problem {
+        case .missing: return "Required"
+        case .futureDate: return "Cannot be in the future"
+        case .invalid(let field): return field == "newTicker" && sameTicker ? "Must differ from the old ticker" : "Not valid"
+        case .outOfRange(let field):
+            if type == .dividend && field == "tax" { return "Cannot be more than the gross amount" }
+            if field == "fee" { return "Cannot be negative" }
+            if type == .tax { return "Cannot be 0" }
+            if field == "newShares" || field == "oldShares" { return "Must be a whole number above 0" }
+            return "Must be more than 0"
+        }
+    }
+    static func manualOversold(_ held: String, _ ticker: String, _ date: String) -> String {
+        "You held \(held) \(ticker) on \(date), so this would sell or move out more than you had."
+    }
+    static func manualNothingHeld(_ ticker: String, _ date: String) -> String { "You held no \(ticker) before \(date), so there is nothing to split." }
+    static let manualDuplicateTitle = "This looks like an operation you already have"
+    static func manualDuplicateBody(_ date: String, _ type: String, _ ticker: String) -> String { "\(date) · \(type) · \(ticker) is already in your operations. Save it anyway?" }
+    static let manualSaveAnyway = "Save anyway"
+    static let manualSave = "Save"
+    static let manualDelete = "Delete"
+    static let manualDeleteTitle = "Delete this operation?"
+    static let manualDeleteBody = "It is removed from your portfolio and from the encrypted backup."
+    static let manualHint = "Numbers use a dot or a comma for decimals. Ticker and currency name the instrument; if your reports already contain it, its exchange and ISIN are reused."
+    static let manualDuplicatesTitle = "Possible duplicates"
+    static let manualDuplicatesBody = "These operations you entered by hand look like operations from your reports. If one is the same operation, delete the manual copy."
+    static let manualDeleteCopy = "Delete manual copy"
+    static let manualDeleteNeeded = "This manual operation cannot be deleted: a later sale needs its shares."
+
     static let skinFocusName = "Focus"
     static let skinFocusDescription = "Words first: one plain sentence about today, insight cards and a short story for each holding."
     static let focusTabToday = "Today"

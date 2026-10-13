@@ -20,6 +20,7 @@ let classicSkin = Skin(
         .deleteImports: "Imports tab",
         .appVersion: "Settings tab",
         .skinSetting: "Settings tab",
+        .manualEntry: "Operations tab: Add operation; tap a Manual row to edit",
     ],
     app: { AnyView(AppTabView(states: $0)) },
     preview: { AnyView(ClassicPreview()) }
