@@ -8,6 +8,8 @@ import UniformTypeIdentifiers
  */
 struct ImportsView: View {
     @ObservedObject var data: DataState
+    /// From a report count only the list is shown (mobile-report-list).
+    var reportsOnly = false
     @State private var message: String?
     @State private var sampleMessages: [String] = []
     @State private var deleteTarget: ImportedReport?
@@ -22,6 +24,9 @@ struct ImportsView: View {
 
     var body: some View {
         List {
+            if reportsOnly {
+                if let message { Text(message) }
+            } else {
             // A new phone without keys or reports can restore its backups first.
             if data.keyStatus == .notSetUp && data.history?.isEmpty == true {
                 RestoreSection(data: data)
@@ -66,6 +71,7 @@ struct ImportsView: View {
                     }
                     ForEach(sampleMessages, id: \.self) { Text($0).font(.footnote) }
                 }
+            }
             }
             Section(Strings.importsHistoryTitle) {
                 if data.storageUnavailable {

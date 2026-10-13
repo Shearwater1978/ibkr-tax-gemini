@@ -358,6 +358,51 @@ enum Strings {
     static let calmAll = "All"
     static func payerHistoryTaxOnly(_ amount: String) -> String { "withholding tax correction \(amount)" }
 
+    static let skinBentoName = "Bento"
+    static let skinBentoDescription = "Dark tiles: every key number in its own box, and the weight of each holding in your portfolio."
+    static let calmBack = "Back"
+    static let bentoTabData = "Data"
+    static let bentoOverview = "Overview"
+    static let bentoEmptyBody = "Add reports in the Data tab to see your portfolio here."
+    static let bentoValueLabel = "Portfolio value · USD"
+    static let bentoTotalReturn = "Total return"
+    static let bentoDividends12m = "Dividends · 12m"
+    static let bentoBestToday = "Best today"
+    static let bentoWorstToday = "Worst today"
+    static let bentoByCurrency = "By currency"
+    static let bentoSortValue = "Sort: value"
+    static let bentoSortToday = "Sort: today"
+    static let bentoReturnSteps = "Where the return comes from"
+    static let bentoInvestedShort = "Invested"
+    static let bentoPriceShort = "Price"
+    static let bentoSalesShort = "Sales"
+    static let bentoDividendsShort = "Divs"
+    static let bentoTotalShort = "Total"
+    static let bentoDividendsGross = "Dividends gross"
+    static let bentoTaxWithheld = "Tax withheld"
+    static func bentoNetYear(_ year: Int) -> String { "Net \(year)" }
+    static let bentoFirstYear = "first year"
+    static func bentoOfGross(_ percent: Int) -> String { "\(percent)% of gross" }
+    static func bentoNetPerMonth(_ years: String) -> String { "Net per month · \(years)" }
+    static let bentoAddReports = "Add reports"
+    static func bentoAddReportsHint(_ format: String) -> String { "\(format) · several at once" }
+    static let bentoAddReportsChoose = "Choose your broker first"
+    static let bentoBackup = "Encrypted backup"
+    static let bentoOn = "On"
+    static let bentoOff = "Off · set up in Settings"
+    static let bentoFolderMissing = "Choose a folder"
+    static let bentoUsPrices = "US prices"
+    static let bentoEuPrices = "EU prices"
+    static let bentoFinnhub = "Finnhub"
+    static let bentoYahooNoKey = "Yahoo · no key"
+    static let bentoYahooDelayed = "Yahoo · 15 min"
+    static let bentoReports = "Reports imported"
+    static let bentoFxRates = "FX rates"
+    static func bentoNbp(_ date: String) -> String { "Rates of \(date)" }
+    static let bentoSettingsEntry = "Settings: keys, recovery, prices, skin"
+    static let bentoDeleteEntry = "Delete imported data"
+    static func bentoVersion(_ version: String) -> String { "About · version \(version)" }
+
     static let brokerIbkrName = "Interactive Brokers"
     static let brokerIbkrFormat = "IBKR Activity Statement (CSV, English)"
     static let brokerQuestion = "Which broker are your reports from?"
