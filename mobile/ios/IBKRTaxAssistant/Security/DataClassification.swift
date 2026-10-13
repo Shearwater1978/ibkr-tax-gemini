@@ -51,6 +51,8 @@ enum DataClassification {
         "reports.backup_status": technical,
 
         "transactions.id": technical,
+        "transactions.origin": technical,
+        "transactions.entry_id": Classified(dataClass: .nonPersonal, handling: "random id of a manual entry"),
         "transactions.report_id": technical,
         "transactions.source_key": Classified(dataClass: .quasiIdentifier, handling: "derived from the record's own fields; used to avoid duplicates"),
         "transactions.date": Classified(dataClass: .quasiIdentifier, handling: "trade or payment date"),
@@ -67,6 +69,11 @@ enum DataClassification {
         "transactions.conid": instrument,
         "transactions.instrument_description": instrument,
         "transactions.listing_exchange": instrument,
+
+        "manual_entries.entry_id": Classified(dataClass: .nonPersonal, handling: "random id"),
+        "manual_entries.type": technical,
+        "manual_entries.fields": Classified(dataClass: .financialValue, handling: "the operation as typed (date, ticker, amounts); stored encrypted, shown only in the app, backed up encrypted"),
+        "manual_entries.entered_at": technical,
 
         "report_records.report_id": technical,
         "report_records.source_key": Classified(dataClass: .quasiIdentifier, handling: "same as transactions.source_key"),

@@ -31,8 +31,8 @@ fewer, branched from `main`.
 - [x] 5.5 Update the user guide, the privacy notice and `mobile/README.md`
 
 ## 6. iOS: unified storage
-- [ ] 6.1 Same schema version 7 migration (`manual_entries` and the rebuilt `transactions`) and migration test
-- [ ] 6.2 Manual-entry repository and deletion rules
+- [x] 6.1 Same schema version 7 migration (`manual_entries` and the rebuilt `transactions`) and migration test
+- [x] 6.2 Manual-entry repository and deletion rules
 
 ## 7. iOS: manual operations
 - [ ] 7.1 Row builder, instrument lookup, validation and duplicate matching, with the shared fixture tests

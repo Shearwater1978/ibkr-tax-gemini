@@ -22,7 +22,7 @@ enum DatabaseError: Error, Equatable {
  */
 final class EncryptedDatabase {
     static let name = "ibkrtax.db"
-    static let schemaVersion = 6
+    static let schemaVersion = 7
 
     private var handle: OpaquePointer?
 
@@ -147,14 +147,16 @@ final class EncryptedDatabase {
     private func migrate() throws {
         guard case .integer(let version)? = try query("PRAGMA user_version").first?.first else { return }
         if version > Self.schemaVersion { throw DatabaseError.newerSchema(Int(version)) }
-        guard version == 0 else { return }
+        guard version < Self.schemaVersion else { return }
+        // One transaction, so a failed upgrade keeps the previous version.
         try transaction {
-            for statement in Self.schema { try execute(statement) }
+            if version == 0 { for statement in Self.schema { try execute(statement) } }
+            if version < 7 { for statement in Self.manualOperations { try execute(statement) } }
             try execute("PRAGMA user_version = \(Self.schemaVersion)")
         }
     }
 
-    /// The Android schema at version 6, written as final tables (iOS has no older versions to upgrade).
+    /// The Android schema at version 6, written as final tables; later versions upgrade it like Android does.
     private static let schema = [
         "CREATE TABLE schema_info (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)",
         "INSERT INTO schema_info (key, value) VALUES ('created_version', '\(schemaVersion)')",
@@ -222,5 +224,56 @@ final class EncryptedDatabase {
             effective_date TEXT NOT NULL
         )
         """,
+    ]
+
+    private static let transactionColumns = "id, report_id, source_key, date, event_type, ticker, quantity, price, currency, amount, fee, description, "
+        + "split_ratio, isin, conid, instrument_description, listing_exchange"
+
+    /**
+     * Version 7, manual operations (mobile-manual-operations Decision 1), same SQL as Android: what the user entered
+     * goes to `manual_entries`, its rows to `transactions` with origin 'manual' and no report. SQLite cannot make
+     * `report_id` nullable in place, so the table is rebuilt; existing rows become 'report' rows with their ids.
+     */
+    private static let manualOperations = [
+        """
+        CREATE TABLE manual_entries (
+            entry_id TEXT PRIMARY KEY NOT NULL,
+            type TEXT NOT NULL,
+            fields TEXT NOT NULL,
+            entered_at TEXT NOT NULL
+        )
+        """,
+        """
+        CREATE TABLE transactions_v7 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            origin TEXT NOT NULL DEFAULT 'report',
+            report_id INTEGER REFERENCES reports(id),
+            entry_id TEXT REFERENCES manual_entries(entry_id) ON DELETE CASCADE,
+            source_key TEXT NOT NULL UNIQUE,
+            date TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            ticker TEXT NOT NULL,
+            quantity TEXT NOT NULL,
+            price TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            amount TEXT NOT NULL,
+            fee TEXT NOT NULL,
+            description TEXT NOT NULL,
+            split_ratio TEXT,
+            isin TEXT NOT NULL DEFAULT '',
+            conid TEXT NOT NULL DEFAULT '',
+            instrument_description TEXT NOT NULL DEFAULT '',
+            listing_exchange TEXT NOT NULL DEFAULT '',
+            CHECK (
+                (origin = 'report' AND report_id IS NOT NULL AND entry_id IS NULL) OR
+                (origin = 'manual' AND report_id IS NULL AND entry_id IS NOT NULL)
+            )
+        )
+        """,
+        "INSERT INTO transactions_v7 (\(transactionColumns)) SELECT \(transactionColumns) FROM transactions",
+        "DROP TABLE transactions",
+        "ALTER TABLE transactions_v7 RENAME TO transactions",
+        "CREATE INDEX transactions_ticker_date ON transactions (ticker, date)",
+        "CREATE INDEX transactions_entry ON transactions (entry_id)",
     ]
 }
