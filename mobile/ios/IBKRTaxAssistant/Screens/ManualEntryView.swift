@@ -69,12 +69,18 @@ struct ManualEntryView: View {
                     Text(Strings.manualHint)
                 }
                 if let message { Text(message).foregroundStyle(.red) }
-                if entryId != nil {
-                    Button(Strings.manualDelete, role: .destructive) { confirmDelete = true }.disabled(busy)
+                // Also in the form itself: some skins hide navigation bars, and the way out must never depend on one.
+                Section {
+                    Button(Strings.manualSave) { save(confirmDuplicate: false) }.bold().disabled(busy)
+                    Button(Strings.cancel) { dismiss() }
+                    if entryId != nil {
+                        Button(Strings.manualDelete, role: .destructive) { confirmDelete = true }.disabled(busy)
+                    }
                 }
             }
             .navigationTitle(entryId == nil ? Strings.manualAdd : Strings.manualEdit)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(Strings.cancel) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button(Strings.manualSave) { save(confirmDuplicate: false) }.disabled(busy) }
