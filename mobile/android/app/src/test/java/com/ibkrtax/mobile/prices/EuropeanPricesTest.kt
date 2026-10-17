@@ -41,12 +41,6 @@ class EuropeanPricesTest {
             """"chartPreviousClose":$previousClose}}],"error":null}}""",
     )
 
-    private class MemoryKeys(var key: String? = null) : ApiKeyStore {
-        override fun get() = key
-        override fun set(key: String) { this.key = key }
-        override fun clear() { key = null }
-    }
-
     private class MemoryCache : QuoteCache {
         val quotes = mutableMapOf<String, Quote>()
         override fun get(symbols: Set<String>) = quotes.filterKeys { it in symbols }

@@ -87,13 +87,18 @@ class EncryptedStorageInstrumentedTest {
         val apiKey = "SYNTHETIC_TEST_API_KEY_1234"
         EncryptedDatabase.open(context, dbName).use { helper ->
             val store = PriceStore(helper)
-            assertNull("A new install must not contain a provider key", store.get())
+            assertNull("A new install must not contain a provider key", store.get(com.ibkrtax.mobile.prices.PriceProviderId.FINNHUB))
+            assertNull("A new install has no provider choice", store.storedChoice())
 
-            store.set("  $apiKey  ")
+            store.set(com.ibkrtax.mobile.prices.PriceProviderId.FINNHUB, "  $apiKey  ")
+            store.set(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA, "SYNTHETIC_TWELVE_KEY_5678")
+            store.choose(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA)
             val time = java.time.Instant.parse("2024-01-03T16:00:00Z")
             store.putAll(listOf(com.ibkrtax.mobile.prices.Quote("AAPL", java.math.BigDecimal("190.10"), "USD", time, time, java.math.BigDecimal("189.50"))))
 
-            assertEquals(apiKey, store.get())
+            assertEquals(apiKey, store.get(com.ibkrtax.mobile.prices.PriceProviderId.FINNHUB))
+            assertEquals("SYNTHETIC_TWELVE_KEY_5678", store.get(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA))
+            assertEquals(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA, store.storedChoice())
             assertEquals(0, java.math.BigDecimal("190.10").compareTo(store.get(setOf("AAPL", "MSFT")).getValue("AAPL").price))
             assertEquals(0, java.math.BigDecimal("0.60").compareTo(store.get(setOf("AAPL")).getValue("AAPL").dailyChange))
 
@@ -106,10 +111,12 @@ class EncryptedStorageInstrumentedTest {
 
         val text = String(context.getDatabasePath(dbName).readBytes(), Charsets.ISO_8859_1)
         assertFalse("API key found in plaintext", text.contains(apiKey))
+        assertFalse("API key found in plaintext", text.contains("SYNTHETIC_TWELVE_KEY_5678"))
 
         EncryptedDatabase.open(context, dbName).use { helper ->
-            PriceStore(helper).clear()
-            assertNull(PriceStore(helper).get())
+            PriceStore(helper).clear(com.ibkrtax.mobile.prices.PriceProviderId.FINNHUB)
+            assertNull(PriceStore(helper).get(com.ibkrtax.mobile.prices.PriceProviderId.FINNHUB))
+            assertEquals("SYNTHETIC_TWELVE_KEY_5678", PriceStore(helper).get(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA))
         }
     }
 

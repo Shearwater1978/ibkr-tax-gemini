@@ -223,18 +223,6 @@ class PricesTest {
 
     // --- Price service ---
 
-    private class MemoryKeys(var key: String? = null) : ApiKeyStore {
-        override fun get() = key
-
-        override fun set(key: String) {
-            this.key = key
-        }
-
-        override fun clear() {
-            key = null
-        }
-    }
-
     private class MemoryCache : QuoteCache {
         val quotes = mutableMapOf<String, Quote>()
 

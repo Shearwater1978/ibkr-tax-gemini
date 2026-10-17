@@ -46,6 +46,7 @@ import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.appContainer
 import com.ibkrtax.mobile.prices.ApiKeyCheck
 import com.ibkrtax.mobile.prices.FinnhubKeyFormat
+import com.ibkrtax.mobile.prices.PriceProviderId
 import com.ibkrtax.mobile.prices.KeyCheckResult
 import com.ibkrtax.mobile.security.Masking
 import com.ibkrtax.mobile.ui.skins.SkinSettingsSection
@@ -104,7 +105,7 @@ private fun PriceKeySettings() {
     var suggestion by remember { mutableStateOf<String?>(null) }
     val savedMasked by produceState<String?>(null, reload) {
         value = withContext(Dispatchers.IO) {
-            runCatching { context.appContainer.priceStore.get()?.let(Masking::lastFour) }.getOrNull()
+            runCatching { context.appContainer.priceStore.get(PriceProviderId.FINNHUB)?.let(Masking::lastFour) }.getOrNull()
         }
     }
     val messages = KeyMessages(
@@ -125,7 +126,7 @@ private fun PriceKeySettings() {
             val container = context.appContainer
             val result = ApiKeyCheck.check(container.finnhub(key))
             if (result != KeyCheckResult.Rejected) {
-                withContext(Dispatchers.IO) { container.priceStore.set(key) }
+                withContext(Dispatchers.IO) { container.priceStore.set(PriceProviderId.FINNHUB, key) }
                 input = ""
                 suggestion = null
                 awaitingKey = false
@@ -147,7 +148,7 @@ private fun PriceKeySettings() {
         message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
         OutlinedButton(onClick = {
             scope.launch {
-                withContext(Dispatchers.IO) { context.appContainer.priceStore.clear() }
+                withContext(Dispatchers.IO) { context.appContainer.priceStore.clear(PriceProviderId.FINNHUB) }
                 message = null
                 reload++
             }

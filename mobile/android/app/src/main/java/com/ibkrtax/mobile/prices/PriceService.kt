@@ -5,14 +5,26 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 
-/** The user's provider API key; implementations must keep it in encrypted storage only. */
+/**
+ * The user's own key per provider and the chosen provider; implementations must keep keys in
+ * encrypted storage only. [PriceProviderId.NONE] has no key.
+ */
 interface ApiKeyStore {
-    fun get(): String?
+    fun get(provider: PriceProviderId): String?
 
-    fun set(key: String)
+    fun set(provider: PriceProviderId, key: String)
 
-    fun clear()
+    fun clear(provider: PriceProviderId)
+
+    /** The stored choice, or null when the user never chose (see [selected]). */
+    fun storedChoice(): PriceProviderId?
+
+    fun choose(provider: PriceProviderId)
 }
+
+/** The chosen provider; without a stored choice, Finnhub if its key exists, else None. */
+fun ApiKeyStore.selected(): PriceProviderId =
+    storedChoice() ?: PriceProviderId.default(hasFinnhubKey = get(PriceProviderId.FINNHUB) != null)
 
 /** Last retrieved quote per symbol, with its timestamps. */
 interface QuoteCache {
@@ -68,7 +80,7 @@ class PriceService(
 ) {
     fun source(): PriceSource =
         when {
-            keys.get() != null -> PriceSource.FINNHUB
+            keys.get(PriceProviderId.FINNHUB) != null -> PriceSource.FINNHUB
             fallback != null -> PriceSource.YAHOO
             else -> PriceSource.NONE
         }
@@ -82,7 +94,7 @@ class PriceService(
         exchanges: Map<Pair<String, String>, String> = emptyMap(),
         onProgress: (RefreshProgress) -> Unit = {},
     ): RefreshOutcome {
-        val key = keys.get()
+        val key = keys.get(PriceProviderId.FINNHUB)
         val usProvider = key?.let(providerFor) ?: fallback
         if (usProvider == null && europe == null) return RefreshOutcome.NoKey
         val usSource = if (key != null) PriceSource.FINNHUB else PriceSource.YAHOO
