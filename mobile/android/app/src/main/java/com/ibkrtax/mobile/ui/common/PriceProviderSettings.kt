@@ -98,8 +98,10 @@ fun PriceProviderSettings() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var reload by remember { mutableIntStateOf(0) }
-    val chosen by produceState<PriceProviderId?>(null, reload) {
-        value = withContext(Dispatchers.IO) { runCatching { context.appContainer.priceStore.selected() }.getOrNull() }
+    // remember + LaunchedEffect is what produceState does; written out because lint misreads keyed produceState.
+    var chosen by remember { mutableStateOf<PriceProviderId?>(null) }
+    LaunchedEffect(reload) {
+        chosen = withContext(Dispatchers.IO) { runCatching { context.appContainer.priceStore.selected() }.getOrNull() }
     }
 
     Text(stringResource(R.string.settings_prices_title), style = MaterialTheme.typography.titleMedium)
