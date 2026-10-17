@@ -51,11 +51,11 @@
 
 ## 8. Price provider choice and Twelve Data (Android)
 
-- [ ] 8.1 Add the provider choice (None, Finnhub, Twelve Data) with a key per provider and a stored choice that keeps existing Finnhub users on Finnhub, and verify with unit tests for the migration and independent keys.
-- [ ] 8.2 Add a credit-based rate limiter with a Twelve Data free-plan preset (8 credits per minute) and verify with unit tests.
-- [ ] 8.3 Add the Twelve Data provider (`/quote`, header key, chunks of 8, single- and multi-symbol responses, errors as HTTP status or body) and verify with unit tests against the fixtures in `mobile/fixtures/twelve-data`.
-- [ ] 8.4 Route prices by the chosen provider without automatic switching, make no request with None, keep Yahoo Finance only for European listings while a provider is chosen, price largest positions first with progress, and use 15-minute (Twelve Data) and one-minute (Finnhub) re-request intervals; verify with unit tests.
-- [ ] 8.5 Record the source of each cached quote (schema version 8, additive) and verify that a quote keeps its actual source.
-- [ ] 8.6 Add the provider choice and per-provider key entry, check and removal to Settings, and the per-price source label with Twelve Data attribution to all four skins; verify on the emulator.
-- [ ] 8.7 Update the privacy notice, processing record, data classification and user guide, and verify they match this spec.
+- [x] 8.1 Add the provider choice (None, Finnhub, Twelve Data) with a key per provider and a stored choice that keeps existing Finnhub users on Finnhub, and verify with unit tests for the migration and independent keys.
+- [x] 8.2 Add a credit-based rate limiter with a Twelve Data free-plan preset (8 credits per minute) and verify with unit tests.
+- [x] 8.3 Add the Twelve Data provider (`/quote`, header key, chunks of 8, single- and multi-symbol responses, errors as HTTP status or body) and verify with unit tests against the fixtures in `mobile/fixtures/twelve-data`.
+- [x] 8.4 Route prices by the chosen provider without automatic switching, make no request with None, keep Yahoo Finance only for European listings while a provider is chosen, price largest positions first with progress, and use 15-minute (Twelve Data) and one-minute (Finnhub) re-request intervals; verify with unit tests.
+- [x] 8.5 Record the source of each cached quote (schema version 8, additive) and verify that a quote keeps its actual source.
+- [ ] 8.6 Add the provider choice and per-provider key entry, check and removal to Settings, and the per-price source label with Twelve Data attribution to all four skins; verify on the emulator. _Status: implemented and unit-tested; the emulator check is still to do._
+- [x] 8.7 Update the privacy notice, processing record, data classification and user guide, and verify they match this spec.
 - [ ] 8.8 Bring the iOS app to the same provider choice (later change).

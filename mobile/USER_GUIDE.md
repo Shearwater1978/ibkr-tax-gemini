@@ -52,10 +52,22 @@ Amounts are shown in each position's own currency, or converted to US dollars wh
 
 ### Prices
 
-- **US listings:** from Finnhub when you add your own free Finnhub key in Settings ("Market prices", with a "How to get a free key" guide); without a key, from Yahoo Finance.
-- **European listings** (Xetra, Frankfurt, London, Amsterdam, Paris, Milan, Madrid, Zurich, the Nordic exchanges, Warsaw and others): always from Yahoo Finance, about 15 minutes delayed.
+In Settings → **Market prices**, choose where prices come from:
+
+| Choice | US listings | European listings |
+|---|---|---|
+| **None** | no requests | no requests |
+| **Finnhub** | Finnhub, with your own free key (60 requests a minute) | Yahoo Finance, temporarily |
+| **Twelve Data** | Twelve Data, with your own free key (8 prices a minute, 800 a day) | Yahoo Finance, temporarily |
+
+- **Your own key, no server:** you create a free key on the provider's website (Settings shows the steps), the app checks it with one request and stores it encrypted on this phone, one key per provider. Prices are requested directly from your phone, using your key and your quota; the app has no server.
+- **None** sends no price request at all; the last known prices stay visible, marked out of date.
+- **No automatic switching:** if the chosen provider has no key, rejects it, is offline or hits its limit, the app does not ask another provider. Prices received so far are kept; older ones show as out of date.
+- **Twelve Data on the free plan:** 8 prices a minute and 800 a day. The first refresh of many holdings takes a while (about 10 minutes for 80); the largest holdings come first, progress shows the time left ("Twelve Data · 24 of 80 · about 7 min left"), and each price is asked for again only after 15 minutes. If the daily limit is reached, the refresh stops and says so; the limit resets at 00:00 UTC.
+- **European listings** (Xetra, Frankfurt, London, Amsterdam, Paris, Milan, Madrid, Zurich, the Nordic exchanges, Warsaw and others) use Yahoo Finance's public data temporarily, about 15 minutes delayed, and only while Finnhub or Twelve Data is chosen. This source will be replaced.
+- **Source of each price:** the portfolio lists the sources of the prices shown, and each position's details show where its price came from. Prices from Twelve Data say "Source: Twelve Data"; tap it to open twelvedata.com.
 - Each price shows its freshness: live, delayed, latest close or stale. Instruments outside these markets show no price, and totals say so.
-- Price requests contain only ticker symbols (and, for Finnhub, your key); the key is stored encrypted on the device and never put into backups.
+- Price requests contain only ticker symbols and your key for the chosen provider (in a request header, never in the address); keys are stored encrypted on the device and never put into backups.
 
 ## Adding operations by hand
 
@@ -108,7 +120,7 @@ The full privacy notice is in [PRIVACY.md](PRIVACY.md); this is the short versio
 
 All reports come back, new imports are backed up to the same folder again, and the old backups stay as they are. A wrong passphrase or code restores nothing.
 - The app locks with your device's screen lock and blocks screenshots and previews in the app switcher. Without a device screen lock it cannot verify it is you; set one in system settings.
-- Network requests: prices (ticker symbols only) and exchange rates (currency codes only).
+- Network requests: prices from the provider you chose (ticker symbols and your key only; none with None) and exchange rates (currency codes only).
 
 ## Deleting data
 
