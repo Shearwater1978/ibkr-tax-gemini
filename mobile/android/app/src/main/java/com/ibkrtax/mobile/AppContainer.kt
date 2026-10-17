@@ -16,6 +16,9 @@ import com.ibkrtax.mobile.keys.LocalKeyFiles
 import com.ibkrtax.mobile.manual.ManualJournalBackup
 import com.ibkrtax.mobile.manual.ManualOperations
 import com.ibkrtax.mobile.prices.FinnhubProvider
+import com.ibkrtax.mobile.prices.TwelveDataProvider
+import com.ibkrtax.mobile.prices.PriceProviderId
+import com.ibkrtax.mobile.prices.MarketDataProvider
 import com.ibkrtax.mobile.prices.PriceService
 import com.ibkrtax.mobile.prices.RateLimiter
 import com.ibkrtax.mobile.prices.YahooProvider
@@ -60,14 +63,19 @@ class AppContainer(context: Context) {
     val states: AppStates by lazy { AppStates.create(this) }
     val priceStore: PriceStore by lazy { PriceStore(database) }
     private val finnhubLimiter = RateLimiter.forFinnhubFreeTier()
-    // European listings need one request each, so allow a little more than for US batches alone.
+    private val twelveDataLimiter = RateLimiter.forTwelveDataFreeTier()
+    // Temporary internal source for European listings only; never offered as a provider.
     private val yahoo = YahooProvider(limiter = RateLimiter(maxCredits = 60, window = Duration.ofMinutes(1)))
     val prices: PriceService by lazy {
-        PriceService(priceStore, priceStore, ::finnhub, fallback = yahoo, europe = yahoo)
+        PriceService(priceStore, priceStore, ::provider, europe = yahoo)
     }
 
-    /** Finnhub client for [key]; all clients share one rate limiter. */
-    fun finnhub(key: String): FinnhubProvider = FinnhubProvider(key, limiter = finnhubLimiter)
+    /** The client for the chosen provider and the user's own [key]; each provider shares one limiter. */
+    fun provider(id: PriceProviderId, key: String): MarketDataProvider = when (id) {
+        PriceProviderId.FINNHUB -> FinnhubProvider(key, limiter = finnhubLimiter)
+        PriceProviderId.TWELVE_DATA -> TwelveDataProvider(key, limiter = twelveDataLimiter)
+        PriceProviderId.NONE -> error("None has no provider")
+    }
     val fxStore: FxStore by lazy { FxStore(database) }
     val fx: FxService by lazy { FxService(NbpClient(), fxStore) }
     val backupLocation: BackupLocationStore by lazy { BackupLocationStore(database) }

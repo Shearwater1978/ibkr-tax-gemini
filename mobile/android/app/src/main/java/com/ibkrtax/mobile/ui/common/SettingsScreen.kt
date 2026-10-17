@@ -124,7 +124,7 @@ private fun PriceKeySettings() {
             checking = true
             message = null
             val container = context.appContainer
-            val result = ApiKeyCheck.check(container.finnhub(key))
+            val result = ApiKeyCheck.check(container.provider(PriceProviderId.FINNHUB, key))
             if (result != KeyCheckResult.Rejected) {
                 withContext(Dispatchers.IO) { container.priceStore.set(PriceProviderId.FINNHUB, key) }
                 input = ""

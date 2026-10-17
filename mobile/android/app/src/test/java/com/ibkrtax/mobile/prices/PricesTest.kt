@@ -80,14 +80,12 @@ class PricesTest {
             val requested = url.substringAfter("symbols=").substringBefore("&").split(",")
             spark(*requested.map { sparkSeries(it, "10", marketOpen.epochSecond) }.toTypedArray())
         }
-        val holdings = (1..45).map { holding("S$it", "USD") }
-        val service = PriceService(MemoryKeys(), MemoryCache(), { error("no key") }, Clock.fixed(marketOpen, ZoneOffset.UTC), YahooProvider(transport))
-        val seen = mutableListOf<RefreshProgress>()
+        // Yahoo now prices European listings only; its batching is checked on the provider itself.
+        val seen = mutableListOf<Int>()
 
-        service.refresh(holdings) { seen += it }
+        YahooProvider(transport).latestQuotes((1..45).map { "S$it" }.toSet()) { seen += it }
 
-        assertEquals(listOf(0, 20, 40, 45), seen.map { it.done })
-        assertTrue(seen.all { it.total == 45 && it.source == PriceSource.YAHOO })
+        assertEquals(listOf(20, 40, 45), seen)
     }
 
     @Test
@@ -129,21 +127,22 @@ class PricesTest {
     }
 
     @Test
-    fun serviceUsesYahooOnlyWithoutAKey(): Unit = runBlocking {
+    fun yahooIsNeverUsedForUsListings(): Unit = runBlocking {
+        // Decision 2026-10-17: no keyless Yahoo fallback; None means no price request at all.
         val finnhub = FakeMarketDataProvider()
         val yahoo = FakeMarketDataProvider()
         val holdings = listOf(holding("AAPL", "USD"))
 
-        val noKey = PriceService(MemoryKeys(), MemoryCache(), { finnhub }, Clock.fixed(marketOpen, ZoneOffset.UTC), yahoo)
-        assertEquals(PriceSource.YAHOO, noKey.source())
-        noKey.refresh(holdings)
-        assertEquals(1, yahoo.requests.size)
+        val none = PriceService(MemoryKeys(), MemoryCache(), { _, _ -> finnhub }, Clock.fixed(marketOpen, ZoneOffset.UTC), yahoo)
+        assertEquals(PriceSource.NONE, none.source())
+        assertEquals(RefreshOutcome.NoProvider, none.refresh(holdings))
+        assertEquals(0, yahoo.requests.size)
         assertEquals(0, finnhub.requests.size)
 
-        val withKey = PriceService(MemoryKeys("k"), MemoryCache(), { finnhub }, Clock.fixed(marketOpen, ZoneOffset.UTC), yahoo)
+        val withKey = PriceService(MemoryKeys("k"), MemoryCache(), { _, _ -> finnhub }, Clock.fixed(marketOpen, ZoneOffset.UTC), yahoo)
         assertEquals(PriceSource.FINNHUB, withKey.source())
         withKey.refresh(holdings)
-        assertEquals(1, yahoo.requests.size)
+        assertEquals(0, yahoo.requests.size)
         assertEquals(1, finnhub.requests.size)
     }
 
@@ -238,9 +237,11 @@ class PricesTest {
     @Test
     fun withoutAKeyNothingIsRequested() = runBlocking {
         val provider = FakeMarketDataProvider()
-        val service = PriceService(MemoryKeys(), MemoryCache(), { provider })
+        val service = PriceService(MemoryKeys(), MemoryCache(), { _, _ -> provider })
+        assertEquals(RefreshOutcome.NoProvider, service.refresh(holdings))
 
-        assertEquals(RefreshOutcome.NoKey, service.refresh(holdings))
+        val keyless = PriceService(MemoryKeys(choice = PriceProviderId.FINNHUB), MemoryCache(), { _, _ -> provider })
+        assertEquals(RefreshOutcome.NoKey, keyless.refresh(holdings))
         assertTrue(provider.requests.isEmpty())
     }
 
@@ -250,7 +251,7 @@ class PricesTest {
         val provider = FakeMarketDataProvider().apply { setQuote(quote) }
         val cache = MemoryCache()
         var usedKey: String? = null
-        val service = PriceService(MemoryKeys("user-key"), cache, { usedKey = it; provider }, Clock.fixed(marketOpen, ZoneOffset.UTC))
+        val service = PriceService(MemoryKeys("user-key"), cache, { _, key -> usedKey = key; provider }, Clock.fixed(marketOpen, ZoneOffset.UTC))
 
         assertEquals(RefreshOutcome.Updated, service.refresh(holdings))
         assertEquals(listOf(setOf("AAPL")), provider.requests)
@@ -263,10 +264,10 @@ class PricesTest {
         val earlier = marketOpen.minusSeconds(600)
         val cache = MemoryCache().apply { putAll(listOf(Quote("AAPL", BigDecimal("190"), "USD", earlier, earlier))) }
         val provider = FakeMarketDataProvider().apply { failure = PriceFailure.OFFLINE }
-        val service = PriceService(MemoryKeys("k"), cache, { provider }, Clock.fixed(marketOpen, ZoneOffset.UTC))
+        val service = PriceService(MemoryKeys("k"), cache, { _, _ -> provider }, Clock.fixed(marketOpen, ZoneOffset.UTC))
 
         val outcome = service.refresh(holdings)
-        assertEquals(RefreshOutcome.Failed(PriceFailure.OFFLINE, marketOpen), outcome)
+        assertEquals(RefreshOutcome.Failed(PriceFailure.OFFLINE, marketOpen, PriceSource.FINNHUB), outcome)
         assertEquals(PriceFreshness.STALE, service.prices(holdings, outcome).getValue("AAPL").freshness)
     }
 
@@ -313,7 +314,7 @@ class PricesTest {
                 PriceResult.Failure(PriceFailure.RATE_LIMITED, mapOf("AAPL" to fresh))
         }
         val both = holdings + holding("MSFT", "USD")
-        val service = PriceService(MemoryKeys("k"), cache, { provider }, Clock.fixed(marketOpen, ZoneOffset.UTC))
+        val service = PriceService(MemoryKeys("k"), cache, { _, _ -> provider }, Clock.fixed(marketOpen, ZoneOffset.UTC))
 
         val outcome = service.refresh(both)
         val prices = service.prices(both, outcome)
@@ -330,12 +331,12 @@ class PricesTest {
         val provider = FakeMarketDataProvider()
 
         // Evening: AAPL already has the closing price, so nothing is requested.
-        PriceService(MemoryKeys("k"), cache, { provider }, Clock.fixed(afterClose, ZoneOffset.UTC)).refresh(holdings)
+        PriceService(MemoryKeys("k"), cache, { _, _ -> provider }, Clock.fixed(afterClose, ZoneOffset.UTC)).refresh(holdings)
         assertTrue(provider.requests.isEmpty())
 
         // Market hours, quote fetched 30 seconds ago: skipped as well.
         cache.putAll(listOf(Quote("AAPL", BigDecimal("191"), "USD", marketOpen, marketOpen)))
-        PriceService(MemoryKeys("k"), cache, { provider }, Clock.fixed(marketOpen.plusSeconds(30), ZoneOffset.UTC)).refresh(holdings)
+        PriceService(MemoryKeys("k"), cache, { _, _ -> provider }, Clock.fixed(marketOpen.plusSeconds(30), ZoneOffset.UTC)).refresh(holdings)
         assertTrue(provider.requests.isEmpty())
     }
 

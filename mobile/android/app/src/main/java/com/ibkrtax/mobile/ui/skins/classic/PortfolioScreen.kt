@@ -470,6 +470,7 @@ private fun PriceStatus(
     val message = when (prices) {
         null -> stringResource(R.string.prices_refreshing)
         RefreshOutcome.NoKey -> stringResource(R.string.prices_no_key)
+        RefreshOutcome.NoProvider -> stringResource(R.string.prices_no_provider)
         RefreshOutcome.Updated -> fromYahoo
         is RefreshOutcome.Failed -> stringResource(
             R.string.prices_failed,
@@ -487,7 +488,7 @@ private fun PriceStatus(
     if (prices == null && progress != null && progress.total > 0) RefreshDetails(progress)
     when (prices) {
         null -> Unit
-        RefreshOutcome.NoKey -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.prices_add_key)) }
+        RefreshOutcome.NoKey, RefreshOutcome.NoProvider -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.prices_add_key)) }
         else -> TextButton(onClick = onRefresh) { Text(stringResource(R.string.prices_refresh)) }
     }
 }
