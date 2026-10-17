@@ -61,7 +61,7 @@ class AppContainer(context: Context) {
     val priceStore: PriceStore by lazy { PriceStore(database) }
     private val finnhubLimiter = RateLimiter.forFinnhubFreeTier()
     // European listings need one request each, so allow a little more than for US batches alone.
-    private val yahoo = YahooProvider(limiter = RateLimiter(maxCalls = 60, window = Duration.ofMinutes(1)))
+    private val yahoo = YahooProvider(limiter = RateLimiter(maxCredits = 60, window = Duration.ofMinutes(1)))
     val prices: PriceService by lazy {
         PriceService(priceStore, priceStore, ::finnhub, fallback = yahoo, europe = yahoo)
     }
