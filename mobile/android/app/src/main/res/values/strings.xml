@@ -523,4 +523,23 @@
         <item quantity="other">%1$d operations entered by hand.</item>
     </plurals>
     <string name="manual_hint">Numbers use a dot or a comma for decimals. Ticker and currency name the instrument; if your reports already contain it, its exchange and ISIN are reused.</string>
+    <string name="prices_intro">Prices come straight from the provider you choose, using your own free API key. The key is stored encrypted on this phone and sent only to that provider; this app has no server. With None, no prices are requested and only the last known ones are shown, marked out of date. While Finnhub or Twelve Data is chosen, listings on European exchanges temporarily use Yahoo Finance public data, about 15 minutes delayed; this source will be replaced.</string>
+    <string name="provider_choice_title">Price provider</string>
+    <string name="provider_none">None</string>
+    <string name="provider_none_body">No price requests at all. Last known prices are shown, marked out of date.</string>
+    <string name="provider_finnhub">Finnhub</string>
+    <string name="provider_finnhub_body">US listings, with your free Finnhub key (60 requests per minute).</string>
+    <string name="provider_twelvedata">Twelve Data</string>
+    <string name="provider_twelvedata_body">US listings, with your free Twelve Data key (8 prices per minute, 800 per day).</string>
+    <string name="td_free_plan">Free plan: 8 prices per minute and 800 per day. The first refresh of many holdings takes a while (about 10 minutes for 80). The largest holdings come first, and a price is asked for again only after 15 minutes.</string>
+    <string name="td_guide_step1">1. Tap Get key from Twelve Data. Twelve Data opens in a browser tab; create a free account or sign in. This app never sees your Twelve Data password.</string>
+    <string name="td_guide_step2">2. In your Twelve Data dashboard, copy your API key.</string>
+    <string name="td_guide_step3">3. Come back and paste it below. The key is checked with one test request, which uses one of your credits.</string>
+    <string name="td_guide_open">Get key from Twelve Data</string>
+    <string name="td_key_label">Twelve Data API key</string>
+    <string name="td_key_rejected">Twelve Data rejected this key. Check that you copied the whole key and try again.</string>
+    <string name="td_source">Source: Twelve Data</string>
+    <string name="prices_failure_td_limit">the Twelve Data credit limit was reached (the daily limit resets at 00:00 UTC). Prices received so far are kept</string>
+    <string name="prices_progress_td">Twelve Data · %1$d of %2$d · about %3$d min left</string>
+    <string name="prices_no_key_td">Add your Twelve Data API key in Settings to see prices for US listings.</string>
 </resources>
