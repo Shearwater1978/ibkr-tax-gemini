@@ -1,0 +1,3 @@
+# Parity fixtures are compared byte for byte, here and with their copies in broker-companion:
+# never convert their line endings.
+tests/fixtures/parity/** -text

@@ -45,8 +45,11 @@ Thumbs.db
 # --- Node ---
 **/node_modules/
 
-# Synthetic mobile test fixtures are safe to commit
-!mobile/fixtures/**/*.csv
+# Synthetic parity fixtures are safe to commit
+!tests/fixtures/parity/**/*.csv
+
+# The mobile apps moved to broker-companion; ignore local build leftovers
+/mobile/
 
 # --- Local design concepts (not published) ---
 design-concepts/
