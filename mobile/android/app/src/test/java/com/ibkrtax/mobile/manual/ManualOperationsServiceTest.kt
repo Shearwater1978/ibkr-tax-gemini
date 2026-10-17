@@ -32,7 +32,8 @@ class ManualOperationsServiceTest {
     private val clock = Clock.fixed(Instant.parse("2026-10-13T08:00:00Z"), ZoneOffset.UTC)
     private var ids = 0
 
-    private fun service(store: ManualStore) = ManualOperations(store, clock) { "e${++ids}" }
+    // Named: a trailing lambda would bind to the last parameter, onChanged (added in #168).
+    private fun service(store: ManualStore) = ManualOperations(store, clock, newId = { "e${++ids}" })
 
     private fun trade(type: ManualType, date: String, quantity: String, ticker: String = "AAPL") =
         mapOf("date" to date, "ticker" to ticker, "currency" to "USD", "quantity" to quantity, "price" to "100.00", "fee" to "1.00")
