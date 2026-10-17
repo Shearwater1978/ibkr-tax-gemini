@@ -204,4 +204,23 @@ class PriceProviderSelectionTest {
         assertEquals(PriceSource.TWELVE_DATA, progress.first().source)
         assertEquals(1, progress.first().minutesLeft) // 4 symbols at 8 per minute
     }
+
+    @Test
+    fun aCachedQuoteKeepsTheProviderThatProducedIt() = runBlocking {
+        val providers = Providers().apply {
+            twelveData.setQuote(Quote("AAPL", BigDecimal("190"), "USD", open, open))
+            yahoo.setQuote(Quote("SAP.DE", BigDecimal("120"), "EUR", open, open))
+        }
+        val cache = MemoryCache()
+        providers.service(keysFor(PriceProviderId.TWELVE_DATA), cache, clockAt(open)).refresh(usAndEurope, exchanges)
+
+        assertEquals(PriceSource.TWELVE_DATA, cache.quotes.getValue("AAPL").source)
+        assertEquals(PriceSource.YAHOO, cache.quotes.getValue("SAP.DE").source)
+
+        // Switching to None afterwards does not relabel what Twelve Data delivered.
+        val later = providers.service(keysFor(PriceProviderId.NONE), cache, clockAt(open.plusSeconds(60)))
+        val shown = later.prices(usAndEurope, later.refresh(usAndEurope, exchanges), exchanges)
+        assertEquals(PriceSource.TWELVE_DATA, shown.getValue("AAPL").quote.source)
+        assertEquals(PriceSource.YAHOO, shown.getValue("SAP.DE").quote.source)
+    }
 }

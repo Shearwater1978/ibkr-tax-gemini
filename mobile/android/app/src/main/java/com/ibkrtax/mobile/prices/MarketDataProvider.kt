@@ -23,6 +23,8 @@ data class Quote(
     val retrievedAt: Instant,
     /** Previous session's close, for the daily change; null when the provider has none. */
     val previousClose: BigDecimal? = null,
+    /** The provider that produced it, set when it is cached; null for quotes cached before sources were kept. */
+    val source: PriceSource? = null,
 ) {
     val dailyChange: BigDecimal? get() = previousClose?.let { price.subtract(it) }
 }

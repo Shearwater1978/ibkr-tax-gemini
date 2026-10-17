@@ -124,9 +124,10 @@ class PriceService(
         var failure: Pair<PriceFailure, PriceSource>? = null
         fun keep(result: PriceResult, source: PriceSource) {
             when (result) {
-                is PriceResult.Success -> cache.putAll(result.quotes.values)
+                // Each cached quote records the provider that produced it, so the UI can name it.
+                is PriceResult.Success -> cache.putAll(result.quotes.values.map { it.copy(source = source) })
                 is PriceResult.Failure -> {
-                    cache.putAll(result.partial.values)
+                    cache.putAll(result.partial.values.map { it.copy(source = source) })
                     if (failure == null) failure = result.reason to source
                 }
             }

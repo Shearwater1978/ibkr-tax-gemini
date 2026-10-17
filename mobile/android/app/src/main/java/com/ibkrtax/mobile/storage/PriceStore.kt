@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.ibkrtax.mobile.prices.ApiKeyStore
 import com.ibkrtax.mobile.prices.PriceProviderId
+import com.ibkrtax.mobile.prices.PriceSource
 import com.ibkrtax.mobile.prices.Quote
 import com.ibkrtax.mobile.prices.QuoteCache
 import java.math.BigDecimal
@@ -54,7 +55,7 @@ class PriceStore(private val database: SupportSQLiteOpenHelper) : ApiKeyStore, Q
         if (symbols.isEmpty()) return emptyMap()
         val placeholders = symbols.joinToString(",") { "?" }
         return database.readableDatabase.query(
-            "SELECT symbol, price, currency, quote_time, retrieved_at, previous_close FROM price_cache WHERE symbol IN ($placeholders)",
+            "SELECT symbol, price, currency, quote_time, retrieved_at, previous_close, source FROM price_cache WHERE symbol IN ($placeholders)",
             symbols.toTypedArray(),
         ).use { cursor ->
             buildMap {
@@ -66,6 +67,7 @@ class PriceStore(private val database: SupportSQLiteOpenHelper) : ApiKeyStore, Q
                         quoteTime = Instant.parse(cursor.getString(3)),
                         retrievedAt = Instant.parse(cursor.getString(4)),
                         previousClose = if (cursor.isNull(5)) null else BigDecimal(cursor.getString(5)),
+                        source = if (cursor.isNull(6)) null else PriceSource.entries.firstOrNull { it.name == cursor.getString(6) },
                     )
                     put(quote.symbol, quote)
                 }
@@ -88,6 +90,7 @@ class PriceStore(private val database: SupportSQLiteOpenHelper) : ApiKeyStore, Q
                         put("quote_time", quote.quoteTime.toString())
                         put("retrieved_at", quote.retrievedAt.toString())
                         put("previous_close", quote.previousClose?.toString())
+                        put("source", quote.source?.name)
                     },
                 )
             }

@@ -94,13 +94,14 @@ class EncryptedStorageInstrumentedTest {
             store.set(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA, "SYNTHETIC_TWELVE_KEY_5678")
             store.choose(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA)
             val time = java.time.Instant.parse("2024-01-03T16:00:00Z")
-            store.putAll(listOf(com.ibkrtax.mobile.prices.Quote("AAPL", java.math.BigDecimal("190.10"), "USD", time, time, java.math.BigDecimal("189.50"))))
+            store.putAll(listOf(com.ibkrtax.mobile.prices.Quote("AAPL", java.math.BigDecimal("190.10"), "USD", time, time, java.math.BigDecimal("189.50"), com.ibkrtax.mobile.prices.PriceSource.TWELVE_DATA)))
 
             assertEquals(apiKey, store.get(com.ibkrtax.mobile.prices.PriceProviderId.FINNHUB))
             assertEquals("SYNTHETIC_TWELVE_KEY_5678", store.get(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA))
             assertEquals(com.ibkrtax.mobile.prices.PriceProviderId.TWELVE_DATA, store.storedChoice())
             assertEquals(0, java.math.BigDecimal("190.10").compareTo(store.get(setOf("AAPL", "MSFT")).getValue("AAPL").price))
             assertEquals(0, java.math.BigDecimal("0.60").compareTo(store.get(setOf("AAPL")).getValue("AAPL").dailyChange))
+            assertEquals(com.ibkrtax.mobile.prices.PriceSource.TWELVE_DATA, store.get(setOf("AAPL")).getValue("AAPL").source)
 
             val fx = FxStore(helper)
             assertNull(fx.get())
