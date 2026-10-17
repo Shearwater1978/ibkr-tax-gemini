@@ -1,4 +1,3 @@
-# Test fixtures are compared byte for byte (the encrypted fixtures were made from these exact
-# LF bytes, and the iOS and Python tests read the same files): never convert their line endings.
-mobile/fixtures/** -text
+# Parity fixtures are compared byte for byte, here and with their copies in broker-companion:
+# never convert their line endings.
 tests/fixtures/parity/** -text

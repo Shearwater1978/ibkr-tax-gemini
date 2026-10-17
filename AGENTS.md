@@ -35,6 +35,7 @@ Project: **IBKR Tax Assistant** — Python tool that turns Interactive Brokers d
 - Withholding tax is linked to its dividends; split/corporate-action handling must stay covered by tests.
 - Parser normalizes dates to ISO, strips metadata/total rows; `transactions` table is the single source of truth.
 - Results must be reproducible and covered by tests — never "fix" numbers by editing fixtures to match output.
+- Parity fixtures (`tests/fixtures/parity`) are owned here and copied byte for byte to the mobile repository ([broker-companion](https://github.com/Shearwater1978/broker-companion)). Change them only with an intentional fixture or reference change, regenerate expectations with `tools/generate_parity_fixtures.py`, and never renormalize them. See [tests/fixtures/parity/README.md](tests/fixtures/parity/README.md).
 
 ## 3. Architecture
 ```
