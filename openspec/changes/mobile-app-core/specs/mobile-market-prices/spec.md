@@ -20,44 +20,63 @@ The app SHALL retrieve the latest available price for held instruments in the su
 - **THEN** the app requests no price for it, shows its price as unavailable, and marks its currency subtotal incomplete
 
 ### Requirement: Minimize price-request data
-The app SHALL send only the instrument identifiers required to retrieve prices (the ticker symbol in the MVP) and, for Finnhub, the user's provider API key, and SHALL NOT send quantities, account data, names, report contents, or other personal data.
+The app SHALL send only the instrument identifiers required to retrieve prices (the ticker symbol in the MVP) and, for Finnhub and Twelve Data, the user's own key for that provider, and SHALL NOT send quantities, account data, names, report contents, or other personal data.
 
 #### Scenario: Price request content
 - **WHEN** the app requests market prices
-- **THEN** the request contains only the required instrument identifiers and, for Finnhub, the user's provider API key
+- **THEN** the request contains only the required instrument identifiers and, for Finnhub and Twelve Data, the user's key for that provider in a request header
 
-### Requirement: Use a user-supplied provider key
-The app SHALL NOT ship with a market-data provider API key. Price retrieval SHALL use an API key entered by the user, stored only in encrypted local storage protected by the device key, sent only to the provider, and never written to logs, diagnostics, or backups in plaintext.
+### Requirement: Choose a price provider and use the user's own key
+The user SHALL choose one market-data provider: **None**, **Finnhub** or **Twelve Data** (Android first; iOS follows in a later change). The app SHALL NOT ship with a provider API key and has no backend: every price request goes directly from the device to the chosen provider, using the user's own key and quota. Each provider's key SHALL be stored separately, only in encrypted local storage protected by the device key, sent only to that provider (in a request header, never in a URL), and never written to logs, diagnostics, or backups in plaintext. An existing Finnhub key SHALL keep working: without a stored choice, the app SHALL treat Finnhub as chosen when a Finnhub key exists, and None otherwise.
 
-#### Scenario: No key configured
-- **WHEN** no provider API key has been entered
-- **THEN** the app sends no request to Finnhub and retrieves prices from the Yahoo Finance fallback
+#### Scenario: None chosen
+- **WHEN** the chosen provider is None
+- **THEN** the app sends no price request to any provider (Finnhub, Twelve Data or Yahoo Finance), for US and European listings alike, and shows only previously cached prices, marked stale
+
+#### Scenario: Chosen provider without a key
+- **WHEN** Finnhub or Twelve Data is chosen but has no key
+- **THEN** the app requests no US prices, tells the user to add the key, and requests no prices from another provider
 
 #### Scenario: Key entered
-- **WHEN** the user enters a provider API key
-- **THEN** the app stores it encrypted and uses it for subsequent price requests
+- **WHEN** the user enters a key for a provider
+- **THEN** the app checks it with one request for a well-known test symbol, stores it encrypted for that provider only, and uses it while that provider is chosen
 
 #### Scenario: Key rejected
 - **WHEN** the provider rejects the API key
 - **THEN** the app informs the user and shows only stale last-known prices or an unavailable state
 
-### Requirement: Fall back to Yahoo Finance without a key
-While no Finnhub key is set, the app SHALL retrieve prices for the same scope from Yahoo Finance's public batch (spark) endpoint, which needs no key. Each request SHALL cover up to 20 symbols, so a refresh needs one request per 20 holdings, and SHALL contain only the ticker symbols (with share-class separators written the way Yahoo expects, e.g. `BRK-B`) and a generic browser user agent. The endpoint returns no currency; because only USD holdings are requested and symbols without an exchange suffix are US listings, the quotes SHALL be treated as USD. The main page SHALL name Yahoo Finance as the price source, and Settings SHALL explain that this source is unofficial and may be delayed, limited, or stop working. Once a Finnhub key is set, the app SHALL use only Finnhub for US-listed instruments; European listings always use Yahoo Finance.
+#### Scenario: Existing Finnhub user
+- **WHEN** the app updates on a phone that has a Finnhub key and no stored provider choice
+- **THEN** Finnhub is the chosen provider and prices keep coming from Finnhub
 
-#### Scenario: No key
-- **WHEN** no Finnhub key is set and the user opens the overview or refreshes prices
-- **THEN** the app requests in-scope symbols from Yahoo Finance and shows that prices come from Yahoo Finance
+### Requirement: Never switch providers automatically
+When the chosen provider has no key, rejects the key, is rate-limited, is offline, or fails, the app SHALL NOT request prices from another provider. Quotes received before a failure SHALL be kept; older quotes SHALL be shown as stale; holdings without any cached quote SHALL be shown as unavailable.
 
-#### Scenario: Key set
-- **WHEN** a Finnhub key is set
-- **THEN** the app requests prices for US-listed instruments only from Finnhub, and requests only European listings from Yahoo Finance
+#### Scenario: Twelve Data rate-limited
+- **WHEN** Twelve Data answers a refresh with its rate-limit error
+- **THEN** the app keeps the quotes received so far, marks the others stale or unavailable, and sends no request to Finnhub or Yahoo Finance for those symbols
 
-#### Scenario: Symbol unknown to Yahoo Finance
-- **WHEN** Yahoo Finance does not know a symbol
-- **THEN** the app shows that holding's price as unavailable
+### Requirement: Retrieve US prices from Twelve Data
+While Twelve Data is chosen and has a key, US-listed holdings SHALL be priced from Twelve Data's `/quote` endpoint (`https://api.twelvedata.com/quote`), with the key in the header `Authorization: apikey <key>`. Symbols SHALL be sent comma-separated (`symbol=A,B,...`) in chunks of at most 8, because each symbol costs one API credit and the free plan allows 8 credits per minute and 800 per day; a credit-based rate limiter SHALL keep requests within 8 credits per minute. The app SHALL take each quote's currency from the response and its time from `last_quote_at`, else `timestamp`. A cached Twelve Data quote SHALL NOT be requested again within 15 minutes (Finnhub keeps one minute). Symbols SHALL be priced largest position first, and a running refresh SHALL show its progress and the estimated time left (for example "Twelve Data · 24 of 80 · about 7 min left"). When the daily limit is reached, the refresh SHALL stop, keep the quotes received, and explain that the Twelve Data daily limit resets at 00:00 UTC. Twelve Data errors arrive as an HTTP status, or as a body `{"code", "message", "status": "error"}` (also accepted with HTTP 200); 401 means an invalid key, 429 a reached limit, 403 and 404 a symbol not available to the user (left unpriced), 414 a too-long symbol list (the chunk is split and retried), 400 and 5xx a provider error.
+
+#### Scenario: First refresh with 80 holdings
+- **WHEN** Twelve Data is chosen on the free plan and 80 US holdings have no cached price
+- **THEN** the app requests them 8 at a time, about one request per minute, largest positions first, shows progress with the time left, and shows each price as soon as its chunk arrives
+
+#### Scenario: Daily limit reached
+- **WHEN** Twelve Data answers with error 429 after the day's credits are used
+- **THEN** the refresh stops, received prices are kept, the remaining holdings show stale or unavailable prices, and the app says the Twelve Data daily limit resets at 00:00 UTC
+
+#### Scenario: Symbol not on the user's plan
+- **WHEN** one symbol in a chunk returns error 403 or 404
+- **THEN** that holding stays unpriced and the other symbols of the chunk are priced
+
+#### Scenario: Attribution
+- **WHEN** a displayed price comes from Twelve Data
+- **THEN** the app shows "Source: Twelve Data" near it, and tapping it opens https://twelvedata.com in a browser tab
 
 ### Requirement: Retrieve European prices from Yahoo Finance
-Holdings listed on a supported European exchange SHALL be priced from Yahoo Finance's public chart endpoint, one request per symbol, whether or not a Finnhub key is set, because Finnhub's free plan has no European prices. The request symbol SHALL be the IBKR ticker, with a trailing dot removed and spaces or dots written as hyphens, followed by the exchange suffix below. Requests SHALL contain only that symbol and a generic browser user agent. A quote SHALL be accepted only when its currency equals the holding's currency; prices Yahoo gives in pence (`GBp`) SHALL be converted to pounds (`GBP`) first. Quotes SHALL be cached under the request symbol, so a European listing never overwrites a US listing with the same ticker. When a Finnhub key is set and European listings are held, the main page SHALL say that European prices come from Yahoo Finance. An IBKR exchange code not in the table is outside the scope.
+Holdings listed on a supported European exchange SHALL be priced from Yahoo Finance's public chart endpoint, one request per symbol, while Finnhub or Twelve Data is chosen (never while None is chosen), because neither provider is used for European listings yet. Yahoo Finance is a temporary internal source: it SHALL NOT be offered as a choosable provider, and it will be replaced. The request symbol SHALL be the IBKR ticker, with a trailing dot removed and spaces or dots written as hyphens, followed by the exchange suffix below. Requests SHALL contain only that symbol and a generic browser user agent. A quote SHALL be accepted only when its currency equals the holding's currency; prices Yahoo gives in pence (`GBp`) SHALL be converted to pounds (`GBP`) first. Quotes SHALL be cached under the request symbol, so a European listing never overwrites a US listing with the same ticker. When a Finnhub key is set and European listings are held, the main page SHALL say that European prices come from Yahoo Finance. An IBKR exchange code not in the table is outside the scope.
 
 | IBKR listing exchange | Yahoo suffix | Exchange time zone | Regular session |
 |---|---|---|---|
@@ -95,12 +114,12 @@ Holdings listed on a supported European exchange SHALL be priced from Yahoo Fina
 - **WHEN** Yahoo Finance quotes a European symbol in a currency other than the holding's
 - **THEN** the app shows that holding's price as unavailable
 
-#### Scenario: Finnhub key set
-- **WHEN** a Finnhub key is set and the user holds European listings
-- **THEN** US listings are priced from Finnhub, European listings from Yahoo Finance, and the main page names both sources
+#### Scenario: Provider chosen with European holdings
+- **WHEN** Finnhub or Twelve Data is chosen and the user holds European listings
+- **THEN** US listings are priced from the chosen provider, European listings from Yahoo Finance, and each displayed price names its own source
 
 ### Requirement: Show quote currency and freshness
-The app SHALL show the currency and retrieval time for each price. Market hours are those of the instrument's exchange: the US regular session for US listings and the table in "Retrieve European prices from Yahoo Finance" for European listings; exchange holidays are not modelled. European quotes from Yahoo Finance are delayed: during their session, a quote up to 30 minutes old SHALL be labelled delayed, and an older one SHALL be marked stale. For US listings, during market hours, a price older than 15 minutes SHALL be marked stale. Outside market hours, the last available close MAY be shown as the latest close, but SHALL NOT be described as a live price. Each price SHALL also show its change since the previous close. Prices and per-position values SHALL remain in their quote currency; only the informational header total in `mobile-portfolio-overview` is converted.
+The app SHALL show the currency, retrieval time and source of each price. The source is the provider that actually produced the cached quote, which can differ from the currently chosen provider; quotes cached before sources were recorded have none. Market hours are those of the instrument's exchange: the US regular session for US listings and the table in "Retrieve European prices from Yahoo Finance" for European listings; exchange holidays are not modelled. European quotes from Yahoo Finance are delayed: during their session, a quote up to 30 minutes old SHALL be labelled delayed, and an older one SHALL be marked stale. For US listings, during market hours, a price older than 15 minutes SHALL be marked stale. Outside market hours, the last available close MAY be shown as the latest close, but SHALL NOT be described as a live price. Each price SHALL also show its change since the previous close. Prices and per-position values SHALL remain in their quote currency; only the informational header total in `mobile-portfolio-overview` is converted.
 
 #### Scenario: Fresh market-hours quote
 - **WHEN** a quote is no more than 15 minutes old during market hours
