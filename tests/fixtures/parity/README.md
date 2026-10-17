@@ -9,7 +9,7 @@ Everything here is made up (account `U00000001`, "Synthetic Test User"). Never a
 
 ## Ownership
 
-This repository owns these fixtures and their generation. The mobile apps live in [broker-companion](https://github.com/Shearwater1978/broker-companion), which keeps byte-identical **copies** in its `fixtures/flex-query` and `fixtures/fifo`. Change fixtures here first, then copy the two folders there unchanged. Generating or testing them does not need the mobile repository.
+This repository owns these fixtures and their generation. The mobile apps live in the private repository [broker-companion](https://github.com/Shearwater1978/broker-companion), which keeps byte-identical **copies** in its `fixtures/flex-query` and `fixtures/fifo`. Change fixtures here first, then copy the two folders there unchanged. Generating or testing them does not need the mobile repository.
 
 `flex-query/README.md` is part of the copied set and stays byte-identical in both repositories; this file describes the core side.
 

@@ -212,7 +212,7 @@ browser session.
 
 ## 📱 Mobile apps (Android and iOS)
 
-**Portfolio Companion** is an informational portfolio viewer for the phone: it imports IBKR Activity Statements (CSV) on the device and shows holdings, returns, dividends and activity. It does not calculate PIT-38. The Android and iOS apps, their build instructions, user guide and privacy notice live in a separate repository: [broker-companion](https://github.com/Shearwater1978/broker-companion).
+**Portfolio Companion** is an informational portfolio viewer for the phone: it imports IBKR Activity Statements (CSV) on the device and shows holdings, returns, dividends and activity. It does not calculate PIT-38. The Android and iOS apps, their build instructions, user guide and privacy notice live in a separate, **private** repository, [broker-companion](https://github.com/Shearwater1978/broker-companion); the link works only for accounts that have been given access.
 
 This repository stays the core project: the report parser, FIFO, NBP rates, PIT-38 and the desktop and web tools. The mobile parsers and FIFO are ports of the Python reference here and are kept equal to it through shared synthetic parity fixtures. This repository owns them and their generator (`tests/fixtures/parity`, `tools/generate_parity_fixtures.py`, see [its README](tests/fixtures/parity/README.md)); broker-companion keeps byte-identical copies.
 
