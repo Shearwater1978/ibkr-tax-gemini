@@ -11,11 +11,13 @@ import org.json.JSONException
 import org.json.JSONObject
 
 /**
- * Keyless fallback used while the user has no Finnhub key: Yahoo Finance's public spark
- * endpoint. It is unofficial and not licensed for this use (mobile-market-prices spec), so
- * it can throttle or change without notice. The only data sent is the symbols.
+ * TEMPORARY, INTERNAL source: Yahoo Finance's public endpoints. It is unofficial and not
+ * licensed for this use (mobile-market-prices spec), so it can throttle or change without notice,
+ * and it is never offered as a price provider. Since the provider choice it only prices European
+ * listings, and only while Finnhub or Twelve Data is chosen; it will be replaced (whether to remove
+ * it before a Play release is decided separately). The only data sent is the symbols.
  *
- * US symbols: one spark request covers up to [BATCH_SIZE] of them. Spark has no currency field;
+ * US symbols (no longer requested by PriceService): one spark request covers up to [BATCH_SIZE] of them. Spark has no currency field;
  * symbols without an exchange suffix are US listings, which Yahoo quotes in USD.
  * European symbols (e.g. SAP.DE): one chart request each, because the chart reports the currency.
  */

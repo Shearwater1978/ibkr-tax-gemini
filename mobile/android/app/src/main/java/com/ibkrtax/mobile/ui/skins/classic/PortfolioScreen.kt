@@ -61,6 +61,9 @@ import com.ibkrtax.mobile.state.IncomeState
 import com.ibkrtax.mobile.state.PortfolioUiState
 import com.ibkrtax.mobile.ui.common.UiPreferences
 import com.ibkrtax.mobile.ui.Formats
+import com.ibkrtax.mobile.ui.common.twelveDataProgressText
+import com.ibkrtax.mobile.ui.common.priceStatusText
+import com.ibkrtax.mobile.ui.common.PriceSourcesLine
 import java.math.BigDecimal
 
 @Composable
@@ -221,7 +224,7 @@ private fun Header(state: PortfolioUiState.Loaded, progress: RefreshProgress?, o
             if (!totals.isComplete) add(stringResource(R.string.header_incomplete, totals.missingValues, state.rows.size))
         }
         Text(notes.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-        PriceStatus(state.prices, state.priceSource, state.hasEuropean, progress, onRefresh, onOpenSettings)
+        PriceStatus(state.prices, state.priceSource, state.rows, progress, onRefresh, onOpenSettings)
     }
 }
 
@@ -439,6 +442,7 @@ private fun PositionLine(row: PositionRow, mode: PnlMode, onClick: () -> Unit) {
 private fun RefreshDetails(progress: RefreshProgress) {
     val muted = MaterialTheme.typography.bodySmall
     val received = when (progress.source) {
+        PriceSource.TWELVE_DATA -> twelveDataProgressText(progress).orEmpty()
         PriceSource.FINNHUB -> stringResource(R.string.prices_progress_finnhub, progress.done, progress.total)
         else -> stringResource(R.string.prices_progress_yahoo, progress.done, progress.total)
     }
@@ -456,38 +460,20 @@ private const val FINNHUB_PER_MINUTE = 55
 @Composable
 private fun PriceStatus(
     prices: RefreshOutcome?,
-    source: PriceSource,
-    hasEuropean: Boolean,
+    chosen: PriceSource,
+    rows: List<PositionRow>,
     progress: RefreshProgress?,
     onRefresh: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    val fromYahoo = when {
-        source == PriceSource.YAHOO -> stringResource(R.string.prices_from_yahoo)
-        hasEuropean -> stringResource(R.string.prices_europe_from_yahoo)
-        else -> null
-    }
-    val message = when (prices) {
-        null -> stringResource(R.string.prices_refreshing)
-        RefreshOutcome.NoKey -> stringResource(R.string.prices_no_key)
-        RefreshOutcome.Updated -> fromYahoo
-        is RefreshOutcome.Failed -> stringResource(
-            R.string.prices_failed,
-            stringResource(
-                when (prices.reason) {
-                    PriceFailure.OFFLINE -> R.string.prices_failure_offline
-                    PriceFailure.INVALID_KEY -> R.string.prices_failure_invalid_key
-                    PriceFailure.RATE_LIMITED -> R.string.prices_failure_rate_limited
-                    PriceFailure.PROVIDER_ERROR -> R.string.prices_failure_provider
-                },
-            ),
-        ) + fromYahoo?.let { " $it" }.orEmpty()
-    }
-    message?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    priceStatusText(prices, chosen)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
     if (prices == null && progress != null && progress.total > 0) RefreshDetails(progress)
+    // Each source of a shown price, with the Twelve Data attribution link (mobile-market-prices).
+    PriceSourcesLine(rows)
     when (prices) {
         null -> Unit
         RefreshOutcome.NoKey -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.prices_add_key)) }
+        RefreshOutcome.NoProvider -> TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.prices_choose_provider)) }
         else -> TextButton(onClick = onRefresh) { Text(stringResource(R.string.prices_refresh)) }
     }
 }

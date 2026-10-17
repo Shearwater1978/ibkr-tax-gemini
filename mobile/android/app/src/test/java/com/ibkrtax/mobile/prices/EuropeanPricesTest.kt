@@ -41,12 +41,6 @@ class EuropeanPricesTest {
             """"chartPreviousClose":$previousClose}}],"error":null}}""",
     )
 
-    private class MemoryKeys(var key: String? = null) : ApiKeyStore {
-        override fun get() = key
-        override fun set(key: String) { this.key = key }
-        override fun clear() { key = null }
-    }
-
     private class MemoryCache : QuoteCache {
         val quotes = mutableMapOf<String, Quote>()
         override fun get(symbols: Set<String>) = quotes.filterKeys { it in symbols }
@@ -128,7 +122,7 @@ class EuropeanPricesTest {
         val europe = FakeMarketDataProvider()
         val holdings = listOf(holding("AAPL", "USD"), holding("SAP", "EUR"))
         val exchanges = mapOf(("AAPL" to "") to "NASDAQ", ("SAP" to "") to "IBIS")
-        val service = PriceService(MemoryKeys("k"), MemoryCache(), { finnhub }, Clock.fixed(xetraOpen, ZoneOffset.UTC), yahooUs, europe)
+        val service = PriceService(MemoryKeys("k"), MemoryCache(), { _, _ -> finnhub }, Clock.fixed(xetraOpen, ZoneOffset.UTC), europe)
 
         service.refresh(holdings, exchanges)
 
@@ -144,7 +138,7 @@ class EuropeanPricesTest {
         val cache = MemoryCache()
         val holdings = listOf(holding("AAPL", "USD"), holding("SAP", "EUR"))
         val exchanges = mapOf(("SAP" to "") to "IBIS")
-        val service = PriceService(MemoryKeys("k"), cache, { finnhub }, Clock.fixed(xetraOpen, ZoneOffset.UTC), null, europe)
+        val service = PriceService(MemoryKeys("k"), cache, { _, _ -> finnhub }, Clock.fixed(xetraOpen, ZoneOffset.UTC), europe)
         val progress = mutableListOf<RefreshProgress>()
 
         val outcome = service.refresh(holdings, exchanges) { progress += it }

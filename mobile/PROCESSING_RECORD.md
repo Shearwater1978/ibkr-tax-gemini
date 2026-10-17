@@ -24,11 +24,11 @@
 | Item | Entry |
 |---|---|
 | Purpose | Current prices for held instruments and an approximate USD total |
-| Data categories | Ticker symbols of held instruments (could hint at holdings when combined with the IP address); the user's own Finnhub API key |
-| Recipients | Finnhub (with the user's key), Yahoo Finance; National Bank of Poland receives only a request for its public table |
-| Transfers outside the EEA | Finnhub and Yahoo (USA): ticker symbols, the Finnhub key, IP address |
+| Data categories | Ticker symbols of held instruments (could hint at holdings when combined with the IP address); the user's own API key for the chosen provider (Finnhub or Twelve Data) |
+| Recipients | Only the provider the user chose: Finnhub or Twelve Data (with the user's own key), for US listings; while one of them is chosen, Yahoo Finance's public data for European listings (temporary; this source will be replaced). With None, no recipient. National Bank of Poland receives only a request for its public table |
+| Transfers outside the EEA | Finnhub, Twelve Data and Yahoo Finance (USA): ticker symbols, the key of the chosen provider, IP address |
 | Retention | Quotes and rates cached on the phone until refreshed or erased; the providers' own retention applies to their request logs |
-| Security measures | HTTPS; the Finnhub key only in a request header; no quantities, amounts or account data sent; network code isolated from report handling (`OfflineProcessingTest`) |
+| Security measures | No backend: requests go directly from the device to the chosen provider with the user's own key and quota; HTTPS; keys only in request headers (`X-Finnhub-Token`, `Authorization: apikey`), one encrypted key per provider; no automatic switching between providers; no quantities, amounts or account data sent; network code isolated from report handling (`OfflineProcessingTest`) |
 
 ## 3. Encrypted backup and restore
 
@@ -44,5 +44,5 @@
 ## Data subject rights
 
 - **Erasure:** "Erase all data" in Settings (local data, backup files and manifest, keys including Block Store, settings).
-- **Restriction and objection:** backups are optional. Prices are requested automatically when the portfolio opens; there is no switch to turn that off yet.
+- **Restriction and objection:** backups are optional. Choosing None as the price provider stops all price requests.
 - **Access and portability:** data stays with the user (phone and own backup folder). The app produces no tax output; tax reports come from the desktop tool (decision 2026-10-11).

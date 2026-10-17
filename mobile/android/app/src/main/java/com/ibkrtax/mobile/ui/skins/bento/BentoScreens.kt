@@ -314,10 +314,13 @@ fun BentoData(states: AppStates, onImport: () -> Unit, onReports: () -> Unit, on
             })
             Badge(stringResource(R.string.bento_us_prices), when (loaded?.priceSource) {
                 PriceSource.FINNHUB -> stringResource(R.string.bento_finnhub) to true
-                PriceSource.YAHOO -> stringResource(R.string.bento_yahoo_no_key) to false
+                PriceSource.TWELVE_DATA -> stringResource(R.string.provider_twelvedata) to true
+                PriceSource.NONE -> stringResource(R.string.source_none) to false
                 else -> "—" to false
             })
-            Badge(stringResource(R.string.bento_eu_prices), stringResource(R.string.bento_yahoo_delayed) to false)
+            // Yahoo Finance is a temporary source for European listings, used only while a provider is chosen.
+            val europe = loaded?.priceSource?.takeIf { it != PriceSource.NONE }
+            Badge(stringResource(R.string.bento_eu_prices), (if (europe != null) stringResource(R.string.bento_yahoo_delayed) else "—") to false)
             Badge(stringResource(R.string.bento_reports), (data.history?.size?.toString() ?: "—") to true, onClick = onReports)
             Badge(stringResource(R.string.bento_fx_rates), (loaded?.rates?.effectiveDate?.let { stringResource(R.string.bento_nbp, it) } ?: "—") to true, last = true)
         }

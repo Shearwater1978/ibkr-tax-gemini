@@ -47,11 +47,16 @@ import com.ibkrtax.mobile.portfolio.Dividends
 import com.ibkrtax.mobile.portfolio.PositionPerformance
 import com.ibkrtax.mobile.portfolio.PositionRow
 import com.ibkrtax.mobile.prices.PriceFreshness
+import com.ibkrtax.mobile.prices.RefreshProgress
 import com.ibkrtax.mobile.state.IncomeState
 import com.ibkrtax.mobile.state.PortfolioState
 import com.ibkrtax.mobile.state.PortfolioUiState
 import com.ibkrtax.mobile.ui.Formats
 import com.ibkrtax.mobile.ui.common.UiPreferences
+import com.ibkrtax.mobile.ui.common.PriceSourcesLine
+import com.ibkrtax.mobile.ui.common.QuoteSourceLabel
+import com.ibkrtax.mobile.ui.common.priceStatusText
+import com.ibkrtax.mobile.ui.common.twelveDataProgressText
 import com.ibkrtax.mobile.ui.common.skinMoney
 import com.ibkrtax.mobile.ui.common.skinPercent
 import java.math.BigDecimal
@@ -67,6 +72,7 @@ internal fun soldKey(p: PositionPerformance) = "${p.ticker}|${p.currency}|sold"
 @Composable
 fun BentoHome(state: PortfolioState, income: IncomeState, onOpen: (String) -> Unit, onIncome: () -> Unit) {
     val ui by state.ui.collectAsState()
+    val progress by state.progress.collectAsState()
     val dividends by income.data.collectAsState()
     LaunchedEffect(Unit) {
         state.refresh()
@@ -92,7 +98,7 @@ fun BentoHome(state: PortfolioState, income: IncomeState, onOpen: (String) -> Un
                 Text(stringResource(R.string.portfolio_empty_title), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text(stringResource(R.string.bento_empty_body), color = BentoColors.Muted, modifier = Modifier.padding(top = 6.dp))
             }
-            is PortfolioUiState.Loaded -> Dashboard(current, dividends?.let { lastTwelveMonths(it.events, it.rates) }, usd, byToday, { byToday = it }, onOpen, onIncome, state::refresh)
+            is PortfolioUiState.Loaded -> Dashboard(current, dividends?.let { lastTwelveMonths(it.events, it.rates) }, usd, byToday, { byToday = it }, onOpen, onIncome, state::refresh, progress)
         }
     }
 }
@@ -116,6 +122,7 @@ private fun Dashboard(
     onOpen: (String) -> Unit,
     onIncome: () -> Unit,
     onRefresh: () -> Unit,
+    progress: RefreshProgress? = null,
 ) {
     val totals = data.totals
     val summary = data.summary
@@ -141,9 +148,12 @@ private fun Dashboard(
                     add(stringResource(R.string.header_approximate))
                     totals.rateDate?.let { add(stringResource(R.string.header_rate_date, it)) }
                     if (!totals.isComplete) add(stringResource(R.string.header_incomplete, totals.missingValues, data.rows.size))
-                    if (data.prices == null) add(stringResource(R.string.prices_refreshing))
+                    // Refreshing (with Twelve Data progress), no provider, no key or a failure.
+                    ((if (data.prices == null) twelveDataProgressText(progress) else null) ?: priceStatusText(data.prices, data.priceSource))?.let(::add)
                 }
                 Text(notes.joinToString(" · "), color = BentoColors.Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
+                // Each source of a shown price, with the Twelve Data attribution link (mobile-market-prices).
+                PriceSourcesLine(data.rows, color = BentoColors.Muted)
             }
         }
         item {
@@ -325,6 +335,7 @@ fun BentoPosition(state: PortfolioState, key: String, onBack: () -> Unit, onDivi
                     Small(stringResource(R.string.details_average), skinMoney(row.holding.averagePrice, cur), Modifier.weight(1f))
                     Small(stringResource(R.string.details_value), row.marketValue?.let { skinMoney(it, cur) } ?: "—", Modifier.weight(1f))
                 }
+                QuoteSourceLabel(row.price?.quote?.source, color = BentoColors.Muted)
             }
             Tile(Modifier.fillMaxWidth()) {
                 TileLabel(stringResource(R.string.bento_return_steps))

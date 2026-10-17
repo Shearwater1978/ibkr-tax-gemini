@@ -17,7 +17,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 object EncryptedDatabase {
     const val NAME = "ibkrtax.db"
     private const val WRAPPED_KEY_FILE = "ibkrtax.db.key"
-    private const val SCHEMA_VERSION = 7
+    private const val SCHEMA_VERSION = 8
 
     init {
         System.loadLibrary("sqlcipher")
@@ -58,6 +58,7 @@ object EncryptedDatabase {
             addBackupColumns(db)
             createReportRecords(db)
             addManualOperations(db)
+            addQuoteSource(db)
         }
 
         override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -67,6 +68,7 @@ object EncryptedDatabase {
             if (oldVersion < 5) addBackupColumns(db)
             if (oldVersion < 6) createReportRecords(db)
             if (oldVersion < 7) addManualOperations(db)
+            if (oldVersion < 8) addQuoteSource(db)
         }
 
         override fun onConfigure(db: SupportSQLiteDatabase) {
@@ -224,6 +226,11 @@ object EncryptedDatabase {
             db.execSQL("ALTER TABLE transactions_v7 RENAME TO transactions")
             db.execSQL("CREATE INDEX transactions_ticker_date ON transactions (ticker, date)")
             db.execSQL("CREATE INDEX transactions_entry ON transactions (entry_id)")
+        }
+
+        /** The provider that produced each cached quote (mobile-market-prices); NULL for older quotes. */
+        private fun addQuoteSource(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE price_cache ADD COLUMN source TEXT")
         }
     }
 }

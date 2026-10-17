@@ -80,7 +80,7 @@ object DataClassification {
         "app_settings.key" to technical,
         "app_settings.value" to Classified(
             DataClass.QUASI_IDENTIFIER,
-            "the Finnhub key (a credential: sent only to Finnhub, never shown in full or backed up), the backup folder URI and the manual journal state (sequence and random file names)",
+            "the Finnhub and Twelve Data keys (credentials: each sent only to its own provider, never shown in full or backed up), the chosen price provider, the backup folder URI and the manual journal state (sequence and random file names)",
         ),
 
         "price_cache.symbol" to instrument,
@@ -89,6 +89,7 @@ object DataClassification {
         "price_cache.quote_time" to technical,
         "price_cache.retrieved_at" to technical,
         "price_cache.previous_close" to Classified(DataClass.NON_PERSONAL, "public market price"),
+        "price_cache.source" to Classified(DataClass.NON_PERSONAL, "which provider produced the cached quote (Finnhub, Twelve Data, Yahoo Finance)"),
 
         "fx_rates.code" to technical,
         "fx_rates.mid" to Classified(DataClass.NON_PERSONAL, "public exchange rate"),
