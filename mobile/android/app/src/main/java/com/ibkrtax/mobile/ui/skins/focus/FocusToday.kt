@@ -67,6 +67,10 @@ import com.ibkrtax.mobile.state.IncomeState
 import com.ibkrtax.mobile.state.PortfolioState
 import com.ibkrtax.mobile.state.PortfolioUiState
 import com.ibkrtax.mobile.ui.Formats
+import com.ibkrtax.mobile.ui.common.PriceSourcesLine
+import com.ibkrtax.mobile.ui.common.QuoteSourceLabel
+import com.ibkrtax.mobile.ui.common.priceStatusText
+import com.ibkrtax.mobile.ui.common.twelveDataProgressText
 import com.ibkrtax.mobile.ui.common.skinMoney
 import com.ibkrtax.mobile.ui.common.skinPercent
 import java.math.BigDecimal
@@ -162,9 +166,16 @@ fun FocusToday(
                 )
                 Text(Summaries.today(data.rows, totals, data.summary, data.rates).annotated(), fontSize = 17.sp, lineHeight = 25.sp)
                 Text(
-                    listOfNotNull(stringResource(R.string.header_approximate), totals.rateDate?.let { stringResource(R.string.header_rate_date, it) }).joinToString(" · "),
+                    listOfNotNull(
+                        stringResource(R.string.header_approximate),
+                        totals.rateDate?.let { stringResource(R.string.header_rate_date, it) },
+                        // No provider, no key or a failure; a running refresh shows on the prices card.
+                        data.prices?.let { priceStatusText(it, data.priceSource) },
+                    ).joinToString(" · "),
                     color = FocusColors.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp),
                 )
+                // Each source of a shown price, with the Twelve Data attribution link (mobile-market-prices).
+                PriceSourcesLine(data.rows, color = FocusColors.Muted)
             }
 
             val cards = rememberLazyListState()
@@ -188,7 +199,7 @@ fun FocusToday(
                 item {
                     InsightCard(
                         stringResource(R.string.focus_card_prices),
-                        progress?.let { stringResource(R.string.focus_prices_refreshing, "${it.done} / ${it.total}") } ?: freshWord,
+                        progress?.let { twelveDataProgressText(it) ?: stringResource(R.string.focus_prices_refreshing, "${it.done} / ${it.total}") } ?: freshWord,
                         stringResource(R.string.focus_prices_tap),
                         onClick = state::refresh,
                     )
@@ -363,6 +374,7 @@ fun FocusStory(state: PortfolioState, income: IncomeState, key: String, onBack: 
         Text(ticker, fontFamily = Serif, fontSize = 30.sp, modifier = Modifier.padding(top = 6.dp))
         if (row != null) {
             Text(row.marketValue?.let { skinMoney(it, currency) } ?: "—", fontFamily = Serif, fontSize = 38.sp, fontWeight = FontWeight.SemiBold)
+            QuoteSourceLabel(row.price?.quote?.source, color = FocusColors.Muted)
             row.price?.quote?.let { q ->
                 val day = row.dailyChange
                 Text(

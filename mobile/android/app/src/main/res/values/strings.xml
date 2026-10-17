@@ -90,7 +90,6 @@
     <string name="bento_us_prices">US prices</string>
     <string name="bento_eu_prices">EU prices</string>
     <string name="bento_finnhub">Finnhub</string>
-    <string name="bento_yahoo_no_key">Yahoo · no key</string>
     <string name="bento_yahoo_delayed">Yahoo · 15 min</string>
     <string name="bento_reports">Reports imported</string>
     <string name="bento_fx_rates">FX rates</string>
@@ -246,7 +245,6 @@
     <string name="price_close_short">close</string>
     <string name="price_delayed_short">delayed</string>
     <string name="movers_delayed">delayed prices</string>
-    <string name="prices_europe_from_yahoo">European prices come from Yahoo Finance.</string>
     <string name="price_no_rate_short">no rate</string>
     <string name="view_own_currency">Own currency</string>
     <string name="view_usd">USD</string>
@@ -261,7 +259,6 @@
     <string name="prices_progress_finnhub">%1$d of %2$d prices requested from Finnhub.</string>
     <string name="prices_progress_finnhub_limit">Finnhub\'s free plan allows about 55 requests a minute, so this takes about %1$d min.</string>
     <string name="prices_progress_shown">Until the refresh finishes, the prices shown are from the last one.</string>
-    <string name="prices_from_yahoo">Prices from Yahoo Finance (no Finnhub key set).</string>
     <string name="prices_failed">Prices could not be refreshed (%1$s). Last known prices are shown as stale.</string>
     <string name="prices_failure_offline">offline</string>
     <string name="prices_failure_invalid_key">API key rejected</string>
@@ -338,7 +335,6 @@
     <string name="settings_privacy">Reports are processed on this device. Account identifiers are masked.</string>
     <string name="settings_version_full">Version %1$s · built %2$s UTC · %3$s</string>
     <string name="settings_prices_title">Market prices</string>
-    <string name="settings_prices_body">Prices for US listings come from Finnhub, using your own free personal API key. Prices for listings on the main European exchanges always come from Yahoo Finance, because Finnhub\'s free plan has none; they are delayed by about 15 to 20 minutes. The key is stored encrypted on this phone and sent only to Finnhub, together with ticker symbols. Without a key, prices come from Yahoo Finance\'s public pages: no key is needed, but that source is unofficial and may be delayed, limited or stop working at any time. Only ticker symbols are sent there.</string>
     <string name="key_guide_title">How to get a free key</string>
     <string name="key_guide_step1">1. Tap Get key from Finnhub. Finnhub opens in a browser tab; create a free account or sign in. This app never sees your Finnhub password.</string>
     <string name="key_guide_step2">2. On Finnhub, copy your API key.</string>
@@ -542,4 +538,8 @@
     <string name="prices_failure_td_limit">the Twelve Data credit limit was reached (the daily limit resets at 00:00 UTC). Prices received so far are kept</string>
     <string name="prices_progress_td">Twelve Data · %1$d of %2$d · about %3$d min left</string>
     <string name="prices_no_key_td">Add your Twelve Data API key in Settings to see prices for US listings.</string>
+    <string name="source_finnhub">Source: Finnhub</string>
+    <string name="source_yahoo">Source: Yahoo Finance (European listings, temporary)</string>
+    <string name="source_none">None</string>
+    <string name="prices_choose_provider">Choose a price provider</string>
 </resources>

@@ -302,12 +302,14 @@ private fun PlusMenu(states: AppStates, usd: Boolean, onDismiss: () -> Unit, onT
                 else -> stringResource(R.string.bento_off)
             }
             MenuRow(stringResource(R.string.focus_menu_backup), backup) { onGo(FocusRoute.SETTINGS) }
-            val us = when ((portfolio as? PortfolioUiState.Loaded)?.priceSource) {
-                PriceSource.FINNHUB -> stringResource(R.string.bento_finnhub)
-                PriceSource.YAHOO -> stringResource(R.string.bento_yahoo_no_key)
+            // European listings use Yahoo Finance (temporary) only while a provider is chosen.
+            val prices = when ((portfolio as? PortfolioUiState.Loaded)?.priceSource) {
+                PriceSource.FINNHUB -> stringResource(R.string.focus_prices_status, stringResource(R.string.bento_finnhub))
+                PriceSource.TWELVE_DATA -> stringResource(R.string.focus_prices_status, stringResource(R.string.provider_twelvedata))
+                PriceSource.NONE -> stringResource(R.string.source_none)
                 else -> "—"
             }
-            MenuRow(stringResource(R.string.focus_menu_prices), stringResource(R.string.focus_prices_status, us)) { onGo(FocusRoute.SETTINGS) }
+            MenuRow(stringResource(R.string.focus_menu_prices), prices) { onGo(FocusRoute.SETTINGS) }
             MenuRow(stringResource(R.string.focus_menu_security), "›") { onGo(FocusRoute.SETTINGS) }
             MenuRow(stringResource(R.string.focus_menu_settings), "›") { onGo(FocusRoute.SETTINGS) }
             MenuRow(stringResource(R.string.focus_menu_delete), "›", color = FocusColors.Loss, last = true) { onGo(FocusRoute.REPORTS) }

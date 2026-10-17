@@ -71,6 +71,10 @@ import com.ibkrtax.mobile.prices.RefreshOutcome
 import com.ibkrtax.mobile.state.PortfolioState
 import com.ibkrtax.mobile.state.PortfolioUiState
 import com.ibkrtax.mobile.ui.Formats
+import com.ibkrtax.mobile.ui.common.PriceSourcesLine
+import com.ibkrtax.mobile.ui.common.QuoteSourceLabel
+import com.ibkrtax.mobile.ui.common.priceStatusText
+import com.ibkrtax.mobile.ui.common.twelveDataProgressText
 import com.ibkrtax.mobile.ui.common.UiPreferences
 import java.math.BigDecimal
 
@@ -119,7 +123,7 @@ fun CalmHome(state: PortfolioState, income: IncomeState, onImport: () -> Unit, o
             Text(stringResource(R.string.portfolio_empty_body), color = CalmColors.Muted, modifier = Modifier.padding(vertical = 10.dp))
             Button(onClick = onImport) { Text(stringResource(R.string.calm_add_reports)) }
         }
-        is PortfolioUiState.Loaded -> Loaded(current, progress?.let { "${it.done} / ${it.total}" }, income, state::refresh, onImport, onSettings)
+        is PortfolioUiState.Loaded -> Loaded(current, progress?.let { twelveDataProgressText(it) ?: "${it.done} / ${it.total}" }, income, state::refresh, onImport, onSettings)
     }
 }
 
@@ -256,27 +260,16 @@ private fun Loaded(data: PortfolioUiState.Loaded, progress: String?, income: Inc
 @Composable
 private fun PriceLine(data: PortfolioUiState.Loaded, progress: String?, onRefresh: () -> Unit) {
     val prices = data.prices
-    val text = when {
-        prices == null -> stringResource(R.string.prices_refreshing) + (progress?.let { " $it" } ?: "")
-        prices is RefreshOutcome.Failed -> stringResource(
-            R.string.prices_failed,
-            stringResource(
-                when (prices.reason) {
-                    PriceFailure.OFFLINE -> R.string.prices_failure_offline
-                    PriceFailure.INVALID_KEY -> R.string.prices_failure_invalid_key
-                    PriceFailure.RATE_LIMITED -> R.string.prices_failure_rate_limited
-                    PriceFailure.PROVIDER_ERROR -> R.string.prices_failure_provider
-                },
-            ),
-        )
-        data.priceSource == PriceSource.YAHOO -> stringResource(R.string.prices_from_yahoo)
-        data.hasEuropean -> stringResource(R.string.prices_europe_from_yahoo)
-        else -> stringResource(R.string.calm_prices_updated)
+    val text = when (prices) {
+        null -> stringResource(R.string.prices_refreshing) + (progress?.let { " $it" } ?: "")
+        else -> priceStatusText(prices, data.priceSource) ?: stringResource(R.string.calm_prices_updated)
     }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(text, color = CalmColors.Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
         if (prices != null) TextButton(onClick = onRefresh) { Text("↻ " + stringResource(R.string.prices_refresh), fontSize = 13.sp) }
     }
+    // Each source of a shown price, with the Twelve Data attribution link (mobile-market-prices).
+    PriceSourcesLine(data.rows, color = CalmColors.Muted)
 }
 
 @Composable
@@ -437,6 +430,7 @@ private fun PositionSheet(p: PositionPerformance, onHistory: () -> Unit) {
             Stat(stringResource(R.string.details_invested), skinMoney(p.invested, cur), Modifier.weight(1f))
             Stat(stringResource(R.string.details_value), row.marketValue?.let { skinMoney(it, cur) } ?: stringResource(R.string.details_unavailable), Modifier.weight(1f))
         }
+        QuoteSourceLabel(row.price?.quote?.source, color = CalmColors.Muted)
     } else {
         Text(stringResource(R.string.details_sold, cur), color = CalmColors.Muted, modifier = Modifier.padding(top = 12.dp))
     }

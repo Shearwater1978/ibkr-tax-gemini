@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.ibkrtax.mobile.R
 import com.ibkrtax.mobile.portfolio.PositionPerformance
 import com.ibkrtax.mobile.ui.Formats
+import com.ibkrtax.mobile.ui.common.QuoteSourceLabel
 import java.math.BigDecimal
 
 /** Per-position breakdown in the position's own currency (mobile-position-performance spec). */
@@ -46,6 +47,7 @@ fun PositionDetailsSheet(position: PositionPerformance, onDismiss: () -> Unit, o
                 DetailLine(stringResource(R.string.details_average), Formats.number(row.holding.averagePrice, 2, 4) + " " + currency)
                 DetailLine(stringResource(R.string.details_invested), money(position.invested))
                 DetailLine(stringResource(R.string.details_value), money(row.marketValue))
+                QuoteSourceLabel(row.price?.quote?.source)
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             DetailLine(stringResource(R.string.details_price_gain), signed(position.priceGain), position.priceGain)
