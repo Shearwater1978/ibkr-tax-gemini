@@ -1,0 +1,6 @@
+Statement,Header,Field Name,Field Value
+Statement,Data,Title,Activity Statement
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code
+Trades,Data,Order,Stocks,USD,AAPL,"2023-01-10, 10:30:00",10,150.00,150.20,-1500.00,-1.00,1501.00,0.00,2.00,O
+Trades,Data,Order,Stocks,USD,MSFT,not-a-date,abc,250.00
+Trades,Data,Order,Stocks,USD

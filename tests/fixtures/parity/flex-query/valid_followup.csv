@@ -1,0 +1,18 @@
+Statement,Header,Field Name,Field Value
+Statement,Data,BrokerName,Interactive Brokers LLC
+Statement,Data,Title,Activity Statement
+Statement,Data,Period,"January 1, 2024 - December 31, 2024"
+Account Information,Header,Field Name,Field Value
+Account Information,Data,Name,Synthetic Test User
+Account Information,Data,Account,U00000001
+Account Information,Data,Account Type,Individual
+Account Information,Data,Base Currency,USD
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code
+Trades,Data,Order,Stocks,USD,AAPL,"2024-02-12, 10:05:00",2,185.00,185.20,-370.00,-1.00,371.00,0.00,0.40,O
+Trades,SubTotal,,Stocks,USD,AAPL,,2,,,-370.00,-1.00,371.00,0.00,0.40,
+Trades,Data,Order,Stocks,EUR,SAP,"2024-03-05, 09:30:00",-3,75.00,75.10,225.00,-3.00,-181.13,40.87,-0.30,C
+Trades,SubTotal,,Stocks,EUR,SAP,,-3,,,225.00,-3.00,-181.13,40.87,-0.30,
+Trades,Total,,Stocks,USD,,,,,,-370.00,-1.00,,0.00,0.40,
+Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
+Financial Instrument Information,Data,Stocks,AAPL,APPLE INC,900001,US0378331005,AAPL,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,SAP,SAP SE,900003,DE0007164600,SAP,IBIS,1,COMMON,

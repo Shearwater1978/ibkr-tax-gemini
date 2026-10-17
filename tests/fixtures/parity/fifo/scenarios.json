@@ -1,0 +1,78 @@
+[
+  {
+    "name": "partial_sell_fifo",
+    "transactions": [
+      {"date": "2023-01-10", "event_type": "BUY", "ticker": "AAPL", "quantity": "10", "price": "150.00", "currency": "USD", "fee": "-1.00", "isin": "US0378331005"},
+      {"date": "2023-03-15", "event_type": "BUY", "ticker": "AAPL", "quantity": "5", "price": "160.00", "currency": "USD", "fee": "-1.00", "isin": "US0378331005"},
+      {"date": "2023-06-20", "event_type": "SELL", "ticker": "AAPL", "quantity": "-8", "price": "175.00", "currency": "USD", "fee": "-1.00", "isin": "US0378331005"}
+    ]
+  },
+  {
+    "name": "fully_sold",
+    "transactions": [
+      {"date": "2023-04-03", "event_type": "BUY", "ticker": "MSFT", "quantity": "3", "price": "250.00", "currency": "USD", "fee": "-1.00", "isin": "US5949181045"},
+      {"date": "2023-09-01", "event_type": "SELL", "ticker": "MSFT", "quantity": "-3", "price": "300.00", "currency": "USD", "fee": "-1.00", "isin": "US5949181045"}
+    ]
+  },
+  {
+    "name": "forward_split_same_day_as_buy",
+    "transactions": [
+      {"date": "2023-02-01", "event_type": "BUY", "ticker": "SAP", "quantity": "4", "price": "120.00", "currency": "EUR", "fee": "-3.00", "isin": "DE0007164600"},
+      {"date": "2023-07-03", "event_type": "BUY", "ticker": "SAP", "quantity": "1", "price": "61.00", "currency": "EUR", "fee": "-3.00", "isin": "DE0007164600"},
+      {"date": "2023-07-03", "event_type": "SPLIT", "ticker": "SAP", "quantity": "4", "price": "0", "currency": "EUR", "fee": "0", "isin": "DE0007164600", "split_ratio": "2", "description": "SAP(DE0007164600) Split 2 for 1 (SAP, SAP SE, DE0007164600)"}
+    ]
+  },
+  {
+    "name": "reverse_split_two_rows",
+    "transactions": [
+      {"date": "2022-03-01", "event_type": "BUY", "ticker": "GE", "quantity": "80", "price": "12.50", "currency": "USD", "fee": "-1.00", "isin": "US3696043013"},
+      {"date": "2022-08-02", "event_type": "SPLIT", "ticker": "GE", "quantity": "10", "price": "0", "currency": "USD", "fee": "0", "isin": "US3696043013", "split_ratio": "0.125", "description": "GE(US3696043013) Split 1 for 8 (GE, GENERAL ELECTRIC, US3696043013)"},
+      {"date": "2022-08-02", "event_type": "SPLIT", "ticker": "GE", "quantity": "-80", "price": "0", "currency": "USD", "fee": "0", "isin": "US3696043013", "split_ratio": "0.125", "description": "GE(US3696043013) Split 1 for 8 (GE, GENERAL ELECTRIC, US3696043013)"}
+    ]
+  },
+  {
+    "name": "merger_carries_cost_and_dates",
+    "transactions": [
+      {"date": "2021-05-10", "event_type": "BUY", "ticker": "OLDCO", "quantity": "10", "price": "50.00", "currency": "USD", "fee": "-1.00", "isin": "US00000000A1"},
+      {"date": "2021-09-01", "event_type": "BUY", "ticker": "OLDCO", "quantity": "4", "price": "60.00", "currency": "USD", "fee": "-1.00", "isin": "US00000000A1"},
+      {"date": "2022-01-15", "event_type": "MERGER", "ticker": "OLDCO", "quantity": "-14", "price": "0", "currency": "USD", "fee": "0", "isin": "US00000000A1", "description": "OLDCO(US00000000A1) Merged(Acquisition) WITH US00000000B2 1 for 2 (OLDCO, OLD COMPANY, US00000000A1)"},
+      {"date": "2022-01-15", "event_type": "STOCK_DIV", "ticker": "NEWCO", "quantity": "7", "price": "0", "currency": "USD", "fee": "0", "isin": "US00000000B2", "description": "OLDCO(US00000000A1) Merged(Acquisition) WITH US00000000B2 1 for 2 (NEWCO, NEW COMPANY, US00000000B2)"}
+    ]
+  },
+  {
+    "name": "spinoff_adds_zero_cost_lot",
+    "transactions": [
+      {"date": "2021-03-01", "event_type": "BUY", "ticker": "MRK", "quantity": "20", "price": "75.00", "currency": "USD", "fee": "-1.00", "isin": "US58933Y1055"},
+      {"date": "2021-06-03", "event_type": "SPINOFF", "ticker": "OGN", "quantity": "2", "price": "0", "currency": "USD", "fee": "0", "isin": "US68622V1061", "description": "MRK(US58933Y1055) Spinoff 1 for 10 (OGN, ORGANON & CO-W/I, US68622V1061)"}
+    ]
+  },
+  {
+    "name": "lots_in_two_currencies",
+    "transactions": [
+      {"date": "2023-01-05", "event_type": "BUY", "ticker": "SHEL", "quantity": "10", "price": "24.00", "currency": "GBP", "fee": "-3.00", "isin": "GB00BP6MXD84"},
+      {"date": "2023-02-05", "event_type": "BUY", "ticker": "SHEL", "quantity": "6", "price": "27.50", "currency": "EUR", "fee": "-3.00", "isin": "GB00BP6MXD84"},
+      {"date": "2023-03-05", "event_type": "BUY", "ticker": "SHEL", "quantity": "4", "price": "25.00", "currency": "GBP", "fee": "-3.00", "isin": "GB00BP6MXD84"}
+    ]
+  },
+  {
+    "name": "isin_change_keeps_identities_apart",
+    "transactions": [
+      {"date": "2022-01-10", "event_type": "BUY", "ticker": "SBER", "quantity": "5", "price": "13.335", "currency": "USD", "fee": "-0.525", "isin": "US80585Y3080"},
+      {"date": "2022-02-10", "event_type": "BUY", "ticker": "SBER", "quantity": "20", "price": "250", "currency": "RUB", "fee": "0", "isin": "RU0009029540"}
+    ]
+  },
+  {
+    "name": "ticker_alias_and_blank_isin",
+    "transactions": [
+      {"date": "2020-06-01", "event_type": "BUY", "ticker": "FB", "quantity": "2", "price": "230.00", "currency": "USD", "fee": "-1.00", "isin": "US30303M1027"},
+      {"date": "2022-07-01", "event_type": "BUY", "ticker": "META", "quantity": "1", "price": "160.00", "currency": "USD", "fee": "-1.00", "isin": ""}
+    ]
+  },
+  {
+    "name": "sell_exceeds_inventory",
+    "transactions": [
+      {"date": "2023-01-10", "event_type": "BUY", "ticker": "XYZ", "quantity": "2", "price": "10", "currency": "USD", "fee": "0", "isin": "US0000000XY1"},
+      {"date": "2023-02-10", "event_type": "SELL", "ticker": "XYZ", "quantity": "-3", "price": "12", "currency": "USD", "fee": "0", "isin": "US0000000XY1"}
+    ]
+  }
+]

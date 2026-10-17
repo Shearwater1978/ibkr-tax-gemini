@@ -1,0 +1,129 @@
+{
+  "trades": [
+    {
+      "ticker": "AAPL",
+      "isin": "US0378331005",
+      "conid": "900001",
+      "instrument_description": "APPLE INC",
+      "currency": "USD",
+      "date": "2023-01-10",
+      "qty": "10",
+      "price": "150.00",
+      "commission": "-1.00",
+      "type": "BUY",
+      "source": "IBKR Trade",
+      "source_file": "valid_basic.csv"
+    },
+    {
+      "ticker": "AAPL",
+      "isin": "US0378331005",
+      "conid": "900001",
+      "instrument_description": "APPLE INC",
+      "currency": "USD",
+      "date": "2023-03-15",
+      "qty": "5",
+      "price": "160.00",
+      "commission": "-1.00",
+      "type": "BUY",
+      "source": "IBKR Trade",
+      "source_file": "valid_basic.csv"
+    },
+    {
+      "ticker": "AAPL",
+      "isin": "US0378331005",
+      "conid": "900001",
+      "instrument_description": "APPLE INC",
+      "currency": "USD",
+      "date": "2023-06-20",
+      "qty": "-8",
+      "price": "175.00",
+      "commission": "-1.00",
+      "type": "SELL",
+      "source": "IBKR Trade",
+      "source_file": "valid_basic.csv"
+    },
+    {
+      "ticker": "MSFT",
+      "isin": "US5949181045",
+      "conid": "900002",
+      "instrument_description": "MICROSOFT CORP",
+      "currency": "USD",
+      "date": "2023-04-03",
+      "qty": "3",
+      "price": "250.00",
+      "commission": "-1.00",
+      "type": "BUY",
+      "source": "IBKR Trade",
+      "source_file": "valid_basic.csv"
+    },
+    {
+      "ticker": "MSFT",
+      "isin": "US5949181045",
+      "conid": "900002",
+      "instrument_description": "MICROSOFT CORP",
+      "currency": "USD",
+      "date": "2023-09-01",
+      "qty": "-3",
+      "price": "300.00",
+      "commission": "-1.00",
+      "type": "SELL",
+      "source": "IBKR Trade",
+      "source_file": "valid_basic.csv"
+    },
+    {
+      "ticker": "SAP",
+      "isin": "DE0007164600",
+      "conid": "900003",
+      "instrument_description": "SAP SE",
+      "currency": "EUR",
+      "date": "2023-02-01",
+      "qty": "4",
+      "price": "120.00",
+      "commission": "-3.00",
+      "type": "BUY",
+      "source": "IBKR Trade",
+      "source_file": "valid_basic.csv"
+    }
+  ],
+  "dividends": [
+    {
+      "ticker": "AAPL",
+      "isin": "US0378331005",
+      "conid": "900001",
+      "instrument_description": "APPLE INC",
+      "currency": "USD",
+      "date": "2023-05-18",
+      "amount": "3.60",
+      "source_file": "valid_basic.csv"
+    }
+  ],
+  "taxes": [
+    {
+      "ticker": "AAPL",
+      "isin": "US0378331005",
+      "conid": "900001",
+      "instrument_description": "APPLE INC",
+      "currency": "USD",
+      "date": "2023-05-18",
+      "amount": "-0.54",
+      "source_file": "valid_basic.csv"
+    }
+  ],
+  "corp_actions": [
+    {
+      "ticker": "SAP",
+      "isin": "DE0007164600",
+      "conid": "900003",
+      "instrument_description": "SAP SE",
+      "currency": "EUR",
+      "date": "2023-07-03",
+      "qty": "4",
+      "price": "0",
+      "commission": "0",
+      "type": "SPLIT",
+      "ratio": "2",
+      "source": "SAP(DE0007164600) Split 2 for 1 (SAP, SAP SE, DE0007164600)",
+      "source_file": "valid_basic.csv"
+    }
+  ]
+}

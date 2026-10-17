@@ -1,0 +1,34 @@
+Statement,Header,Field Name,Field Value
+Statement,Data,BrokerName,Interactive Brokers LLC
+Statement,Data,Title,Activity Statement
+Statement,Data,Period,"January 1, 2023 - December 31, 2023"
+Account Information,Header,Field Name,Field Value
+Account Information,Data,Name,Synthetic Test User
+Account Information,Data,Account,U00000001
+Account Information,Data,Account Type,Individual
+Account Information,Data,Base Currency,USD
+Trades,Header,DataDiscriminator,Asset Category,Currency,Symbol,Date/Time,Quantity,T. Price,C. Price,Proceeds,Comm/Fee,Basis,Realized P/L,MTM P/L,Code
+Trades,Data,Order,Stocks,USD,AAPL,"2023-01-10, 10:30:00",10,150.00,150.20,-1500.00,-1.00,1501.00,0.00,2.00,O
+Trades,Data,Order,Stocks,USD,AAPL,"2023-03-15, 11:00:00",5,160.00,160.10,-800.00,-1.00,801.00,0.00,0.50,O
+Trades,Data,Order,Stocks,USD,AAPL,"2023-06-20, 15:45:00",-8,175.00,175.30,1400.00,-1.00,-1200.80,198.20,-2.40,C
+Trades,SubTotal,,Stocks,USD,AAPL,,7,,,-900.00,-3.00,1101.20,198.20,0.10,
+Trades,Data,Order,Stocks,USD,MSFT,"2023-04-03, 09:45:00",3,250.00,250.50,-750.00,-1.00,751.00,0.00,1.50,O
+Trades,Data,Order,Stocks,USD,MSFT,"2023-09-01, 14:10:00",-3,300.00,299.80,900.00,-1.00,-751.00,148.00,0.60,C
+Trades,SubTotal,,Stocks,USD,MSFT,,0,,,150.00,-2.00,0.00,148.00,2.10,
+Trades,Data,Order,Stocks,EUR,SAP,"2023-02-01, 09:15:00",4,120.00,120.40,-480.00,-3.00,483.00,0.00,1.60,O
+Trades,SubTotal,,Stocks,EUR,SAP,,4,,,-480.00,-3.00,483.00,0.00,1.60,
+Trades,Data,Order,Forex,USD,EUR.USD,"2023-02-01, 09:10:00",-500,1.08,1.08,540.00,-2.00,,0.00,0.00,
+Trades,Total,,Stocks,USD,,,,,,-750.00,-5.00,,346.20,2.20,
+Corporate Actions,Header,Asset Category,Currency,Report Date,Date/Time,Description,Quantity,Proceeds,Value,Realized P/L,Code
+Corporate Actions,Data,Stocks,EUR,2023-07-03,"2023-07-03, 20:25:00","SAP(DE0007164600) Split 2 for 1 (SAP, SAP SE, DE0007164600)",4,0,0,0,
+Corporate Actions,Total,,,,,,,0,0,0,
+Dividends,Header,Currency,Date,Description,Amount
+Dividends,Data,USD,2023-05-18,AAPL(US0378331005) Cash Dividend USD 0.24 per Share (Ordinary Dividend),3.60
+Dividends,Data,Total,,,3.60
+Withholding Tax,Header,Currency,Date,Description,Amount
+Withholding Tax,Data,USD,2023-05-18,AAPL(US0378331005) Cash Dividend USD 0.24 per Share - US Tax,-0.54
+Withholding Tax,Data,Total,,,-0.54
+Financial Instrument Information,Header,Asset Category,Symbol,Description,Conid,Security ID,Underlying,Listing Exch,Multiplier,Type,Code
+Financial Instrument Information,Data,Stocks,AAPL,APPLE INC,900001,US0378331005,AAPL,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,MSFT,MICROSOFT CORP,900002,US5949181045,MSFT,NASDAQ,1,COMMON,
+Financial Instrument Information,Data,Stocks,SAP,SAP SE,900003,DE0007164600,SAP,IBIS,1,COMMON,

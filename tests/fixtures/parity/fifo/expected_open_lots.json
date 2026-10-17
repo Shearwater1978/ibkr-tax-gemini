@@ -1,0 +1,170 @@
+{
+  "partial_sell_fifo": {
+    "lots": [
+      {
+        "ticker": "AAPL",
+        "isin": "US0378331005",
+        "date": "2023-01-10",
+        "quantity": "2",
+        "price": "150.00",
+        "currency": "USD"
+      },
+      {
+        "ticker": "AAPL",
+        "isin": "US0378331005",
+        "date": "2023-03-15",
+        "quantity": "5",
+        "price": "160.00",
+        "currency": "USD"
+      }
+    ]
+  },
+  "fully_sold": {
+    "lots": []
+  },
+  "forward_split_same_day_as_buy": {
+    "lots": [
+      {
+        "ticker": "SAP",
+        "isin": "DE0007164600",
+        "date": "2023-02-01",
+        "quantity": "8",
+        "price": "60.00",
+        "currency": "EUR"
+      },
+      {
+        "ticker": "SAP",
+        "isin": "DE0007164600",
+        "date": "2023-07-03",
+        "quantity": "1",
+        "price": "61.00",
+        "currency": "EUR"
+      }
+    ]
+  },
+  "reverse_split_two_rows": {
+    "lots": [
+      {
+        "ticker": "GE",
+        "isin": "US3696043013",
+        "date": "2022-03-01",
+        "quantity": "10.000",
+        "price": "1.0E+2",
+        "currency": "USD"
+      }
+    ]
+  },
+  "merger_carries_cost_and_dates": {
+    "lots": [
+      {
+        "ticker": "NEWCO",
+        "isin": "US00000000B2",
+        "date": "2021-05-10",
+        "quantity": "5.0",
+        "price": "100.0",
+        "currency": "USD"
+      },
+      {
+        "ticker": "NEWCO",
+        "isin": "US00000000B2",
+        "date": "2021-09-01",
+        "quantity": "2.0",
+        "price": "120.0",
+        "currency": "USD"
+      }
+    ]
+  },
+  "spinoff_adds_zero_cost_lot": {
+    "lots": [
+      {
+        "ticker": "MRK",
+        "isin": "US58933Y1055",
+        "date": "2021-03-01",
+        "quantity": "20",
+        "price": "75.00",
+        "currency": "USD"
+      },
+      {
+        "ticker": "OGN",
+        "isin": "US68622V1061",
+        "date": "2021-06-03",
+        "quantity": "2",
+        "price": "0",
+        "currency": "USD"
+      }
+    ]
+  },
+  "lots_in_two_currencies": {
+    "lots": [
+      {
+        "ticker": "SHEL",
+        "isin": "GB00BP6MXD84",
+        "date": "2023-01-05",
+        "quantity": "10",
+        "price": "24.00",
+        "currency": "GBP"
+      },
+      {
+        "ticker": "SHEL",
+        "isin": "GB00BP6MXD84",
+        "date": "2023-02-05",
+        "quantity": "6",
+        "price": "27.50",
+        "currency": "EUR"
+      },
+      {
+        "ticker": "SHEL",
+        "isin": "GB00BP6MXD84",
+        "date": "2023-03-05",
+        "quantity": "4",
+        "price": "25.00",
+        "currency": "GBP"
+      }
+    ]
+  },
+  "isin_change_keeps_identities_apart": {
+    "lots": [
+      {
+        "ticker": "SBER",
+        "isin": "US80585Y3080",
+        "date": "2022-01-10",
+        "quantity": "5",
+        "price": "13.335",
+        "currency": "USD"
+      },
+      {
+        "ticker": "SBER",
+        "isin": "RU0009029540",
+        "date": "2022-02-10",
+        "quantity": "20",
+        "price": "250",
+        "currency": "RUB"
+      }
+    ]
+  },
+  "ticker_alias_and_blank_isin": {
+    "lots": [
+      {
+        "ticker": "META",
+        "isin": "US30303M1027",
+        "date": "2020-06-01",
+        "quantity": "2",
+        "price": "230.00",
+        "currency": "USD"
+      },
+      {
+        "ticker": "META",
+        "isin": "US30303M1027",
+        "date": "2022-07-01",
+        "quantity": "1",
+        "price": "160.00",
+        "currency": "USD"
+      }
+    ]
+  },
+  "sell_exceeds_inventory": {
+    "error": "UNMATCHED_SELL",
+    "ticker": "XYZ",
+    "date": "2023-02-10"
+  }
+}

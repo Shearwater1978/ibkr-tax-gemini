@@ -1,0 +1,35 @@
+{
+  "trades": [
+    {
+      "ticker": "AAPL",
+      "isin": "US0378331005",
+      "conid": "900001",
+      "instrument_description": "APPLE INC",
+      "currency": "USD",
+      "date": "2024-02-12",
+      "qty": "2",
+      "price": "185.00",
+      "commission": "-1.00",
+      "type": "BUY",
+      "source": "IBKR Trade",
+      "source_file": "valid_followup.csv"
+    },
+    {
+      "ticker": "SAP",
+      "isin": "DE0007164600",
+      "conid": "900003",
+      "instrument_description": "SAP SE",
+      "currency": "EUR",
+      "date": "2024-03-05",
+      "qty": "-3",
+      "price": "75.00",
+      "commission": "-3.00",
+      "type": "SELL",
+      "source": "IBKR Trade",
+      "source_file": "valid_followup.csv"
+    }
+  ],
+  "dividends": [],
+  "taxes": [],
+  "corp_actions": []
+}
